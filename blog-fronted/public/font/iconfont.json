@@ -1,0 +1,79 @@
+{
+  "id": "5191778",
+  "name": "个人在线简历",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "378274",
+      "name": "月亮",
+      "font_class": "yueliang",
+      "unicode": "e603",
+      "unicode_decimal": 58883
+    },
+    {
+      "icon_id": "1235222",
+      "name": "网址",
+      "font_class": "wangzhi",
+      "unicode": "e62b",
+      "unicode_decimal": 58923
+    },
+    {
+      "icon_id": "1305090",
+      "name": "文件",
+      "font_class": "wenjian",
+      "unicode": "e631",
+      "unicode_decimal": 58929
+    },
+    {
+      "icon_id": "3176645",
+      "name": "GitHub",
+      "font_class": "GitHub",
+      "unicode": "ea0a",
+      "unicode_decimal": 59914
+    },
+    {
+      "icon_id": "4942638",
+      "name": "个人",
+      "font_class": "geren",
+      "unicode": "e610",
+      "unicode_decimal": 58896
+    },
+    {
+      "icon_id": "5044039",
+      "name": "扳手",
+      "font_class": "banshou",
+      "unicode": "e63a",
+      "unicode_decimal": 58938
+    },
+    {
+      "icon_id": "5320519",
+      "name": "太阳",
+      "font_class": "taiyang",
+      "unicode": "e62e",
+      "unicode_decimal": 58926
+    },
+    {
+      "icon_id": "10069735",
+      "name": "邮件",
+      "font_class": "youjian",
+      "unicode": "e672",
+      "unicode_decimal": 58994
+    },
+    {
+      "icon_id": "18165539",
+      "name": "书籍,知识,书",
+      "font_class": "book",
+      "unicode": "e895",
+      "unicode_decimal": 59541
+    },
+    {
+      "icon_id": "27992080",
+      "name": "分享",
+      "font_class": "fenxiang",
+      "unicode": "e6e6",
+      "unicode_decimal": 59110
+    }
+  ]
+}

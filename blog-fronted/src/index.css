@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================
+   CSS Custom Properties (设计令牌)
+   ========================================== */
+:root {
+  --color-accent: #d9774a;
+  --color-accent-soft: rgba(217, 119, 74, 0.1);
+  --color-bg: #faf9f7;
+  --color-bg-alt: #f5f2ee;
+  --color-surface: #ffffff;
+  --color-text: #1a1817;
+  --color-text-secondary: #4a4744;
+  --color-text-muted: #6e6a64;
+  --color-border: #e8e4de;
+  --color-border-light: #f0ece6;
+}
+
+[data-theme="dark"] {
+  --color-accent: #d9895e;
+  --color-accent-soft: rgba(217, 137, 94, 0.12);
+  --color-bg: #1d1b19;
+  --color-bg-alt: #252320;
+  --color-surface: #2a2825;
+  --color-text: #e8e4e0;
+  --color-text-secondary: #b5b0aa;
+  --color-text-muted: #8b8680;
+  --color-border: #3a3630;
+  --color-border-light: #302c28;
+}
+
+/* ==========================================
+   Base 层（重置、伪元素、打印）
+   ========================================== */
+@layer base {
+  html {
+    font-size: 17.5px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--color-text);
+    background: var(--color-bg);
+    line-height: 1.65;
+    font-size: 0.9375rem;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul, ol { list-style: none; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+}
+
+@layer components {
+  /* Timeline 时间线圆点 (About/Resume 页面共用) */
+  .timeline-item {
+    @apply relative;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.375rem;
+    top: 0.35rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+}
+
+/* ==========================================
+   打印样式
+   ========================================== */
+@media print {
+  .nav, .site-footer { display: none !important; }
+  body { font-size: 11pt; color: #000; background: #fff; }
+  .section { padding: 1rem 0; }
+}

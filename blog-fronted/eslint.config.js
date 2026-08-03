@@ -1,0 +1,74 @@
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import prettier from 'eslint-config-prettier';
+import globals from 'globals';
+
+export default tseslint.config(
+  // 全局忽略
+  { ignores: ['dist', 'node_modules'] },
+
+  // 基础 JS/TS 规则
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.es2024,
+      },
+      parserOptions: {
+        projectService: {
+          allowDefaultProject: ['vite.config.ts', 'tailwind.config.ts', 'eslint.config.js', 'prettier.config.js', 'postcss.config.js'],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+      'simple-import-sort': simpleImportSort,
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+    },
+    rules: {
+      // React
+      ...react.configs.recommended.rules,
+      ...react.configs['jsx-runtime'].rules,
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react/no-unknown-property': ['error', { ignore: ['className'] }],
+
+      // Import 排序
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+
+      // TypeScript 调整（在 strictTypeChecked 之上放宽部分规则）
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      // React 19 + TS 中 prop-types 不再需要
+      'react/prop-types': 'off',
+      // 允许不显式声明返回类型（TS 推导足够好）
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
+  },
+
+  // Prettier 覆盖（必须放在最后）
+  prettier,
+);
