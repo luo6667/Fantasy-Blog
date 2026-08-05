@@ -1,6 +1,6 @@
-import { type SyntheticEvent,useCallback,useEffect,useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 
-import { tagApi } from '@/lib/api';
+import { useCreateTagMutation, useDeleteTagMutation, useTagsQuery } from '@/hooks/queries';
 import type { TagItem } from '@/types/api';
 
 const inputClass =
@@ -17,39 +17,24 @@ const btnGhost =
  * - 删除标签（同步从所有文章移除，删除前二次确认）
  */
 export default function TagManager() {
-  const [tags, setTags] = useState<TagItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [name, setName] = useState('');
 
-  const refresh = useCallback(async () => {
-    setError('');
-    try {
-      const list = await tagApi.list();
-      setTags(list);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: tags = [], isLoading: loading, error } = useTagsQuery();
+  const createTag = useCreateTagMutation();
+  const deleteTag = useDeleteTagMutation();
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const errorMessage = error?.message ?? createTag.error?.message ?? deleteTag.error?.message;
 
   /** 添加标签 */
   async function handleAdd(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const value = name.trim();
     if (!value) return;
-    setError('');
     try {
-      await tagApi.create(value);
+      await createTag.mutateAsync(value);
       setName('');
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -57,12 +42,10 @@ export default function TagManager() {
   async function handleDelete(tag: TagItem) {
     const countMsg = tag.count > 0 ? `（将从 ${String(tag.count)} 篇文章中移除）` : '';
     if (!window.confirm(`确定删除标签「${tag.name}」吗？${countMsg}此操作不可恢复。`)) return;
-    setError('');
     try {
-      await tagApi.remove(tag.name);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      await deleteTag.mutateAsync(tag.name);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -86,7 +69,7 @@ export default function TagManager() {
         </button>
       </form>
 
-      {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+      {errorMessage && <p className="mb-3 text-sm text-red-500">{errorMessage}</p>}
 
       {loading ? (
         <p className="py-6 text-center text-sm text-text-muted">加载中…</p>

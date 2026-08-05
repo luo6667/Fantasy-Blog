@@ -29,10 +29,12 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    // 代理后端 API 与上传文件（同源请求，免 CORS）
+    // 代理后端 API、上传文件与 WebSocket（同源请求，免 CORS）
     proxy: {
       '/api': { target: 'http://localhost:4000', changeOrigin: true },
       '/uploads': { target: 'http://localhost:4000', changeOrigin: true },
+      // Socket.IO 实时推送（私信 / 通知 / 正在输入）
+      '/socket.io': { target: 'http://localhost:4000', changeOrigin: true, ws: true },
     },
   },
 });

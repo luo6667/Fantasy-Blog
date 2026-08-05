@@ -15,7 +15,7 @@ import { HttpError } from './error.js';
  * - 仅允许常见图片类型，大小上限 env.UPLOAD_MAX_SIZE
  */
 
-const uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
+const uploadDir = env.UPLOAD_DIR_ABS;
 mkdirSync(uploadDir, { recursive: true });
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);

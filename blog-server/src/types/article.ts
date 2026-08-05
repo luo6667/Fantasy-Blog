@@ -27,6 +27,14 @@ export interface ArticleListItem {
   date: string;
   createdAt: string;
   updatedAt: string;
+  /** 点赞数 */
+  likes: number;
+  /** 收藏数 */
+  favorites: number;
+  /** 当前登录用户是否已点赞（未登录恒为 false） */
+  likedByMe: boolean;
+  /** 当前登录用户是否已收藏（未登录恒为 false） */
+  favoritedByMe: boolean;
 }
 
 /** 文章详情（含正文） */

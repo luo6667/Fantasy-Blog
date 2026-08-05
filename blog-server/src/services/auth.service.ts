@@ -28,7 +28,7 @@ export async function register(username: string, password: string): Promise<Auth
     User.exists({ username }),
   ]);
   if (adminExists || userExists) {
-    throw new HttpError(409, '用户名已存在');
+    throw new HttpError(409, '该用户名已被占用');
   }
   const user = await User.create({ username, password });
   return { id: user._id.toString(), username: user.username, role: 'user' };

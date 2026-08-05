@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { useArticleListQuery, useDeleteArticleMutation } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
-import { articleApi } from '@/lib/api';
-import type { ArticleListItem } from '@/types/api';
 
 const btnGhost =
   'rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent';
@@ -19,36 +17,20 @@ const btnDanger = 'rounded-md px-3 py-1.5 text-sm text-red-500 transition-colors
  */
 export default function ArticleManager() {
   const { logout } = useAuth();
-  const [articles, setArticles] = useState<ArticleListItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const articleQuery = useArticleListQuery(null);
+  const deleteArticle = useDeleteArticleMutation();
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await articleApi.list({ pageSize: 50 });
-      setArticles(res.list);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const articles = articleQuery.data?.list ?? [];
+  const loading = articleQuery.isLoading;
+  const errorMessage = articleQuery.error?.message ?? deleteArticle.error?.message;
 
   /** 删除文章（确认后执行） */
   async function handleDelete(id: string) {
     if (!window.confirm('确定删除这篇文章吗？其评论将一并删除，此操作不可恢复。')) return;
-    setError('');
     try {
-      await articleApi.remove(id);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      await deleteArticle.mutateAsync(id);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -72,7 +54,7 @@ export default function ArticleManager() {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+      {errorMessage && <p className="mb-4 text-sm text-red-500">{errorMessage}</p>}
 
       {loading ? (
         <p className="py-8 text-center text-text-muted">加载中…</p>

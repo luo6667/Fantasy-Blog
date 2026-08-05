@@ -6,8 +6,13 @@ import { model, Schema, Types, type Model } from 'mongoose';
  * - title/excerpt/content 为必填（content 供详情页渲染正文）
  * - tags 字符串数组，用于列表页标签筛选
  * - cover 封面图 URL（可选，配合 /api/upload 使用）
+ * - author* 文章作者（创建时记录；旧数据可能为空）
+ * - likedBy / favoritedBy 点赞者、收藏者标识数组（"role:id"），用于去重与计数
  * - timestamps 自动维护 createdAt / updatedAt
  */
+
+/** 作者类型 */
+export type ArticleAuthorType = 'user' | 'admin';
 
 /** Article 文档字段 */
 export interface ArticleDoc {
@@ -17,6 +22,11 @@ export interface ArticleDoc {
   content: string;
   tags: string[];
   cover?: string;
+  authorType?: ArticleAuthorType;
+  authorId?: Types.ObjectId;
+  authorName?: string;
+  likedBy: string[];
+  favoritedBy: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +40,11 @@ const articleSchema = new Schema<ArticleDoc, ArticleModel>(
     content: { type: String, required: true },
     tags: { type: [String], default: [] },
     cover: { type: String, default: '' },
+    authorType: { type: String, enum: ['user', 'admin'], default: undefined },
+    authorId: { type: Schema.Types.ObjectId, default: undefined },
+    authorName: { type: String, trim: true, maxlength: 32, default: undefined },
+    likedBy: { type: [String], default: [] },
+    favoritedBy: { type: [String], default: [] },
   },
   { timestamps: true },
 );
@@ -38,5 +53,7 @@ const articleSchema = new Schema<ArticleDoc, ArticleModel>(
 articleSchema.index({ createdAt: -1 });
 // 标签筛选索引
 articleSchema.index({ tags: 1 });
+// 我的收藏列表
+articleSchema.index({ favoritedBy: 1, createdAt: -1 });
 
 export const Article = model<ArticleDoc, ArticleModel>('Article', articleSchema);

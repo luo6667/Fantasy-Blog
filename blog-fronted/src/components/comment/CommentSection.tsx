@@ -1,9 +1,15 @@
 import { motion } from 'motion/react';
-import { type SyntheticEvent,useCallback,useEffect,useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 
 import AuthModal from '@/components/auth/AuthModal';
+import {
+  useCommentsQuery,
+  useCreateCommentMutation,
+  useDeleteCommentMutation,
+  useLikeCommentMutation,
+  useReplyCommentMutation,
+} from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
-import { commentApi } from '@/lib/api';
 import type { CommentItem } from '@/types/api';
 
 const inputClass =
@@ -64,31 +70,31 @@ interface CommentSectionProps {
  */
 export default function CommentSection({ articleId }: CommentSectionProps) {
   const { user, isAdmin } = useAuth();
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const userId = user?.id;
   const [commentText, setCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const [submitting, setSubmitting] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    setError('');
-    try {
-      const list = await commentApi.list(articleId);
-      setComments(list);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [articleId]);
+  const {
+    data: comments = [],
+    isLoading: loading,
+    error: loadError,
+  } = useCommentsQuery(articleId, userId);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const createComment = useCreateCommentMutation(articleId, userId);
+  const replyComment = useReplyCommentMutation(articleId, userId);
+  const likeComment = useLikeCommentMutation(articleId, userId);
+  const deleteComment = useDeleteCommentMutation(articleId, userId);
+
+  const submitting = createComment.isPending || replyComment.isPending;
+  const errorMessage =
+    loadError?.message ??
+    createComment.error?.message ??
+    replyComment.error?.message ??
+    likeComment.error?.message ??
+    deleteComment.error?.message;
 
   /** 发表评论 */
   async function handleComment(e: SyntheticEvent<HTMLFormElement>) {
@@ -99,16 +105,11 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
     }
     const content = commentText.trim();
     if (!content) return;
-    setSubmitting(true);
-    setError('');
     try {
-      await commentApi.create(articleId, content);
+      await createComment.mutateAsync(content);
       setCommentText('');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSubmitting(false);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -118,17 +119,12 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
     if (!replyTarget) return;
     const content = replyText.trim();
     if (!content) return;
-    setSubmitting(true);
-    setError('');
     try {
-      await commentApi.reply(replyTarget, content);
+      await replyComment.mutateAsync({ commentId: replyTarget, content });
       setReplyTarget(null);
       setReplyText('');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSubmitting(false);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -143,33 +139,21 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   }
 
   /** 点赞 / 取消点赞 */
-  async function handleLike(comment: CommentItem) {
+  function handleLike(comment: CommentItem) {
     if (!user) {
       setAuthOpen(true);
       return;
     }
-    setError('');
-    try {
-      const result = await commentApi.like(comment.id);
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === comment.id ? { ...c, likedByMe: result.liked, likes: result.likes } : c,
-        ),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+    likeComment.mutate(comment.id);
   }
 
   /** 删除评论（作者本人或管理员，连带全部子孙回复） */
   async function handleDelete(comment: CommentItem) {
     if (!window.confirm('确定删除这条评论吗？其全部回复将一并删除，此操作不可恢复。')) return;
-    setError('');
     try {
-      await commentApi.remove(comment.id);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      await deleteComment.mutateAsync(comment.id);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -181,7 +165,7 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
         评论 <span className="text-sm font-normal text-text-muted">({String(comments.length)})</span>
       </h2>
 
-      {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+      {errorMessage && <p className="mb-4 text-sm text-red-500">{errorMessage}</p>}
 
       {/* 评论输入 */}
       {user ? (
@@ -190,7 +174,13 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
             className={`${inputClass} min-h-[5.5rem] resize-y leading-relaxed`}
             value={commentText}
             onChange={(e) => { setCommentText(e.target.value); }}
-            placeholder={`以 ${user.username} 的身份发表评论…`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder={`以 ${user.username} 的身份发表评论…（Enter 发送，Shift+Enter 换行）`}
             maxLength={1000}
           />
           <div className="flex justify-end">
@@ -239,7 +229,7 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
                   onReplyToggle={() => { setReplyTarget(replyTarget === c.id ? null : c.id); setReplyText(''); }}
                   onReplyChange={setReplyText}
                   onReplySubmit={handleReply}
-                  onLike={() => { void handleLike(c); }}
+                  onLike={() => { handleLike(c); }}
                   onDelete={() => { void handleDelete(c); }}
                 />
 
@@ -258,7 +248,7 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
                           onReplyToggle={() => { setReplyTarget(replyTarget === r.id ? null : r.id); setReplyText(''); }}
                           onReplyChange={setReplyText}
                           onReplySubmit={handleReply}
-                          onLike={() => { void handleLike(r); }}
+                          onLike={() => { handleLike(r); }}
                           onDelete={() => { void handleDelete(r); }}
                         />
                       </li>
@@ -393,7 +383,13 @@ function CommentCard({
             className={`${inputClass} min-h-[4rem] resize-y leading-relaxed`}
             value={replyText}
             onChange={(e) => { onReplyChange(e.target.value); }}
-            placeholder={`回复 ${comment.authorName}…`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                e.currentTarget.form?.requestSubmit();
+              }
+            }}
+            placeholder={`回复 ${comment.authorName}…（Enter 发送，Shift+Enter 换行）`}
             maxLength={1000}
             autoFocus
           />

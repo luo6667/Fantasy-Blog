@@ -1,18 +1,14 @@
-import { useContext } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
-import { ThemeContext } from '@/contexts/ThemeContext';
+import { useThemeStore } from '@/stores/themeStore';
 import type { ThemeContextValue } from '@/types';
 
 /**
  * 主题 Hook
  *
- * 返回当前主题模式与切换函数。
- * 必须在 <ThemeProvider> 内部使用，否则抛出明确错误。
+ * 从 zustand themeStore 读取当前主题模式与切换函数。
+ * 不再依赖 Provider，任何组件可直接调用。
  */
 export function useTheme(): ThemeContextValue {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) {
-    throw new Error('useTheme() must be used within a <ThemeProvider>');
-  }
-  return ctx;
+  return useThemeStore(useShallow((s) => ({ theme: s.theme, toggleTheme: s.toggleTheme })));
 }

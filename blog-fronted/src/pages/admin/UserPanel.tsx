@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Tag } from '@/components/common';
-import { articleApi, tagApi } from '@/lib/api';
-import type { ArticleListItem, TagItem } from '@/types/api';
+import { useArticleListQuery, useTagsQuery } from '@/hooks/queries';
 
 /**
  * 用户面板（/admin 的「用户」tab）
@@ -13,29 +11,13 @@ import type { ArticleListItem, TagItem } from '@/types/api';
  * - 分类标签一览（含文章数）
  */
 export default function UserPanel() {
-  const [articles, setArticles] = useState<ArticleListItem[]>([]);
-  const [tags, setTags] = useState<TagItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const articleQuery = useArticleListQuery(null);
+  const tagsQuery = useTagsQuery();
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([articleApi.list({ pageSize: 50 }), tagApi.list()])
-      .then(([articleRes, tagList]) => {
-        if (cancelled) return;
-        setArticles(articleRes.list);
-        setTags(tagList);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const articles = articleQuery.data?.list ?? [];
+  const tags = tagsQuery.data ?? [];
+  const loading = articleQuery.isLoading || tagsQuery.isLoading;
+  const errorMessage = articleQuery.error?.message ?? tagsQuery.error?.message;
 
   return (
     <div>
@@ -44,7 +26,7 @@ export default function UserPanel() {
         无需登录即可浏览博客文章与分类标签，点击文章可查看详情。
       </p>
 
-      {error && <p className="mb-4 text-sm text-red-500">{error}</p>}
+      {errorMessage && <p className="mb-4 text-sm text-red-500">{errorMessage}</p>}
 
       {loading ? (
         <p className="py-8 text-center text-text-muted">加载中…</p>

@@ -1,9 +1,14 @@
-import { type ChangeEvent, type SyntheticEvent,useEffect,useRef,useState } from 'react';
+import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { BgOrbs, MdxContent } from '@/components/common';
-import { articleApi, tagApi, uploadApi } from '@/lib/api';
-import type { TagItem } from '@/types/api';
+import {
+  useArticleDetailQuery,
+  useCreateArticleMutation,
+  useTagsQuery,
+  useUpdateArticleMutation,
+} from '@/hooks/queries';
+import { uploadApi } from '@/lib/api';
 
 const inputClass =
   'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 outline-none transition-colors focus:border-accent';
@@ -30,52 +35,39 @@ export default function ArticleEditor() {
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<TagItem[]>([]);
   const [cover, setCover] = useState('');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // 图片上传中
 
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // 编辑模式：拉取文章详情回填
-  useEffect(() => {
-    if (!id) return;
-    let cancelled = false;
-    articleApi
-      .detail(id)
-      .then((d) => {
-        if (cancelled) return;
-        setTitle(d.title);
-        setExcerpt(d.excerpt);
-        setContent(d.content);
-        setSelectedTags(d.tags);
-        setCover(d.cover ?? '');
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
+  const detailQuery = useArticleDetailQuery(id);
+  const { data: availableTags = [], isLoading: tagsLoading, error: tagsError } = useTagsQuery();
+  const createArticle = useCreateArticleMutation();
+  const updateArticle = useUpdateArticleMutation();
 
-  // 加载标签库（供分类选择）
+  // 编辑模式：详情数据到达后回填表单（按文章 id 记录，避免 refetch 覆盖已编辑内容）
+  const initializedIdRef = useRef<string | null>(null);
   useEffect(() => {
-    let cancelled = false;
-    tagApi
-      .list()
-      .then((list) => {
-        if (!cancelled) setAvailableTags(list);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const article = detailQuery.data;
+    if (!article || initializedIdRef.current === article.id) return;
+    initializedIdRef.current = article.id;
+    setTitle(article.title);
+    setExcerpt(article.excerpt);
+    setContent(article.content);
+    setSelectedTags(article.tags);
+    setCover(article.cover ?? '');
+  }, [detailQuery.data]);
+
+  const saving = createArticle.isPending || updateArticle.isPending;
+  const serverError =
+    detailQuery.error?.message ??
+    tagsError?.message ??
+    createArticle.error?.message ??
+    updateArticle.error?.message;
+  const errorMessage = error || serverError;
 
   /** 在正文光标处插入文本 */
   function insertAtCursor(text: string) {
@@ -178,7 +170,6 @@ export default function ArticleEditor() {
       setError('请至少选择一个分类标签');
       return;
     }
-    setSubmitting(true);
     setError('');
     const input = {
       title: title.trim(),
@@ -188,12 +179,12 @@ export default function ArticleEditor() {
       cover: cover || undefined,
     };
     try {
-      const saved = isEdit ? await articleApi.update(id ?? '', input) : await articleApi.create(input);
+      const saved = isEdit
+        ? await updateArticle.mutateAsync({ id: id ?? '', input })
+        : await createArticle.mutateAsync(input);
       void navigate(`/blog/${saved.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSubmitting(false);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -233,7 +224,7 @@ export default function ArticleEditor() {
             {/* 分类标签（必选，来自标签库） */}
             <div className="flex flex-col gap-1.5 text-sm">
               <span className="text-text-muted">分类标签 *（至少选择一个）</span>
-              {availableTags.length === 0 && !isEdit ? (
+              {availableTags.length === 0 && !isEdit && !tagsLoading ? (
                 <p className="text-xs text-red-500">标签库为空，请先到「标签管理」添加分类标签。</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -340,7 +331,7 @@ export default function ArticleEditor() {
               )}
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {errorMessage && <p className="text-sm text-red-500">{errorMessage}</p>}
 
             <div className="flex justify-end gap-2">
               <Link
@@ -351,10 +342,10 @@ export default function ArticleEditor() {
               </Link>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || saving}
                 className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {submitting ? '保存中…' : isEdit ? '保存修改' : '发布文章'}
+                {saving ? '保存中…' : isEdit ? '保存修改' : '发布文章'}
               </button>
             </div>
           </form>

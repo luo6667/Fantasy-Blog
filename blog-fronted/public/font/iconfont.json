@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "9834440",
+      "name": "消息",
+      "font_class": "xiaoxi",
+      "unicode": "e64f",
+      "unicode_decimal": 58959
+    },
+    {
+      "icon_id": "12157606",
+      "name": "消息",
+      "font_class": "xiaoxi1",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "19954256",
+      "name": "收 藏",
+      "font_class": "shoucang",
+      "unicode": "e629",
+      "unicode_decimal": 58921
+    },
+    {
       "icon_id": "378274",
       "name": "月亮",
       "font_class": "yueliang",

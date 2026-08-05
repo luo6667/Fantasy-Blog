@@ -3,11 +3,16 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import AuthModal from '@/components/auth/AuthModal';
+import { ChatWindowHost } from '@/components/chat/ChatWindow';
 import { MotionLink } from '@/components/common';
+import FavoritesPanel from '@/components/favorites/FavoritesPanel';
+import NotificationPanel from '@/components/notification/NotificationPanel';
 import { NAV_TABS } from '@/constants';
+import { useConversationsQuery, useMarkNotificationsReadMutation } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { springBtn } from '@/lib/motion';
 import { preloadRoute } from '@/lib/preload';
+import { useChatStore } from '@/stores/chatStore';
 import type { ThemeMode } from '@/types';
 
 interface NavProps {
@@ -29,7 +34,30 @@ export default function Nav({ theme, onToggle }: NavProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [favOpen, setFavOpen] = useState(false);
   const { user, isAdmin, checking, logout } = useAuth();
+
+  const unreadNotifications = useChatStore((s) => s.unreadNotifications);
+  const setNotificationsOpen = useChatStore((s) => s.setNotificationsOpen);
+  const setChatOpen = useChatStore((s) => s.setChatOpen);
+  const markNotificationsRead = useMarkNotificationsReadMutation();
+
+  // 聊天未读徽标：所有会话未读总和
+  const { data: conversations = [] } = useConversationsQuery(Boolean(user));
+  const unreadMessages = conversations.reduce((sum, c) => sum + c.unread, 0);
+
+  /** 打开通知面板：标记全部已读并同步未读徽标 */
+  function openNotifications() {
+    setNotifOpen(true);
+    setNotificationsOpen(true);
+    markNotificationsRead.mutate(undefined);
+  }
+
+  function closeNotifications() {
+    setNotifOpen(false);
+    setNotificationsOpen(false);
+  }
 
   return (
     <motion.header
@@ -91,6 +119,66 @@ export default function Nav({ theme, onToggle }: NavProps) {
             className="cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-xs text-text-muted transition-colors hover:border-red-400 hover:text-red-500"
           >
             退出
+          </button>
+
+          {/* 消息通知：红色未读徽标 + 下拉列表 */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { if (notifOpen) { closeNotifications(); } else { openNotifications(); } }}
+              aria-label="消息通知"
+              className="relative cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              <i className="iconfont2 icon-tongzhi text-base leading-none" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold text-white">
+                  {unreadNotifications > 99 ? '99+' : String(unreadNotifications)}
+                </span>
+              )}
+            </button>
+            <AnimatePresence>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-[940]" onClick={closeNotifications} />
+                  <NotificationPanel onClose={closeNotifications} />
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 收藏：我的收藏列表 */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => { setFavOpen(!favOpen); }}
+              aria-label="我的收藏"
+              className="cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-amber-400 hover:text-amber-500"
+            >
+              <i className="iconfont2 icon-shoucangxing text-base leading-none" />
+            </button>
+            <AnimatePresence>
+              {favOpen && (
+                <>
+                  <div className="fixed inset-0 z-[940]" onClick={() => { setFavOpen(false); }} />
+                  <FavoritesPanel onClose={() => { setFavOpen(false); }} />
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 聊天：打开聊天窗口（未读消息红点） */}
+          <button
+            type="button"
+            onClick={() => { setChatOpen(true); }}
+            aria-label="聊天"
+            className="relative cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            <i className="iconfont2 icon-liaotian text-base leading-none" />
+            {unreadMessages > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold text-white">
+                {unreadMessages > 99 ? '99+' : String(unreadMessages)}
+              </span>
+            )}
           </button>
         </div>
       )}
@@ -197,6 +285,9 @@ export default function Nav({ theme, onToggle }: NavProps) {
 
       {/* 登录 / 注册弹窗 */}
       <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
+
+      {/* 私信聊天窗口（固定右下角） */}
+      <ChatWindowHost />
     </motion.header>
   );
 }

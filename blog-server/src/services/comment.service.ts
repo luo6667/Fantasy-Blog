@@ -1,6 +1,7 @@
 import { HttpError } from '../middleware/error.js';
 import { Article } from '../models/Article.js';
 import { Comment, type CommentDoc } from '../models/Comment.js';
+import { createNotification, resolveArticleRecipient } from './notification.service.js';
 import type { AuthUser } from '../types/auth.js';
 import type { CommentItem } from '../types/comment.js';
 
@@ -61,13 +62,14 @@ export async function listComments(
   );
 }
 
-/** 发表一级评论 */
+/** 发表一级评论（通知文章作者） */
 export async function createComment(
   articleId: string,
   user: AuthUser,
   content: string,
 ): Promise<CommentItem> {
-  if (!(await Article.exists({ _id: articleId }))) {
+  const article = await Article.findById(articleId);
+  if (!article) {
     throw new HttpError(404, '文章不存在');
   }
   const doc = await Comment.create({
@@ -78,10 +80,25 @@ export async function createComment(
     authorName: user.username,
     content,
   });
+  // 通知文章作者（作者非评论者本人；无作者时回退管理员）
+  if (!(article.authorType === user.role && article.authorId?.toString() === user.id)) {
+    const recipient = await resolveArticleRecipient(article);
+    if (recipient) {
+      await createNotification({
+        recipient,
+        actor: user,
+        type: 'comment',
+        articleId: article._id.toString(),
+        articleTitle: article.title,
+        commentId: doc._id.toString(),
+        commentContent: content,
+      });
+    }
+  }
   return toItem(doc, false, true, null);
 }
 
-/** 回复任意评论（无限嵌套；被回复者信息由前端结合 replyToName 展示） */
+/** 回复任意评论（无限嵌套；被回复者信息由前端结合 replyToName 展示），通知被回复者 */
 export async function createReply(
   commentId: string,
   user: AuthUser,
@@ -99,6 +116,19 @@ export async function createReply(
     authorName: user.username,
     content,
   });
+  // 通知被回复者（非本人时）
+  if (!(parent.authorType === user.role && parent.authorId.toString() === user.id)) {
+    const article = await Article.findById(parent.article);
+    await createNotification({
+      recipient: { role: parent.authorType, id: parent.authorId.toString() },
+      actor: user,
+      type: 'reply',
+      articleId: parent.article.toString(),
+      articleTitle: article?.title,
+      commentId: doc._id.toString(),
+      commentContent: content,
+    });
+  }
   return toItem(doc, false, true, parent.authorName);
 }
 

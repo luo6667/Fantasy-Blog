@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { z } from 'zod';
 
 /**
@@ -26,7 +29,17 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+/**
+ * 项目根目录：基于当前文件位置推导（src/config/env.ts 与 dist/config/env.js 均上溯两级），
+ * 与启动时的工作目录无关，避免因 cwd 不同导致上传/静态目录解析错位。
+ */
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
+
 /** 校验后的环境变量（类型安全） */
-export const env = parsed.data;
+export const env = {
+  ...parsed.data,
+  /** 上传目录的绝对路径（dev 与 dist 构建均稳定指向项目根/uploads） */
+  UPLOAD_DIR_ABS: path.resolve(projectRoot, parsed.data.UPLOAD_DIR),
+};
 
 export type Env = typeof env;

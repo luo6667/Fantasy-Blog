@@ -14,11 +14,15 @@ import type {
   ArticleListItem,
   AuthUser,
   CommentItem,
+  ConversationItem,
   LoginResult,
+  MessageItem,
+  NotificationItem,
   PaginatedResult,
   TagCount,
   TagItem,
   UploadResult,
+  UserBrief,
   UserRole,
 } from '@/types/api';
 
@@ -88,12 +92,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 /** 文章 API */
 export const articleApi = {
-  /** 分页列表，支持标签筛选 */
-  list: (params?: { page?: number; pageSize?: number; tag?: string }) => {
+  /** 分页列表，支持标签筛选与关键字搜索 */
+  list: (params?: { page?: number; pageSize?: number; tag?: string; search?: string }) => {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
     if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
     if (params?.tag) qs.set('tag', params.tag);
+    if (params?.search) qs.set('search', params.search);
     const q = qs.toString();
     return request<PaginatedResult<ArticleListItem>>(`/articles${q ? `?${q}` : ''}`);
   },
@@ -102,6 +107,16 @@ export const articleApi = {
 
   /** 全部标签及文章数（用于筛选栏） */
   tags: () => request<TagCount[]>('/articles/tags'),
+
+  /** 我收藏的文章列表 */
+  favorites: () => request<ArticleListItem[]>('/articles/favorites'),
+
+  /** 点赞 / 取消点赞 */
+  like: (id: string) => request<{ liked: boolean; likes: number }>(`/articles/${id}/like`, { method: 'POST' }),
+
+  /** 收藏 / 取消收藏 */
+  favorite: (id: string) =>
+    request<{ favorited: boolean; favorites: number }>(`/articles/${id}/favorite`, { method: 'POST' }),
 
   create: (input: ArticleInput) =>
     request<ArticleDetail>('/articles', { method: 'POST', body: JSON.stringify(input) }),
@@ -165,4 +180,39 @@ export const uploadApi = {
     form.append('image', file);
     return request<UploadResult>('/upload', { method: 'POST', body: form, raw: true });
   },
+};
+
+/** 通知 API（登录） */
+export const notificationApi = {
+  list: () => request<NotificationItem[]>('/notifications'),
+  unreadCount: () => request<{ count: number }>('/notifications/unread-count'),
+  /** ids 缺省时标记全部已读 */
+  markRead: (ids?: string[]) =>
+    request<{ ok: boolean }>('/notifications/read', {
+      method: 'POST',
+      body: JSON.stringify(ids ? { ids } : {}),
+    }),
+};
+
+/** 会话 API（登录） */
+export const conversationApi = {
+  list: () => request<ConversationItem[]>('/conversations'),
+  messages: (conversationId: string) =>
+    request<MessageItem[]>(`/conversations/${conversationId}/messages`),
+  markRead: (conversationId: string) =>
+    request<{ ok: boolean }>(`/conversations/${conversationId}/read`, { method: 'POST' }),
+};
+
+/** 私信 API（登录） */
+export const messageApi = {
+  send: (recipientType: UserRole, recipientId: string, content: string) =>
+    request<MessageItem>('/messages', {
+      method: 'POST',
+      body: JSON.stringify({ recipientType, recipientId, content }),
+    }),
+};
+
+/** 用户 API（登录） */
+export const userApi = {
+  search: (search: string) => request<UserBrief[]>(`/users?search=${encodeURIComponent(search)}`),
 };

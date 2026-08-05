@@ -20,6 +20,14 @@ export interface ArticleListItem {
   date: string;
   createdAt: string;
   updatedAt: string;
+  /** 点赞数 */
+  likes: number;
+  /** 收藏数 */
+  favorites: number;
+  /** 当前登录用户是否已点赞（未登录恒为 false） */
+  likedByMe: boolean;
+  /** 当前登录用户是否已收藏（未登录恒为 false） */
+  favoritedByMe: boolean;
 }
 
 /** 文章详情（含正文） */
@@ -99,4 +107,61 @@ export interface UploadResult {
   filename: string;
   size: number;
   mimetype: string;
+}
+
+/** 通知类型：评论文章 / 回复评论 / 点赞文章 / 收藏文章 / 新文章发布 */
+export type NotificationType = 'comment' | 'reply' | 'like' | 'favorite' | 'article';
+
+/** 通知项 */
+export interface NotificationItem {
+  id: string;
+  type: NotificationType;
+  /** 触发者 */
+  actorName: string;
+  actorType: UserRole;
+  /** 关联文章 */
+  articleId?: string;
+  articleTitle?: string;
+  /** 评论/回复内容（comment/reply 类型） */
+  commentContent?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+/** 聊天对方 */
+export interface ChatPeer {
+  id: string;
+  username: string;
+  role: UserRole;
+}
+
+/** 会话项 */
+export interface ConversationItem {
+  id: string;
+  peer: ChatPeer;
+  lastMessage?: string;
+  lastMessageAt: string;
+  /** 当前用户未读消息数 */
+  unread: number;
+  /** 对方是否在线 */
+  isOnline: boolean;
+}
+
+/** 消息项 */
+export interface MessageItem {
+  id: string;
+  conversationId: string;
+  sender: ChatPeer;
+  content: string;
+  /** 是否为当前用户自己发送 */
+  mine: boolean;
+  read: boolean;
+  createdAt: string;
+}
+
+/** 用户搜索项（发起聊天时选择对方） */
+export interface UserBrief {
+  id: string;
+  username: string;
+  role: UserRole;
 }

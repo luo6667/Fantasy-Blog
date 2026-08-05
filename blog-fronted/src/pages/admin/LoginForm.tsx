@@ -9,7 +9,7 @@ const inputClass =
  * 管理登录表单（/admin 管理员 tab）
  *
  * 固定以管理员身份登录（admin / 123456），
- * 成功后由 AuthContext 更新登录态，父级自动切换到管理界面。
+ * 成功后由 authStore 更新登录态，父级自动切换到管理界面。
  */
 export default function LoginForm() {
   const { login } = useAuth();

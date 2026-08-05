@@ -1,17 +1,24 @@
-import { useContext } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
-import { AuthContext, type AuthContextValue } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/authStore';
 
 /**
  * 登录态 Hook
  *
- * 返回全局登录态（user / isAdmin / login / register / logout 等）。
- * 必须在 <AuthProvider> 内部使用，否则抛出明确错误。
+ * 从 zustand authStore 读取，返回与旧 AuthContext 相同形状的对象，
+ * 供导航栏、博客页、评论区、管理页等使用。
+ * useShallow 做浅比较，只有字段实际变化时组件才重渲染。
  */
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth() must be used within an <AuthProvider>');
-  }
-  return ctx;
+export function useAuth() {
+  return useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      checking: s.checking,
+      isAdmin: s.user?.role === 'admin',
+      login: s.login,
+      register: s.register,
+      logout: s.logout,
+      refresh: s.refresh,
+    })),
+  );
 }

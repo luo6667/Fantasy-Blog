@@ -1,12 +1,15 @@
 import { motion } from 'motion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { BgOrbs, CursorGlow, Reveal, Tag } from '@/components/common';
+import {
+  useArticleListQuery,
+  useArticleTagsQuery,
+  useDeleteArticleMutation,
+} from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
-import { articleApi } from '@/lib/api';
 import { fadeUp, springHero } from '@/lib/motion';
-import type { ArticleListItem, TagCount } from '@/types/api';
 
 /**
  * 博客列表页
@@ -19,56 +22,34 @@ import type { ArticleListItem, TagCount } from '@/types/api';
  */
 export default function Blog() {
   const { isAdmin } = useAuth();
-  const [articles, setArticles] = useState<ArticleListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [tags, setTags] = useState<TagCount[]>([]);
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
 
-  // 标签栏数据（一次性拉取；失败不影响文章列表）
+  // 搜索防抖：停止输入 400ms 后自动搜索；回车立即搜索
   useEffect(() => {
-    let cancelled = false;
-    articleApi
-      .tags()
-      .then((res) => {
-        if (!cancelled) setTags(res);
-      })
-      .catch(() => {
-        /* 忽略：标签栏加载失败时仅显示「全部」 */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+    }, 400);
+    return () => { window.clearTimeout(timer); };
+  }, [searchInput]);
 
-  // 文章列表（activeTag 变化时重新拉取）
-  const loadArticles = useCallback(async (tag: string | null) => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await articleApi.list({ pageSize: 50, tag: tag ?? undefined });
-      setArticles(res.list);
-      setTotal(res.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const articleQuery = useArticleListQuery(activeTag, search);
+  const { data: tags = [] } = useArticleTagsQuery();
+  const deleteArticle = useDeleteArticleMutation();
 
-  useEffect(() => {
-    void loadArticles(activeTag);
-  }, [activeTag, loadArticles]);
+  const articles = articleQuery.data?.list ?? [];
+  const total = articleQuery.data?.total ?? 0;
+  const loading = articleQuery.isLoading;
+  const errorMessage = articleQuery.error?.message ?? deleteArticle.error?.message;
 
   /** 删除文章（管理员，确认后执行） */
   async function handleDelete(id: string) {
     if (!window.confirm('确定删除这篇文章吗？此操作不可恢复。')) return;
     try {
-      await articleApi.remove(id);
-      await loadArticles(activeTag);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      await deleteArticle.mutateAsync(id);
+    } catch {
+      /* 错误已通过 errorMessage 展示 */
     }
   }
 
@@ -130,6 +111,20 @@ export default function Blog() {
 
       <section className="relative z-[1] px-6 py-12">
         <div className="mx-auto max-w-page">
+          {/* 搜索框：防抖自动搜索 + 回车立即搜索 */}
+          <div className="mb-6">
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => { setSearchInput(e.target.value); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') setSearch(searchInput.trim());
+              }}
+              placeholder="🔍 搜索文章标题、摘要或正文…（输入后自动搜索，或按回车）"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm outline-none transition-colors focus:border-accent"
+            />
+          </div>
+
           {/* 标签筛选栏 + 写文章（管理员） */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
@@ -171,16 +166,18 @@ export default function Blog() {
           {loading && <p className="py-8 text-center text-text-muted">文章加载中…</p>}
 
           {/* 加载失败 */}
-          {!loading && error && (
+          {!loading && errorMessage && (
             <div className="rounded-lg border border-[var(--color-border-light)] bg-bg-alt p-6">
               <p className="mb-1 font-semibold text-[var(--color-text)]">文章加载失败</p>
-              <p className="text-sm text-text-muted">{error}</p>
+              <p className="text-sm text-text-muted">{errorMessage}</p>
             </div>
           )}
 
           {/* 空列表 */}
-          {!loading && !error && articles.length === 0 && (
-            <p className="py-8 text-center text-text-muted">暂无文章，敬请期待。</p>
+          {!loading && !errorMessage && articles.length === 0 && (
+            <p className="py-8 text-center text-text-muted">
+              {search ? `没有找到与「${search}」相关的文章。` : '暂无文章，敬请期待。'}
+            </p>
           )}
 
           {/* 文章列表 */}
