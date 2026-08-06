@@ -49,7 +49,7 @@ export const editorInputClass =
   'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm outline-none transition-colors focus:border-accent';
 
 export const editorBtnGhost =
-  'shrink-0 rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent';
+  'shrink-0 rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent disabled:pointer-events-none disabled:opacity-40';
 
 export const editorBtnDanger =
   'shrink-0 rounded-md px-2.5 py-1 text-sm text-red-500 transition-colors hover:bg-red-500/10';

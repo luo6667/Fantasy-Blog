@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from 'express';
-import { z, type ZodType } from 'zod';
+import { z, ZodError, type ZodType } from 'zod';
 
 import { getHandler, listHandler, updateHandler } from '../controllers/siteContent.controller.js';
 import { requireAdmin } from '../middleware/auth.js';
@@ -52,7 +52,21 @@ const validateValue: RequestHandler = (req, _res, next) => {
   if (!schema) {
     throw new HttpError(400, `未知的内容类型：${String(req.params.key)}`);
   }
-  req.body = { value: schema.parse(req.body.value) };
+  try {
+    req.body = { value: schema.parse(req.body.value) };
+  } catch (e) {
+    // 把数组项的 zod 错误转成友好提示：如「0.desc: 描述不能为空」→「第 1 项：描述不能为空」
+    if (e instanceof ZodError) {
+      const msg = e.issues
+        .map((i) => {
+          const first = i.path[0];
+          return typeof first === 'number' ? `第 ${first + 1} 项：${i.message}` : i.message;
+        })
+        .join('；');
+      throw new HttpError(400, msg);
+    }
+    throw e;
+  }
   next();
 };
 

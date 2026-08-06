@@ -93,7 +93,11 @@ export function SaveBar({
         </button>
       )}
       {!dirty && !error && !saving && <span className="text-xs text-text-muted">已同步</span>}
-      {error && <span className="text-xs text-red-500">{error}</span>}
+      {error && (
+        <p className="w-full rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500">
+          保存失败：{error}
+        </p>
+      )}
     </div>
   );
 }

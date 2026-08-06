@@ -1,10 +1,16 @@
 import type { HomeProjectItem } from '@/types/api';
 
 import { EditorCard, Field, SaveBar } from './contentFields';
-import { editorBtnAdd, editorBtnDanger, editorInputClass, useContentEditor } from './useContentEditor';
+import {
+  editorBtnAdd,
+  editorBtnDanger,
+  editorBtnGhost,
+  editorInputClass,
+  useContentEditor,
+} from './useContentEditor';
 
 /**
- * 首页精选项目编辑器（首页「精选项目」，含标签增删）
+ * 首页精选项目编辑器（首页「精选项目」，含标签增删、顺序调整）
  */
 export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] | undefined }) {
   const { draft, setDraft, dirty, saving, error, save } = useContentEditor<HomeProjectItem[]>('homeProjects', value);
@@ -35,8 +41,24 @@ export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] 
   const remove = (i: number) => {
     setDraft((prev) => (prev === null ? prev : prev.filter((_, idx) => idx !== i)));
   };
+  /** 上移/下移项目（dir: -1 上移，1 下移）；保存后首页按新顺序展示 */
+  const move = (i: number, dir: -1 | 1) => {
+    setDraft((prev) => {
+      if (prev === null) return prev;
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      const tmp = next[i] as HomeProjectItem;
+      next[i] = next[j] as HomeProjectItem;
+      next[j] = tmp;
+      return next;
+    });
+  };
   const add = () => {
-    setDraft((prev) => (prev === null ? prev : [...prev, { name: '', desc: '', tags: [], link: '' }]));
+    // 新添加的项目插到列表最上方（首页按数组顺序展示，最新添加的排在最前）
+    setDraft((prev) =>
+      prev === null ? prev : [{ name: '', desc: '', tags: [], link: '' }, ...prev],
+    );
   };
 
   return (
@@ -60,7 +82,19 @@ export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] 
             ))}
             <button type="button" className={editorBtnAdd} onClick={() => { addTag(i); }}>+ 添加标签</button>
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" className={editorBtnGhost} disabled={i === 0} onClick={() => { move(i, -1); }} title="上移">
+              ↑ 上移
+            </button>
+            <button
+              type="button"
+              className={editorBtnGhost}
+              disabled={i === draft.length - 1}
+              onClick={() => { move(i, 1); }}
+              title="下移"
+            >
+              ↓ 下移
+            </button>
             <button type="button" className={editorBtnDanger} onClick={() => { remove(i); }}>删除项目</button>
           </div>
         </div>
