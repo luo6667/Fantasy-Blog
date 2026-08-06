@@ -5,6 +5,7 @@ import { BgOrbs } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 
 import ArticleManager from './ArticleManager';
+import SiteContentManager from './content';
 import LoginForm from './LoginForm';
 import TagManager from './TagManager';
 import UserPanel from './UserPanel';
@@ -20,7 +21,8 @@ const tabActive = 'border-transparent bg-accent font-semibold text-white';
 /**
  * 管理页 /admin
  *
- * 分为两个 tab：
+ * 管理员登录后直接进入管理员模式（隐藏「用户 / 管理员」tab，无需用户模式）；
+ * 未登录 / 普通用户访问时保留两个 tab：
  * - 用户：无需登录，浏览博客文章与分类标签
  * - 管理员：仅管理员（admin / 123456）可管理文章与标签；普通用户访问提示无权限
  *
@@ -30,9 +32,9 @@ export default function Admin() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isAdmin, checking, logout } = useAuth();
-  // 有 ?new= / ?edit= 参数时默认进入管理员 tab
+  // 管理员登录或有 ?new= / ?edit= 参数时默认进入管理员 tab
   const hasArticleAction = searchParams.get('new') === '1' || Boolean(searchParams.get('edit'));
-  const [tab, setTab] = useState<AdminTab>(hasArticleAction ? 'admin' : 'user');
+  const [tab, setTab] = useState<AdminTab>(isAdmin || hasArticleAction ? 'admin' : 'user');
 
   // 旧链接 ?new=1 / ?edit=:id → 跳转独立编辑器页面
   useEffect(() => {
@@ -49,32 +51,45 @@ export default function Admin() {
       <BgOrbs />
       <section className="relative z-[1] px-6 py-16">
         <div className="mx-auto max-w-page">
-          {/* 标题 + tab 切换 */}
+          {/* 标题 + tab 切换（管理员登录后隐藏 tab，默认即管理员模式） */}
           <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <h1 className="text-2xl font-bold tracking-[-0.02em]">管理</h1>
-            <div className="flex gap-2" role="tablist" aria-label="管理模式">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'user'}
-                onClick={() => { setTab('user'); }}
-                className={`${tabBase} ${tab === 'user' ? tabActive : tabIdle}`}
-              >
-                用户
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'admin'}
-                onClick={() => { setTab('admin'); }}
-                className={`${tabBase} ${tab === 'admin' ? tabActive : tabIdle}`}
-              >
-                管理员
-              </button>
-            </div>
+            {!isAdmin && (
+              <div className="flex gap-2" role="tablist" aria-label="管理模式">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'user'}
+                  onClick={() => { setTab('user'); }}
+                  className={`${tabBase} ${tab === 'user' ? tabActive : tabIdle}`}
+                >
+                  用户
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === 'admin'}
+                  onClick={() => { setTab('admin'); }}
+                  className={`${tabBase} ${tab === 'admin' ? tabActive : tabIdle}`}
+                >
+                  管理员
+                </button>
+              </div>
+            )}
           </div>
 
-          {tab === 'user' ? (
+          {/* 管理员登录 → 直接进入管理员模式，文章管理 + 标签管理 + 简历/首页内容管理 */}
+          {isAdmin ? (
+            <>
+              <div className="grid gap-8 lg:grid-cols-[1fr_16rem]">
+                <ArticleManager />
+                <TagManager />
+              </div>
+              <div className="mt-12 border-t border-[var(--color-border-light)] pt-10">
+                <SiteContentManager />
+              </div>
+            </>
+          ) : tab === 'user' ? (
             <UserPanel />
           ) : (
             <div>
@@ -84,7 +99,7 @@ export default function Admin() {
               {!checking && !user && <LoginForm />}
 
               {/* 普通用户登录 → 无权限提示 */}
-              {!checking && user && !isAdmin && (
+              {!checking && user && (
                 <div className="mx-auto max-w-md rounded-lg border border-[var(--color-border-light)] bg-bg-alt p-8 text-center">
                   <p className="mb-2 text-lg font-semibold">需要管理员权限</p>
                   <p className="mb-6 text-sm text-text-muted">
@@ -97,14 +112,6 @@ export default function Admin() {
                   >
                     退出当前账号
                   </button>
-                </div>
-              )}
-
-              {/* 管理员登录 → 文章管理 + 标签管理 */}
-              {!checking && isAdmin && (
-                <div className="grid gap-8 lg:grid-cols-[1fr_16rem]">
-                  <ArticleManager />
-                  <TagManager />
                 </div>
               )}
             </div>

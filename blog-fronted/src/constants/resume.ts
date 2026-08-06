@@ -15,6 +15,9 @@ export const RESUME_SKILLS: string[] = [
   '软技能：具备良好的技术写作与文档能力，善于团队协作与知识分享，有敏捷开发与代码评审的实践经验。',
 ];
 
+export const RESUME_EVALUATION =
+  '热爱前端开发，主动跟进React生态、Node全栈等前沿技术，持续关注行业发展趋势；对AI应用抱有浓厚兴趣，擅长借助AI辅助代码编写、接口设计、问题调试；能够独立校验AI产出、梳理逻辑并落地完整项目，善用工具提升开发效率，保持自主思考不盲目照搬生成内容。';
+
 export const RESUME_PROJECTS: ResumeProject[] = [
   {
     title: '电商平台重构',

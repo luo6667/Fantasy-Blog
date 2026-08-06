@@ -165,3 +165,51 @@ export interface UserBrief {
   username: string;
   role: UserRole;
 }
+
+/** 站点内容 key：简历页 4 块 + 首页精选项目 */
+export type SiteContentKey =
+  | 'education'
+  | 'skills'
+  | 'resumeProjects'
+  | 'evaluation'
+  | 'homeProjects';
+
+/** 教育背景项 */
+export interface EducationItem {
+  year: string;
+  title: string;
+  school: string;
+  desc: string;
+}
+
+/** 简历页项目经历项 */
+export interface ResumeProjectItem {
+  title: string;
+  meta: string;
+  desc: string[];
+}
+
+/** 首页精选项目项 */
+export interface HomeProjectItem {
+  name: string;
+  desc: string;
+  tags: string[];
+  /** 可选：项目仓库链接，为空则不显示跳转链接 */
+  link?: string;
+}
+
+/** 各 key 对应的内容值 */
+export type SiteContentValue =
+  | EducationItem[]
+  | string[]
+  | ResumeProjectItem[]
+  | string
+  | HomeProjectItem[];
+
+/** 站点内容项 */
+export interface SiteContentItem {
+  id: string;
+  key: SiteContentKey;
+  value: SiteContentValue;
+  updatedAt: string;
+}

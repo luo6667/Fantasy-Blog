@@ -19,6 +19,9 @@ import type {
   MessageItem,
   NotificationItem,
   PaginatedResult,
+  SiteContentItem,
+  SiteContentKey,
+  SiteContentValue,
   TagCount,
   TagItem,
   UploadResult,
@@ -171,6 +174,20 @@ export const tagApi = {
     request<TagItem>('/tags', { method: 'POST', body: JSON.stringify({ name }) }),
   remove: (name: string) =>
     request<{ name: string }>(`/tags/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+};
+
+/** 站点内容 API（公开读，管理员写） */
+export const siteContentApi = {
+  /** 全部内容（管理员后台用） */
+  list: () => request<SiteContentItem[]>('/site-content'),
+  /** 单个内容（页面渲染用） */
+  get: (key: SiteContentKey) => request<SiteContentItem>(`/site-content/${key}`),
+  /** 整体更新单个内容 */
+  update: (key: SiteContentKey, value: SiteContentValue) =>
+    request<SiteContentItem>(`/site-content/${key}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    }),
 };
 
 /** 上传 API */

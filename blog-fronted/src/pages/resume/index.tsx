@@ -1,10 +1,22 @@
 import { motion } from 'motion/react';
 
 import { BgOrbs, EducationList, Reveal, SectionHeading, Tag } from '@/components/common';
-import { RESUME_EDUCATION, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
+import { RESUME_EDUCATION, RESUME_EVALUATION, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
+import { useSiteContentQuery } from '@/hooks/queries';
 import { springBtn } from '@/lib/motion';
 
 export default function Resume() {
+  // 内容来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量，保证页面始终有内容
+  const educationQuery = useSiteContentQuery('education');
+  const skillsQuery = useSiteContentQuery('skills');
+  const projectsQuery = useSiteContentQuery('resumeProjects');
+  const evaluationQuery = useSiteContentQuery('evaluation');
+
+  const education = (educationQuery.data?.value as typeof RESUME_EDUCATION | undefined) ?? RESUME_EDUCATION;
+  const skills = (skillsQuery.data?.value as string[] | undefined) ?? RESUME_SKILLS;
+  const projects = (projectsQuery.data?.value as typeof RESUME_PROJECTS | undefined) ?? RESUME_PROJECTS;
+  const evaluation = (evaluationQuery.data?.value as string | undefined) ?? RESUME_EVALUATION;
+
   return (
     <main>
       <BgOrbs />
@@ -62,7 +74,7 @@ export default function Resume() {
             <SectionHeading icon="icon-book">教育背景</SectionHeading>
           </Reveal>
           <div className="mt-4">
-            <EducationList items={RESUME_EDUCATION} />
+            <EducationList items={education} />
           </div>
         </div>
       </section>
@@ -74,7 +86,7 @@ export default function Resume() {
             <SectionHeading icon="icon-banshou">专业技能</SectionHeading>
           </Reveal>
           <div className="mt-5">
-            {RESUME_SKILLS.map((s) => (
+            {skills.map((s) => (
               <Reveal key={s}>
                 <div className="mb-3 flex gap-2.5">
                   <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-accent" />
@@ -93,10 +105,10 @@ export default function Resume() {
             <SectionHeading icon="icon-wenjian">项目经历</SectionHeading>
           </Reveal>
           <div className="mt-5">
-            {RESUME_PROJECTS.map((p, i) => (
+            {projects.map((p, i) => (
               <Reveal key={p.title}>
                 <motion.div
-                  className={`mb-6 pb-6 ${i < RESUME_PROJECTS.length - 1 ? 'border-b border-[var(--color-border-light)]' : ''}`}
+                  className={`mb-6 pb-6 ${i < projects.length - 1 ? 'border-b border-[var(--color-border-light)]' : ''}`}
                   whileHover={{ x: 6 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 18 }}
                 >
@@ -131,9 +143,7 @@ export default function Resume() {
               viewport={{ once: true }}
               transition={{ type: 'spring', stiffness: 80, damping: 22, mass: 0.5 }}
             >
-              热爱前端开发，主动跟进React生态、Node全栈等前沿技术，持续关注行业发展趋势；对AI应用抱有浓厚兴趣，
-              擅长借助AI辅助代码编写、接口设计、问题调试；能够独立校验AI产出、梳理逻辑并落地完整项目，
-              善用工具提升开发效率，保持自主思考不盲目照搬生成内容。
+              {evaluation}
             </motion.p>
           </Reveal>
         </div>

@@ -11,6 +11,7 @@ import {
   TiltCard,
 } from '@/components/common';
 import { HOME_PROJECTS } from '@/constants';
+import { useSiteContentQuery } from '@/hooks/queries';
 import { fadeUp, springBtn, springHero } from '@/lib/motion';
 
 const btnBase =
@@ -53,6 +54,11 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
 }
 
 export default function Home() {
+  // 精选项目来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量
+  const homeProjectsQuery = useSiteContentQuery('homeProjects');
+  const homeProjects =
+    (homeProjectsQuery.data?.value as typeof HOME_PROJECTS | undefined) ?? HOME_PROJECTS;
+
   return (
     <main>
       <BgOrbs />
@@ -171,11 +177,22 @@ export default function Home() {
             <SectionHeading>精选项目</SectionHeading>
           </Reveal>
           <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-            {HOME_PROJECTS.map((p, i) => (
+            {homeProjects.map((p, i) => (
               <Reveal key={p.name} delay={i * 0.08}>
                 <TiltCard tiltDegree={6}>
                   <div className="rounded-lg border border-[var(--color-border-light)] bg-surface p-6 transition-shadow duration-300 hover:shadow-lg hover:shadow-accent/5">
                     <h3 className="mb-2 text-lg font-semibold tracking-[-0.02em]">{p.name}</h3>
+                    {p.link && (
+                      <a
+                        href={p.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition-colors hover:text-[var(--color-text)] hover:underline"
+                      >
+                        <i className="iconfont icon-GitHub" />
+                        查看仓库 →
+                      </a>
+                    )}
                     <p className="mb-4 text-[0.8125rem] leading-[1.6] text-text-muted">{p.desc}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {p.tags.map((t) => (

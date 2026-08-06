@@ -19,6 +19,12 @@ export const tagKeys = {
   all: ['tags'] as const,
 };
 
+/** 站点内容（/site-content） */
+export const siteContentKeys = {
+  all: ['site-content'] as const,
+  byKey: (key: string) => [...siteContentKeys.all, key] as const,
+};
+
 /** 评论（按文章 + 当前用户隔离：mine / likedByMe 随登录态变化） */
 export const commentKeys = {
   all: ['comments'] as const,

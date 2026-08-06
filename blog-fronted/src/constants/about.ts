@@ -27,7 +27,7 @@ export const ABOUT_TOOL_GROUPS: SkillGroup[] = [
   { label: '版本控制', tags: ['Git'] },
   { label: '部署运维', tags: ['Docker', 'CI/CD', 'GitHub Actions', '云服务部署'] },
   { label: '开发工具', tags: ['VS Code', 'Cursor', 'Postman', 'ApiFox', 'WebStorm', 'Chrome DevTools'] },
-  { label: 'AI 开发', tags: ['Claude Code', 'Codex', 'Reasonix', 'Deepseekv4'] },
+  { label: 'AI 开发', tags: ['Claude Code', 'Codex', 'Reasonix', 'Deepseekv4','Trae'] },
 ];
 
 export const ABOUT_EDUCATION: Education[] = [
