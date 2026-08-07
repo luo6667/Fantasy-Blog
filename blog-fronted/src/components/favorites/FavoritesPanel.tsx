@@ -1,15 +1,35 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
+import { type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 
-import { useFavoriteArticlesQuery } from '@/hooks/queries';
+import { favoriteKeys, useFavoriteArticlesQuery } from '@/hooks/queries';
+import { articleApi } from '@/lib/api';
 
 /**
  * 收藏下拉面板
  *
- * 展示我收藏的文章列表，点击跳转详情。
+ * 展示我收藏的文章列表，点击跳转详情；
+ * 每项提供「取消收藏」按钮（复用文章收藏 toggle 接口）。
  */
 export default function FavoritesPanel({ onClose }: { onClose: () => void }) {
   const { data: favorites = [], isLoading } = useFavoriteArticlesQuery(true);
+  const queryClient = useQueryClient();
+
+  const cancelFavorite = useMutation({
+    mutationFn: (id: string) => articleApi.favorite(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: favoriteKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+
+  /** 取消收藏（阻止冒泡避免触发 Link 跳转） */
+  function handleCancel(e: MouseEvent<HTMLButtonElement>, id: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    cancelFavorite.mutate(id);
+  }
 
   return (
     <motion.div
@@ -30,11 +50,11 @@ export default function FavoritesPanel({ onClose }: { onClose: () => void }) {
       ) : (
         <ul className="max-h-[24rem] overflow-y-auto">
           {favorites.map((a) => (
-            <li key={a.id}>
+            <li key={a.id} className="flex items-center gap-2 border-b border-[var(--color-border-light)] last:border-b-0">
               <Link
                 to={`/blog/${a.id}`}
                 onClick={onClose}
-                className="block px-4 py-3 transition-colors hover:bg-bg-alt"
+                className="block min-w-0 flex-1 px-4 py-3 transition-colors hover:text-accent"
               >
                 <span className="mb-0.5 block truncate text-sm font-medium hover:text-accent">
                   {a.title}
@@ -44,6 +64,15 @@ export default function FavoritesPanel({ onClose }: { onClose: () => void }) {
                   {a.tags.length > 0 ? ` · ${a.tags.join(' / ')}` : ''}
                 </span>
               </Link>
+              <button
+                type="button"
+                onClick={(e) => { handleCancel(e, a.id); }}
+                disabled={cancelFavorite.isPending}
+                className="mr-3 shrink-0 cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-1 text-xs text-text-muted transition-colors hover:border-red-400 hover:text-red-500 disabled:opacity-50"
+                title="取消收藏"
+              >
+                取消收藏
+              </button>
             </li>
           ))}
         </ul>

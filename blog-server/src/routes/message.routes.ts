@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { sendMessageHandler } from '../controllers/conversation.controller.js';
 import { requireAuth } from '../middleware/auth.js';
+import { writeLimiter } from '../middleware/rateLimit.js';
 import { validateBody } from '../middleware/validate.js';
 
 const router = Router();
@@ -19,6 +20,6 @@ const messageSchema = z.object({
  *
  * POST /api/messages 发送私信（自动创建/复用会话，对方在线实时推送）
  */
-router.post('/', requireAuth, validateBody(messageSchema), sendMessageHandler);
+router.post('/', writeLimiter, requireAuth, validateBody(messageSchema), sendMessageHandler);
 
 export default router;

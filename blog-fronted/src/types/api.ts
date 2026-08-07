@@ -32,7 +32,10 @@ export interface ArticleListItem {
 
 /** 文章详情（含正文） */
 export interface ArticleDetail extends ArticleListItem {
+  /** 正文 MDX 源码（编辑器用） */
   content: string;
+  /** 服务端编译并消毒后的正文 HTML（渲染用） */
+  contentHtml: string;
 }
 
 /** 分页结果 */
@@ -164,6 +167,17 @@ export interface UserBrief {
   id: string;
   username: string;
   role: UserRole;
+}
+
+/** 用户管理项（管理员后台列表） */
+export interface UserManageItem {
+  id: string;
+  username: string;
+  createdAt: string;
+  /** 评论数（含回复） */
+  commentCount: number;
+  /** 收藏文章数 */
+  favoriteCount: number;
 }
 
 /** 站点内容 key：简历页 4 块 + 首页精选项目 */

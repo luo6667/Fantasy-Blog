@@ -1,14 +1,15 @@
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 
-import { useNotificationsQuery } from '@/hooks/queries';
+import { useMarkNotificationsReadMutation, useNotificationsQuery } from '@/hooks/queries';
 import type { NotificationItem } from '@/types/api';
 
 /**
  * 消息通知下拉面板
  *
- * 展示评论 / 回复 / 收藏三类通知（谁对谁做了什么），
- * 点击跳转对应文章详情。标记已读由父级（Nav）在打开时统一处理。
+ * 展示评论 / 回复 / 收藏 / 点赞 / 新文章通知（谁对谁做了什么），
+ * 点击单条通知 → 该条标记已读并跳转对应文章详情；
+ * 顶部提供「全部已读」按钮。未读徽标由 ChatProvider 同步刷新。
  */
 
 /** 通知类型 → 字体图标类名（iconfont2 字体族） */
@@ -38,8 +39,11 @@ function notificationText(n: NotificationItem): string {
 export default function NotificationPanel({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const { data: notifications = [], isLoading } = useNotificationsQuery(true);
+  const markRead = useMarkNotificationsReadMutation();
 
+  /** 点击通知：未读则单条标记已读，再跳转 */
   function handleClick(n: NotificationItem) {
+    if (!n.read) markRead.mutate([n.id]);
     if (n.articleId) void navigate(`/blog/${n.articleId}`);
     onClose();
   }
@@ -52,8 +56,17 @@ export default function NotificationPanel({ onClose }: { onClose: () => void }) 
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 320, damping: 26 }}
     >
-      <div className="border-b border-[var(--color-border-light)] px-4 py-2.5 text-sm font-semibold">
-        消息通知
+      <div className="flex items-center justify-between border-b border-[var(--color-border-light)] px-4 py-2.5">
+        <span className="text-sm font-semibold">消息通知</span>
+        {notifications.length > 0 && (
+          <button
+            type="button"
+            onClick={() => { markRead.mutate(undefined); }}
+            className="cursor-pointer text-xs text-text-muted transition-colors hover:text-accent"
+          >
+            全部已读
+          </button>
+        )}
       </div>
 
       {isLoading ? (

@@ -17,6 +17,7 @@ import {
   listCommentsHandler,
 } from '../controllers/comment.controller.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
+import { writeLimiter } from '../middleware/rateLimit.js';
 import { validateBody } from '../middleware/validate.js';
 
 const router = Router();
@@ -25,7 +26,7 @@ const router = Router();
 const articleSchema = z.object({
   title: z.string().trim().min(1, '标题不能为空').max(200, '标题最多 200 字'),
   excerpt: z.string().trim().min(1, '摘要不能为空').max(500, '摘要最多 500 字'),
-  content: z.string().min(1, '正文不能为空'),
+  content: z.string().min(1, '正文不能为空').max(200 * 1024, '正文最多 200KB'),
   tags: z
     .array(z.string().trim().min(1, '标签不能为空'))
     .min(1, '至少选择一个分类标签')
@@ -68,9 +69,9 @@ router.get('/tags', tagsHandler);
 router.get('/favorites', requireAuth, favoritesHandler);
 router.get('/:id', detailHandler);
 router.get('/:id/comments', listCommentsHandler);
-router.post('/:id/comments', requireAuth, validateBody(commentSchema), createCommentHandler);
-router.post('/:id/like', requireAuth, likeHandler);
-router.post('/:id/favorite', requireAuth, favoriteHandler);
+router.post('/:id/comments', writeLimiter, requireAuth, validateBody(commentSchema), createCommentHandler);
+router.post('/:id/like', writeLimiter, requireAuth, likeHandler);
+router.post('/:id/favorite', writeLimiter, requireAuth, favoriteHandler);
 router.post('/', requireAdmin, validateBody(articleSchema), createHandler);
 router.put('/:id', requireAdmin, validateBody(updateSchema), updateHandler);
 router.delete('/:id', requireAdmin, deleteHandler);

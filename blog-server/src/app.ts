@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
 
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
@@ -23,6 +24,10 @@ import { ok } from './utils/response.js';
  */
 const app = express();
 
+// 安全响应头（nosniff / CSP / X-Frame-Options / HSTS 等）
+// 注意：若将来把前端构建产物放到本服务托管，CSP 默认允许同源资源，无需调整
+app.use(helmet());
+
 // 跨域：允许配置的多个来源（逗号分隔）
 const allowedOrigins = env.CORS_ORIGIN.split(',').map((s) => s.trim());
 app.use(
@@ -37,7 +42,16 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // 上传文件的静态访问（/uploads/xxx.png，目录为基于项目根的绝对路径）
-app.use('/uploads', express.static(env.UPLOAD_DIR_ABS));
+// 文件名含随机 UUID 且内容不变 → 长缓存 immutable；nosniff 防止被当作可执行资源解析
+app.use(
+  '/uploads',
+  express.static(env.UPLOAD_DIR_ABS, {
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    },
+  }),
+);
 
 // 健康检查（供部署平台与前端探测服务状态）
 app.get('/api/health', (_req, res) => {

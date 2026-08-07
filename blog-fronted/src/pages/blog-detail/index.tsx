@@ -167,7 +167,7 @@ export default function BlogDetail() {
                     draggable={false}
                   />
                 )}
-                <MdxContent mdx={article.content} />
+                <MdxContent html={article.contentHtml} />
               </article>
 
               {/* 评论区 */}

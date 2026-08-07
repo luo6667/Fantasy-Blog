@@ -1,7 +1,7 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { BgOrbs, MdxContent } from '@/components/common';
+import { BgOrbs } from '@/components/common';
 import {
   useArticleDetailQuery,
   useCreateArticleMutation,
@@ -9,6 +9,8 @@ import {
   useUpdateArticleMutation,
 } from '@/hooks/queries';
 import { uploadApi } from '@/lib/api';
+
+import MdxPreview from './MdxPreview';
 
 const inputClass =
   'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 outline-none transition-colors focus:border-accent';
@@ -323,7 +325,7 @@ export default function ArticleEditor() {
               ) : (
                 <div className="min-h-[22rem] rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3">
                   {content.trim() ? (
-                    <MdxContent mdx={content} />
+                    <MdxPreview mdx={content} />
                   ) : (
                     <p className="py-8 text-center text-text-muted">正文为空，暂无预览。</p>
                   )}

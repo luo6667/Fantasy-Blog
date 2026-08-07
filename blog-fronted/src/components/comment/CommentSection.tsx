@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { type SyntheticEvent, useState } from 'react';
+import { memo, type SyntheticEvent, useCallback, useMemo, useState } from 'react';
 
 import AuthModal from '@/components/auth/AuthModal';
 import {
@@ -32,8 +32,8 @@ function formatTime(iso: string): string {
   return `${String(d.getFullYear())}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** 收集某条一级评论的所有后代回复（BFS，扁平，按时间升序） */
-function collectReplies(rootId: string, comments: CommentItem[]): CommentItem[] {
+/** 构建 parentId → 回复列表 的映射（一次 O(n) 遍历，供各条一级评论复用） */
+function buildRepliesMap(comments: CommentItem[]): Map<string, CommentItem[]> {
   const childrenOf = new Map<string, CommentItem[]>();
   for (const c of comments) {
     if (!c.parentId) continue;
@@ -41,6 +41,11 @@ function collectReplies(rootId: string, comments: CommentItem[]): CommentItem[] 
     arr.push(c);
     childrenOf.set(c.parentId, arr);
   }
+  return childrenOf;
+}
+
+/** 从映射中收集某条一级评论的所有后代回复（BFS，扁平，按时间升序） */
+function collectReplies(rootId: string, childrenOf: Map<string, CommentItem[]>): CommentItem[] {
   const result: CommentItem[] = [];
   const queue = [...(childrenOf.get(rootId) ?? [])];
   const seen = new Set<string>();
@@ -114,19 +119,24 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   }
 
   /** 发表回复（可回复任意评论/回复） */
-  async function handleReply(e: SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!replyTarget) return;
-    const content = replyText.trim();
-    if (!content) return;
-    try {
-      await replyComment.mutateAsync({ commentId: replyTarget, content });
-      setReplyTarget(null);
-      setReplyText('');
-    } catch {
-      /* 错误已通过 errorMessage 展示 */
-    }
-  }
+  const handleReply = useCallback(
+    (e: SyntheticEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      if (!replyTarget) return;
+      const content = replyText.trim();
+      if (!content) return;
+      replyComment
+        .mutateAsync({ commentId: replyTarget, content })
+        .then(() => {
+          setReplyTarget(null);
+          setReplyText('');
+        })
+        .catch(() => {
+          /* 错误已通过 errorMessage 展示 */
+        });
+    },
+    [replyTarget, replyText, replyComment],
+  );
 
   /** 展开 / 收起某条评论的回复 */
   function toggleExpand(id: string) {
@@ -138,26 +148,38 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
     });
   }
 
+  /** 切换某条评论的回复框（稳定引用，配合 CommentCard memo） */
+  const handleReplyToggle = useCallback((id: string) => {
+    setReplyTarget((prev) => (prev === id ? null : id));
+    setReplyText('');
+  }, []);
+
   /** 点赞 / 取消点赞 */
-  function handleLike(comment: CommentItem) {
-    if (!user) {
-      setAuthOpen(true);
-      return;
-    }
-    likeComment.mutate(comment.id);
-  }
+  const handleLike = useCallback(
+    (comment: CommentItem) => {
+      if (!user) {
+        setAuthOpen(true);
+        return;
+      }
+      likeComment.mutate(comment.id);
+    },
+    [user, likeComment],
+  );
 
   /** 删除评论（作者本人或管理员，连带全部子孙回复） */
-  async function handleDelete(comment: CommentItem) {
-    if (!window.confirm('确定删除这条评论吗？其全部回复将一并删除，此操作不可恢复。')) return;
-    try {
-      await deleteComment.mutateAsync(comment.id);
-    } catch {
-      /* 错误已通过 errorMessage 展示 */
-    }
-  }
+  const handleDelete = useCallback(
+    (comment: CommentItem) => {
+      if (!window.confirm('确定删除这条评论吗？其全部回复将一并删除，此操作不可恢复。')) return;
+      deleteComment.mutateAsync(comment.id).catch(() => {
+        /* 错误已通过 errorMessage 展示 */
+      });
+    },
+    [deleteComment],
+  );
 
-  const topLevel = comments.filter((c) => !c.parentId);
+  // 父 → 回复映射与一级评论列表都只依赖 comments，缓存避免每次渲染重建
+  const repliesMap = useMemo(() => buildRepliesMap(comments), [comments]);
+  const topLevel = useMemo(() => comments.filter((c) => !c.parentId), [comments]);
 
   return (
     <section className="mt-12 border-t border-[var(--color-border-light)] pt-8">
@@ -210,12 +232,13 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
       ) : (
         <ul className="flex flex-col gap-6">
           {topLevel.map((c) => {
-            const allReplies = collectReplies(c.id, comments);
+            const allReplies = collectReplies(c.id, repliesMap);
             const expanded = expandedIds.has(c.id);
             const visible = allReplies.length > REPLY_COLLAPSE_THRESHOLD && !expanded
               ? allReplies.slice(0, REPLY_PREVIEW_COUNT)
               : allReplies;
             const hiddenCount = allReplies.length - visible.length;
+            const replying = replyTarget === c.id;
 
             return (
               <li key={c.id}>
@@ -223,14 +246,14 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
                 <CommentCard
                   comment={c}
                   canDelete={isAdmin || c.mine}
-                  replyTarget={replyTarget}
-                  replyText={replyText}
+                  replying={replying}
+                  replyText={replying ? replyText : ''}
                   submitting={submitting}
-                  onReplyToggle={() => { setReplyTarget(replyTarget === c.id ? null : c.id); setReplyText(''); }}
+                  onReplyToggle={handleReplyToggle}
                   onReplyChange={setReplyText}
                   onReplySubmit={handleReply}
-                  onLike={() => { handleLike(c); }}
-                  onDelete={() => { void handleDelete(c); }}
+                  onLike={handleLike}
+                  onDelete={handleDelete}
                 />
 
                 {/* 全部回复平铺在第二层级（谁回复谁标注） */}
@@ -242,14 +265,14 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
                           comment={r}
                           canDelete={isAdmin || r.mine}
                           isReply
-                          replyTarget={replyTarget}
-                          replyText={replyText}
+                          replying={replyTarget === r.id}
+                          replyText={replyTarget === r.id ? replyText : ''}
                           submitting={submitting}
-                          onReplyToggle={() => { setReplyTarget(replyTarget === r.id ? null : r.id); setReplyText(''); }}
+                          onReplyToggle={handleReplyToggle}
                           onReplyChange={setReplyText}
                           onReplySubmit={handleReply}
-                          onLike={() => { handleLike(r); }}
-                          onDelete={() => { void handleDelete(r); }}
+                          onLike={handleLike}
+                          onDelete={handleDelete}
                         />
                       </li>
                     ))}
@@ -290,12 +313,12 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   );
 }
 
-/** 单条评论/回复卡片 */
-function CommentCard({
+/** 单条评论/回复卡片（memo 化：props 引用稳定时跳过重渲染） */
+const CommentCard = memo(function CommentCard({
   comment,
   canDelete,
   isReply = false,
-  replyTarget = null,
+  replying = false,
   replyText = '',
   submitting = false,
   onReplyToggle,
@@ -307,14 +330,14 @@ function CommentCard({
   comment: CommentItem;
   canDelete: boolean;
   isReply?: boolean;
-  replyTarget?: string | null;
+  replying?: boolean;
   replyText?: string;
   submitting?: boolean;
-  onReplyToggle?: () => void;
-  onReplyChange?: (v: string) => void;
-  onReplySubmit?: (e: SyntheticEvent<HTMLFormElement>) => Promise<void>;
-  onLike: () => void;
-  onDelete: () => void;
+  onReplyToggle: (id: string) => void;
+  onReplyChange: (v: string) => void;
+  onReplySubmit: (e: SyntheticEvent<HTMLFormElement>) => void;
+  onLike: (comment: CommentItem) => void;
+  onDelete: (comment: CommentItem) => void;
 }) {
   const isAdminAuthor = comment.authorType === 'admin';
   return (
@@ -348,7 +371,7 @@ function CommentCard({
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <button
           type="button"
-          onClick={onLike}
+          onClick={() => { onLike(comment); }}
           className={`cursor-pointer rounded-full border px-2.5 py-1 transition-colors ${
             comment.likedByMe
               ? 'border-red-400/60 bg-red-500/10 text-red-500'
@@ -359,16 +382,14 @@ function CommentCard({
         </button>
 
         {/* 评论与回复均可再回复（无限嵌套，前端扁平渲染） */}
-        {onReplyToggle && (
-          <button type="button" onClick={onReplyToggle} className={btnGhost}>
-            {replyTarget === comment.id ? '取消' : '回复'}
-          </button>
-        )}
+        <button type="button" onClick={() => { onReplyToggle(comment.id); }} className={btnGhost}>
+          {replying ? '取消' : '回复'}
+        </button>
 
         {canDelete && (
           <button
             type="button"
-            onClick={onDelete}
+            onClick={() => { onDelete(comment); }}
             className="cursor-pointer rounded-md px-2.5 py-1 text-red-500 transition-colors hover:bg-red-500/10"
           >
             删除
@@ -377,8 +398,8 @@ function CommentCard({
       </div>
 
       {/* 回复输入框 */}
-      {replyTarget === comment.id && onReplyChange && onReplySubmit && (
-        <form onSubmit={(e) => { void onReplySubmit(e); }} className="mt-3 flex flex-col gap-2">
+      {replying && (
+        <form onSubmit={(e) => { onReplySubmit(e); }} className="mt-3 flex flex-col gap-2">
           <textarea
             className={`${inputClass} min-h-[4rem] resize-y leading-relaxed`}
             value={replyText}
@@ -402,4 +423,4 @@ function CommentCard({
       )}
     </motion.div>
   );
-}
+});

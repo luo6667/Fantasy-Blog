@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useMotionValue } from 'motion/react';
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -57,16 +57,20 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
   const lastTypingAt = useRef(0);
 
   // 拖拽移动聊天窗口（按住顶部标题栏拖动）
-  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  // 用 motionValue 直接驱动 transform：pointermove 只更新 motionValue，
+  // 不触发 React 重渲染，避免整个聊天窗口（含消息列表）每帧全量刷新
+  const dragX = useMotionValue(0);
+  const dragY = useMotionValue(0);
   const dragState = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   function onHeaderPointerDown(e: PointerEvent<HTMLDivElement>) {
     if ((e.target as HTMLElement).closest('button')) return;
-    dragState.current = { startX: e.clientX, startY: e.clientY, originX: dragPos.x, originY: dragPos.y };
+    dragState.current = { startX: e.clientX, startY: e.clientY, originX: dragX.get(), originY: dragY.get() };
     const move = (ev: globalThis.PointerEvent) => {
       const s = dragState.current;
       if (!s) return;
-      setDragPos({ x: s.originX + ev.clientX - s.startX, y: s.originY + ev.clientY - s.startY });
+      dragX.set(s.originX + ev.clientX - s.startX);
+      dragY.set(s.originY + ev.clientY - s.startY);
     };
     const up = () => {
       dragState.current = null;
@@ -160,7 +164,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
   return (
     <motion.div
       className="fixed bottom-4 right-4 z-[960] flex h-[30rem] w-[min(46rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl"
-      style={{ transform: `translate(${String(dragPos.x)}px, ${String(dragPos.y)}px)` }}
+      style={{ x: dragX, y: dragY }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

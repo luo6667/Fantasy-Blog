@@ -156,7 +156,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
               onChange={(e) => { setPassword(e.target.value); }}
               required
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              minLength={mode === 'register' ? 6 : 1}
+              minLength={mode === 'register' ? 8 : 1}
             />
           </label>
 

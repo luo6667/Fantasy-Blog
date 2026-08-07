@@ -37,9 +37,11 @@ export interface ArticleListItem {
   favoritedByMe: boolean;
 }
 
-/** 文章详情（含正文） */
+/** 文章详情（含正文 MDX 源码与消毒后的 HTML） */
 export interface ArticleDetail extends ArticleListItem {
   content: string;
+  /** 服务端编译并消毒后的正文 HTML（前端渲染用） */
+  contentHtml: string;
 }
 
 /** 分页结果 */

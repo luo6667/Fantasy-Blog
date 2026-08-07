@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import { ZodError } from 'zod';
 
 import { logger } from '../utils/logger.js';
@@ -43,6 +44,24 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
+  if (err instanceof multer.MulterError) {
+    // 文件超限（LIMIT_FILE_SIZE）→ 413，其余 multer 错误 → 400
+    const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+    res.status(status).json({ code: status, msg: err.message, data: null });
+    return;
+  }
+
+  // express.json / urlencoded 请求体解析失败（body-parser 抛 SyntaxError 并带 status < 500）
+  if (
+    err instanceof SyntaxError &&
+    'status' in err &&
+    typeof err.status === 'number' &&
+    err.status < 500
+  ) {
+    res.status(400).json({ code: 400, msg: '请求体格式错误', data: null });
+    return;
+  }
+
   if (err instanceof ZodError) {
     const msg = err.issues
       .map((i) => `${i.path.join('.') || 'body'}: ${i.message}`)
@@ -64,6 +83,12 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  logger.error(`Unhandled error [${req.method}] ${req.originalUrl}`, err);
+  logger.error(`Unhandled error [${req.method}] ${req.originalUrl}`, {
+    type: err instanceof Error ? err.constructor.name : typeof err,
+    name: (err as { name?: string } | null)?.name,
+    message: err instanceof Error ? err.message : String(err),
+    status: (err as { status?: number } | null)?.status,
+    code: (err as { code?: string | number } | null)?.code,
+  });
   res.status(500).json({ code: 500, msg: 'Internal server error', data: null });
 };

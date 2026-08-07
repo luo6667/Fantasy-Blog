@@ -37,5 +37,7 @@ const messageSchema = new Schema<MessageDoc, MessageModel>(
 messageSchema.index({ conversation: 1, createdAt: 1 });
 // 未读计数：会话 + 收件人视角（senderKey ≠ 自己 且 read=false）
 messageSchema.index({ conversation: 1, senderKey: 1, read: 1 });
+// TTL 索引：私信消息 180 天后由 MongoDB 后台自动清理，防止数据无限增长
+messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 180 * 24 * 3600 });
 
 export const Message = model<MessageDoc, MessageModel>('Message', messageSchema);

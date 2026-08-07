@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { BgOrbs, CursorGlow, Reveal, Tag } from '@/components/common';
 import {
-  useArticleListQuery,
+  useArticleListInfiniteQuery,
   useArticleTagsQuery,
   useDeleteArticleMutation,
 } from '@/hooks/queries';
@@ -34,12 +34,13 @@ export default function Blog() {
     return () => { window.clearTimeout(timer); };
   }, [searchInput]);
 
-  const articleQuery = useArticleListQuery(activeTag, search);
+  const articleQuery = useArticleListInfiniteQuery(activeTag, search);
   const { data: tags = [] } = useArticleTagsQuery();
   const deleteArticle = useDeleteArticleMutation();
 
-  const articles = articleQuery.data?.list ?? [];
-  const total = articleQuery.data?.total ?? 0;
+  // 无限分页：合并所有已加载页；每页 10 篇
+  const articles = articleQuery.data?.pages.flatMap((p) => p.list) ?? [];
+  const total = articleQuery.data?.pages[0]?.total ?? 0;
   const loading = articleQuery.isLoading;
   const errorMessage = articleQuery.error?.message ?? deleteArticle.error?.message;
 
@@ -249,6 +250,20 @@ export default function Blog() {
               </motion.article>
             </Reveal>
           ))}
+
+          {/* 加载更多（还有下一页时显示） */}
+          {articleQuery.hasNextPage && (
+            <div className="mt-10 flex justify-center">
+              <button
+                type="button"
+                onClick={() => { void articleQuery.fetchNextPage(); }}
+                disabled={articleQuery.isFetchingNextPage}
+                className="cursor-pointer rounded-md border border-[var(--color-border)] px-6 py-2 text-sm text-text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
+              >
+                {articleQuery.isFetchingNextPage ? '加载中…' : `加载更多（已加载 ${String(articles.length)}/${String(total)}）`}
+              </button>
+            </div>
+          )}
         </div>
       </section>
     </main>

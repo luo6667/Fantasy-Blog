@@ -25,6 +25,10 @@ export const favoriteKeys = {
   all: ['favorite-articles'] as const,
 };
 
+export const manageUserKeys = {
+  all: ['users', 'manage'] as const,
+};
+
 /** 通知列表 */
 export function useNotificationsQuery(enabled: boolean) {
   return useQuery({
@@ -148,5 +152,24 @@ export function useSearchUsersQuery(search: string, enabled = true) {
     queryFn: () => userApi.search(search),
     enabled,
     placeholderData: (prev: UserBrief[] | undefined) => prev,
+  });
+}
+
+/** 管理端用户列表 + 统计（管理员） */
+export function useUsersManageQuery() {
+  return useQuery({
+    queryKey: manageUserKeys.all,
+    queryFn: userApi.listManage,
+  });
+}
+
+/** 删除用户及级联数据（管理员） */
+export function useDeleteUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => userApi.remove(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: manageUserKeys.all });
+    },
   });
 }

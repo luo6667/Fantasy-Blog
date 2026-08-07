@@ -6,6 +6,7 @@ import { Comment } from '../models/Comment.js';
 import { Tag } from '../models/Tag.js';
 import { User } from '../models/User.js';
 import { createNotification, resolveArticleRecipient } from './notification.service.js';
+import { mdxToSafeHtml } from '../utils/mdx.js';
 import type { AuthUser } from '../types/auth.js';
 import type {
   ArticleDetail,
@@ -49,6 +50,9 @@ export function likeKey(user: AuthUser): string {
 }
 
 function toListItem(doc: ArticleDoc, meKey?: string): ArticleListItem {
+  // 列表查询排除了 likedBy/favoritedBy 大数组，用冗余计数；旧数据无计数时回退数组长度
+  const likedBy = doc.likedBy ?? [];
+  const favoritedBy = doc.favoritedBy ?? [];
   return {
     id: doc._id.toString(),
     title: doc.title,
@@ -58,15 +62,15 @@ function toListItem(doc: ArticleDoc, meKey?: string): ArticleListItem {
     date: formatDate(doc.createdAt),
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
-    likes: doc.likedBy.length,
-    favorites: doc.favoritedBy.length,
-    likedByMe: meKey !== undefined && doc.likedBy.includes(meKey),
-    favoritedByMe: meKey !== undefined && doc.favoritedBy.includes(meKey),
+    likes: doc.likes ?? likedBy.length,
+    favorites: doc.favorites ?? favoritedBy.length,
+    likedByMe: meKey !== undefined && likedBy.includes(meKey),
+    favoritedByMe: meKey !== undefined && favoritedBy.includes(meKey),
   };
 }
 
 function toDetail(doc: ArticleDoc, meKey?: string): ArticleDetail {
-  return { ...toListItem(doc, meKey), content: doc.content };
+  return { ...toListItem(doc, meKey), content: doc.content, contentHtml: doc.contentHtml ?? '' };
 }
 
 /** 分页查询文章列表（支持标签筛选与关键字搜索） */
@@ -87,6 +91,8 @@ export async function listArticles(
   const [total, docs] = await Promise.all([
     Article.countDocuments(filter),
     Article.find(filter)
+      // 列表页不需要正文（几十 KB 的大字段）与点赞/收藏大数组，用冗余计数
+      .select('-content -contentHtml -likedBy -favoritedBy')
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize),
@@ -113,87 +119,99 @@ export async function listTags(): Promise<TagCount[]> {
 
 /** 文章详情 */
 export async function getArticle(id: string, currentUser?: AuthUser): Promise<ArticleDetail> {
-  const doc = await Article.findById(id);
+  const doc = await Article.findById(id).lean();
   if (!doc) {
     throw new HttpError(404, 'Article not found');
   }
-  return toDetail(doc, currentUser ? likeKey(currentUser) : undefined);
+  return toDetail(doc as unknown as ArticleDoc, currentUser ? likeKey(currentUser) : undefined);
 }
 
-/** 点赞 / 取消点赞（新点赞时通知文章作者），返回最新状态 */
+/**
+ * 点赞 / 取消点赞（原子操作，并发安全；新点赞时通知文章作者）
+ *
+ * 条件更新实现「点过则取消、没点过则点赞」：
+ * - 尝试点赞：仅当 likedBy 不含 key（$ne）时 $addToSet + $inc 计数
+ * - 未命中说明已点过 → 取消分支：仅当 likedBy 含 key 时 $pull + $inc 减一
+ */
 export async function toggleArticleLike(
   articleId: string,
   user: AuthUser,
 ): Promise<{ liked: boolean; likes: number }> {
   const key = likeKey(user);
-  const doc = await Article.findById(articleId);
+  const liked = await Article.findOneAndUpdate(
+    { _id: articleId, likedBy: { $ne: key } },
+    { $addToSet: { likedBy: key }, $inc: { likes: 1 } },
+    { new: true },
+  );
+
+  if (liked) {
+    // 新点赞且非本人时，通知文章作者
+    if (!(liked.authorType === user.role && liked.authorId?.toString() === user.id)) {
+      const recipient = await resolveArticleRecipient(liked);
+      if (recipient) {
+        await createNotification({
+          recipient,
+          actor: user,
+          type: 'like',
+          articleId: liked._id.toString(),
+          articleTitle: liked.title,
+        });
+      }
+    }
+    return { liked: true, likes: liked.likes };
+  }
+
+  // 已点过 → 取消
+  const doc = await Article.findOneAndUpdate(
+    { _id: articleId, likedBy: key },
+    { $pull: { likedBy: key }, $inc: { likes: -1 } },
+    { new: true },
+  );
   if (!doc) {
     throw new HttpError(404, '文章不存在');
   }
-  const liked = doc.likedBy.includes(key);
-  if (liked) {
-    doc.likedBy = doc.likedBy.filter((k) => k !== key);
-  } else {
-    doc.likedBy.push(key);
-  }
-  await doc.save();
-
-  // 新点赞且非本人时，通知文章作者
-  if (
-    !liked &&
-    !(doc.authorType === user.role && doc.authorId?.toString() === user.id)
-  ) {
-    const recipient = await resolveArticleRecipient(doc);
-    if (recipient) {
-      await createNotification({
-        recipient,
-        actor: user,
-        type: 'like',
-        articleId: doc._id.toString(),
-        articleTitle: doc.title,
-      });
-    }
-  }
-
-  return { liked: !liked, likes: doc.likedBy.length };
+  return { liked: false, likes: doc.likes };
 }
 
-/** 收藏 / 取消收藏；新收藏时通知文章作者 */
+/** 收藏 / 取消收藏（原子操作，并发安全；新收藏时通知文章作者） */
 export async function toggleArticleFavorite(
   articleId: string,
   user: AuthUser,
 ): Promise<{ favorited: boolean; favorites: number }> {
   const key = likeKey(user);
-  const doc = await Article.findById(articleId);
+  const favorited = await Article.findOneAndUpdate(
+    { _id: articleId, favoritedBy: { $ne: key } },
+    { $addToSet: { favoritedBy: key }, $inc: { favorites: 1 } },
+    { new: true },
+  );
+
+  if (favorited) {
+    // 新收藏且非本人时，通知文章作者（旧数据无作者时回退管理员）
+    if (!(favorited.authorType === user.role && favorited.authorId?.toString() === user.id)) {
+      const recipient = await resolveArticleRecipient(favorited);
+      if (recipient) {
+        await createNotification({
+          recipient,
+          actor: user,
+          type: 'favorite',
+          articleId: favorited._id.toString(),
+          articleTitle: favorited.title,
+        });
+      }
+    }
+    return { favorited: true, favorites: favorited.favorites };
+  }
+
+  // 已收藏 → 取消
+  const doc = await Article.findOneAndUpdate(
+    { _id: articleId, favoritedBy: key },
+    { $pull: { favoritedBy: key }, $inc: { favorites: -1 } },
+    { new: true },
+  );
   if (!doc) {
     throw new HttpError(404, '文章不存在');
   }
-  const favorited = doc.favoritedBy.includes(key);
-  if (favorited) {
-    doc.favoritedBy = doc.favoritedBy.filter((k) => k !== key);
-  } else {
-    doc.favoritedBy.push(key);
-  }
-  await doc.save();
-
-  // 新收藏且非本人时，通知文章作者（旧数据无作者时回退管理员）
-  if (
-    !favorited &&
-    !(doc.authorType === user.role && doc.authorId?.toString() === user.id)
-  ) {
-    const recipient = await resolveArticleRecipient(doc);
-    if (recipient) {
-      await createNotification({
-        recipient,
-        actor: user,
-        type: 'favorite',
-        articleId: doc._id.toString(),
-        articleTitle: doc.title,
-      });
-    }
-  }
-
-  return { favorited: !favorited, favorites: doc.favoritedBy.length };
+  return { favorited: false, favorites: doc.favorites };
 }
 
 /** 我收藏的文章列表 */
@@ -229,8 +247,11 @@ export async function createArticle(
     throw new HttpError(400, '至少选择一个分类标签');
   }
   await assertTagsExist(tags);
+  // 服务端编译 + 消毒正文，前端渲染 HTML（杜绝存储型 XSS）
+  const contentHtml = await mdxToSafeHtml(input.content);
   const doc = await Article.create({
     ...input,
+    contentHtml,
     tags,
     authorType: author.role,
     authorId: author.id,
@@ -257,7 +278,7 @@ export async function createArticle(
 
 /** 更新文章（部分字段） */
 export async function updateArticle(id: string, input: UpdateArticleInput): Promise<ArticleDetail> {
-  const patch: UpdateArticleInput = { ...input };
+  const patch: UpdateArticleInput & { contentHtml?: string } = { ...input };
   if (patch.tags !== undefined) {
     const tags = normalizeTags(patch.tags);
     if (tags.length === 0) {
@@ -265,6 +286,10 @@ export async function updateArticle(id: string, input: UpdateArticleInput): Prom
     }
     await assertTagsExist(tags);
     patch.tags = tags;
+  }
+  // 正文变更时重新编译消毒（不合法内容直接 400，不会覆盖旧数据）
+  if (patch.content !== undefined) {
+    patch.contentHtml = await mdxToSafeHtml(patch.content);
   }
   const doc = await Article.findByIdAndUpdate(id, patch, { new: true, runValidators: true });
   if (!doc) {

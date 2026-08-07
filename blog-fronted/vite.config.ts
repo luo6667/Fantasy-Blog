@@ -12,17 +12,21 @@ export default defineConfig({
   },
 
   build: {
-    // 将 node_modules 依赖拆分成独立 chunk，利于浏览器缓存
+    // 将 node_modules 依赖拆分成独立 chunk，利于浏览器缓存与并行加载
     rollupOptions: {
       output: {
         manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
           'vendor-router': ['react-router-dom'],
           'vendor-motion': ['motion'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-socket': ['socket.io-client'],
+          'vendor-state': ['zustand'],
         },
       },
     },
-    // 提高 chunk 大小警告阈值（motion 库较大）
-    chunkSizeWarningLimit: 600,
+    // chunk 大小告警阈值（避免告警阈值过大掩盖真实体积问题）
+    chunkSizeWarningLimit: 500,
   },
 
   // 开发服务器配置

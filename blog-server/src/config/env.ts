@@ -16,6 +16,8 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().min(1).default('7d'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  /** 可选：seed 脚本创建/重置管理员时使用的初始密码（不设置则随机生成并打印） */
+  ADMIN_INITIAL_PASSWORD: z.string().min(8).optional(),
   UPLOAD_DIR: z.string().min(1).default('uploads'),
   UPLOAD_MAX_SIZE: z.coerce.number().int().positive().default(5 * 1024 * 1024),
 });

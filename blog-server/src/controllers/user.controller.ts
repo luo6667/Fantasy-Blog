@@ -2,13 +2,16 @@ import type { RequestHandler } from 'express';
 
 import { Admin } from '../models/Admin.js';
 import { User } from '../models/User.js';
+import { deleteUser, listUsersForAdmin } from '../services/user.service.js';
 import type { UserBrief } from '../types/user.js';
 import { ok } from '../utils/response.js';
 
 /**
- * 用户搜索控制器（登录）
+ * 用户控制器
  *
- * GET /api/users?search= 搜索可聊天的对方（普通用户 + 管理员，排除自己）
+ * GET    /api/users?search=  搜索可聊天的对方（登录）
+ * GET    /api/users/manage   用户列表 + 统计（管理员）
+ * DELETE /api/users/:id      删除用户及级联数据（管理员）
  */
 
 function escapeRegex(s: string): string {
@@ -38,4 +41,17 @@ export const searchUsersHandler: RequestHandler = async (req, res) => {
   ].filter((u) => !(u.role === me.role && u.id === me.id));
 
   ok(res, list);
+};
+
+/** 用户列表 + 统计（requireAdmin 之后调用） */
+export const listUsersHandler: RequestHandler = async (_req, res) => {
+  const list = await listUsersForAdmin();
+  ok(res, list);
+};
+
+/** 删除用户及级联数据（requireAdmin 之后调用） */
+export const deleteUserHandler: RequestHandler = async (req, res) => {
+  const id = req.params.id as string;
+  const result = await deleteUser(id);
+  ok(res, result, '用户已删除');
 };

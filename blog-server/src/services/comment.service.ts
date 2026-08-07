@@ -132,24 +132,31 @@ export async function createReply(
   return toItem(doc, false, true, parent.authorName);
 }
 
-/** 点赞 / 取消点赞，返回最新状态 */
+/** 点赞 / 取消点赞（原子操作，并发安全），返回最新状态 */
 export async function toggleLike(
   commentId: string,
   user: AuthUser,
 ): Promise<{ liked: boolean; likes: number }> {
   const key = likeKey(user);
-  const comment = await Comment.findById(commentId);
+  // 尝试点赞：仅当 likedBy 不含 key 时 $addToSet
+  const liked = await Comment.findOneAndUpdate(
+    { _id: commentId, likedBy: { $ne: key } },
+    { $addToSet: { likedBy: key } },
+    { new: true },
+  );
+  if (liked) {
+    return { liked: true, likes: liked.likedBy.length };
+  }
+  // 已点过 → 取消（仅当 likedBy 含 key 时 $pull）
+  const comment = await Comment.findOneAndUpdate(
+    { _id: commentId, likedBy: key },
+    { $pull: { likedBy: key } },
+    { new: true },
+  );
   if (!comment) {
     throw new HttpError(404, '评论不存在');
   }
-  const liked = comment.likedBy.includes(key);
-  if (liked) {
-    comment.likedBy = comment.likedBy.filter((k) => k !== key);
-  } else {
-    comment.likedBy.push(key);
-  }
-  await comment.save();
-  return { liked: !liked, likes: comment.likedBy.length };
+  return { liked: false, likes: comment.likedBy.length };
 }
 
 /** 删除评论及其全部子孙回复（作者本人或管理员） */

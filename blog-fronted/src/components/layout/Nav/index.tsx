@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 import AuthModal from '@/components/auth/AuthModal';
@@ -8,7 +8,7 @@ import { MotionLink } from '@/components/common';
 import FavoritesPanel from '@/components/favorites/FavoritesPanel';
 import NotificationPanel from '@/components/notification/NotificationPanel';
 import { NAV_TABS } from '@/constants';
-import { useConversationsQuery, useMarkNotificationsReadMutation } from '@/hooks/queries';
+import { useConversationsQuery } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { springBtn } from '@/lib/motion';
 import { preloadRoute } from '@/lib/preload';
@@ -29,8 +29,10 @@ const linkBase =
  * - 品牌 Logo 右侧：管理员登录后显示「管理」入口
  * - 右侧：未登录显示「请登录」（打开登录/注册弹窗），已登录显示用户名与退出
  * - 主题切换按钮、桌面/移动端导航菜单
+ *
+ * memo 化：路由切换 / 内容区重渲染时不重渲染（theme/onToggle 变化时仍正常更新）
  */
-export default function Nav({ theme, onToggle }: NavProps) {
+export default memo(function Nav({ theme, onToggle }: NavProps) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
@@ -41,17 +43,15 @@ export default function Nav({ theme, onToggle }: NavProps) {
   const unreadNotifications = useChatStore((s) => s.unreadNotifications);
   const setNotificationsOpen = useChatStore((s) => s.setNotificationsOpen);
   const setChatOpen = useChatStore((s) => s.setChatOpen);
-  const markNotificationsRead = useMarkNotificationsReadMutation();
 
   // 聊天未读徽标：所有会话未读总和
   const { data: conversations = [] } = useConversationsQuery(Boolean(user));
   const unreadMessages = conversations.reduce((sum, c) => sum + c.unread, 0);
 
-  /** 打开通知面板：标记全部已读并同步未读徽标 */
+  /** 打开通知面板（已读由面板内的单条/全部已读按钮处理，避免一打开就全部标记） */
   function openNotifications() {
     setNotifOpen(true);
     setNotificationsOpen(true);
-    markNotificationsRead.mutate(undefined);
   }
 
   function closeNotifications() {
@@ -290,4 +290,4 @@ export default function Nav({ theme, onToggle }: NavProps) {
       <ChatWindowHost />
     </motion.header>
   );
-}
+});

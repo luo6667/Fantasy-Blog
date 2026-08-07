@@ -26,6 +26,7 @@ import type {
   TagItem,
   UploadResult,
   UserBrief,
+  UserManageItem,
   UserRole,
 } from '@/types/api';
 
@@ -231,5 +232,10 @@ export const messageApi = {
 
 /** 用户 API（登录） */
 export const userApi = {
+  /** 搜索可聊天的对方（登录） */
   search: (search: string) => request<UserBrief[]>(`/users?search=${encodeURIComponent(search)}`),
+  /** 用户列表 + 统计（管理员） */
+  listManage: () => request<UserManageItem[]>('/users/manage'),
+  /** 删除用户及级联数据（管理员） */
+  remove: (id: string) => request<{ id: string }>(`/users/${id}`, { method: 'DELETE' }),
 };

@@ -8,6 +8,7 @@ import ArticleManager from './ArticleManager';
 import SiteContentManager from './content';
 import LoginForm from './LoginForm';
 import TagManager from './TagManager';
+import UserManager from './UserManager';
 import UserPanel from './UserPanel';
 
 type AdminTab = 'user' | 'admin';
@@ -87,6 +88,9 @@ export default function Admin() {
               </div>
               <div className="mt-12 border-t border-[var(--color-border-light)] pt-10">
                 <SiteContentManager />
+              </div>
+              <div className="mt-12 border-t border-[var(--color-border-light)] pt-10">
+                <UserManager />
               </div>
             </>
           ) : tab === 'user' ? (

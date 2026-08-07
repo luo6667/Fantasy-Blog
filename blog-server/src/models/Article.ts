@@ -20,6 +20,8 @@ export interface ArticleDoc {
   title: string;
   excerpt: string;
   content: string;
+  /** 服务端编译并消毒后的正文 HTML（渲染端直接展示，不执行 JSX） */
+  contentHtml: string;
   tags: string[];
   cover?: string;
   authorType?: ArticleAuthorType;
@@ -27,6 +29,10 @@ export interface ArticleDoc {
   authorName?: string;
   likedBy: string[];
   favoritedBy: string[];
+  /** 点赞数（冗余计数，由 toggle 接口 $inc 原子维护，避免读大数组算 length） */
+  likes: number;
+  /** 收藏数（冗余计数） */
+  favorites: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,7 +43,8 @@ const articleSchema = new Schema<ArticleDoc, ArticleModel>(
   {
     title: { type: String, required: true, trim: true, maxlength: 200 },
     excerpt: { type: String, required: true, trim: true, maxlength: 500 },
-    content: { type: String, required: true },
+    content: { type: String, required: true, maxlength: 200 * 1024 },
+    contentHtml: { type: String, default: '' },
     tags: { type: [String], default: [] },
     cover: { type: String, default: '' },
     authorType: { type: String, enum: ['user', 'admin'], default: undefined },
@@ -45,6 +52,9 @@ const articleSchema = new Schema<ArticleDoc, ArticleModel>(
     authorName: { type: String, trim: true, maxlength: 32, default: undefined },
     likedBy: { type: [String], default: [] },
     favoritedBy: { type: [String], default: [] },
+    // 冗余计数：点赞/收藏接口用 $inc 原子维护；列表页不再读取大数组
+    likes: { type: Number, default: 0 },
+    favorites: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

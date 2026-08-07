@@ -1,4 +1,10 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import { articleApi } from '@/lib/api';
 import { articleKeys, tagKeys } from '@/lib/queryKeys';
@@ -19,6 +25,28 @@ export function useArticleListQuery(tag: string | null = null, search = '') {
     queryKey: [...articleKeys.list(tag), 'search', search],
     queryFn: () => articleApi.list({ pageSize: 50, tag: tag ?? undefined, search: search || undefined }),
     placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * 博客列表「加载更多」分页（每页 10 篇）
+ *
+ * 独立 queryKey（...'infinite' 后缀），与 50 篇的管理页列表缓存互不干扰；
+ * 删除/更新文章后仍会被 ['articles'] 前缀失效统一刷新。
+ */
+export function useArticleListInfiniteQuery(tag: string | null = null, search = '') {
+  return useInfiniteQuery({
+    queryKey: [...articleKeys.list(tag), 'search', search, 'infinite'],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      articleApi.list({
+        page: pageParam,
+        pageSize: 10,
+        tag: tag ?? undefined,
+        search: search || undefined,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (last, allPages) =>
+      last.list.length > 0 && allPages.length * 10 < last.total ? allPages.length + 1 : undefined,
   });
 }
 

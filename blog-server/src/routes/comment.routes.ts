@@ -7,6 +7,7 @@ import {
   replyHandler,
 } from '../controllers/comment.controller.js';
 import { requireAuth } from '../middleware/auth.js';
+import { writeLimiter } from '../middleware/rateLimit.js';
 import { validateBody } from '../middleware/validate.js';
 
 const router = Router();
@@ -23,8 +24,8 @@ const replySchema = z.object({
  * POST   /api/comments/:id/like     点赞 / 取消点赞（登录）
  * DELETE /api/comments/:id          删除评论及回复（作者本人或管理员）
  */
-router.post('/:id/replies', requireAuth, validateBody(replySchema), replyHandler);
-router.post('/:id/like', requireAuth, likeHandler);
+router.post('/:id/replies', writeLimiter, requireAuth, validateBody(replySchema), replyHandler);
+router.post('/:id/like', writeLimiter, requireAuth, likeHandler);
 router.delete('/:id', requireAuth, deleteCommentHandler);
 
 export default router;

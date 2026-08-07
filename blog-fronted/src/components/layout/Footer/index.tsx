@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { NAV_TABS } from '@/constants';
@@ -10,8 +11,9 @@ const MotionLink = motion.create(Link);
  * 底部页脚组件
  *
  * 包含导航链接、联系方式与版权信息。
+ * memo 化：无 props，路由切换时不重渲染。
  */
-export default function Footer() {
+export default memo(function Footer() {
   const year = new Date().getFullYear();
 
   return (
@@ -74,4 +76,4 @@ export default function Footer() {
       </p>
     </footer>
   );
-}
+});
