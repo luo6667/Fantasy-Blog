@@ -9,6 +9,8 @@
  */
 
 import type {
+  AiChatMessage,
+  AiSettings,
   ArticleDetail,
   ArticleInput,
   ArticleListItem,
@@ -239,3 +241,76 @@ export const userApi = {
   /** 删除用户及级联数据（管理员） */
   remove: (id: string) => request<{ id: string }>(`/users/${id}`, { method: 'DELETE' }),
 };
+
+/** AI API（配置管理 + 流式对话） */
+export const aiApi = {
+  /** 读取配置（管理员；apiKey 不回传明文，仅 hasKey） */
+  getSettings: () => request<AiSettings>('/ai/settings'),
+  /** 保存配置（apiKey 留空 = 保留旧值） */
+  saveSettings: (input: { baseURL: string; apiKey?: string; model: string }) =>
+    request<AiSettings>('/ai/settings', { method: 'PUT', body: JSON.stringify(input) }),
+};
+
+/**
+ * AI 流式对话（SSE，OpenAI 兼容）
+ *
+ * 返回异步生成器，逐段产出文本增量（打字机效果）。
+ * 未配置 AI / 上游错误 / 网络错误时抛出 ApiError。
+ */
+export async function* aiChatStream(
+  messages: AiChatMessage[],
+  signal?: AbortSignal,
+): AsyncGenerator<string> {
+  const token = tokenStore.get();
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/ai/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ messages }),
+      signal,
+    });
+  } catch {
+    throw new ApiError('网络错误，请确认后端服务已启动', -1, 0);
+  }
+
+  if (!res.ok || !res.body) {
+    const body = (await res.json().catch(() => null)) as { msg?: string; code?: number } | null;
+    throw new ApiError(
+      body?.msg ?? `AI 请求失败（HTTP ${String(res.status)}）`,
+      body?.code ?? res.status,
+      res.status,
+    );
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 1);
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') return;
+        try {
+          const json = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+          const delta = json.choices?.[0]?.delta?.content;
+          if (delta) yield delta;
+        } catch {
+          /* 忽略无法解析的 SSE 行 */
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}

@@ -1,6 +1,7 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import WriterAiPanel from '@/components/ai/WriterAiPanel';
 import { BgOrbs } from '@/components/common';
 import {
   useArticleDetailQuery,
@@ -353,6 +354,14 @@ export default function ArticleEditor() {
           </form>
         </div>
       </section>
+
+      {/* AI 写作助手（右下角浮动面板） */}
+      <WriterAiPanel
+        title={title}
+        excerpt={excerpt}
+        content={content}
+        onInsert={insertAtCursor}
+      />
     </main>
   );
 }

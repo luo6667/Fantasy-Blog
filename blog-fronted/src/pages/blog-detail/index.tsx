@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
+import ArticleAiAssistant from '@/components/ai/ArticleAiAssistant';
 import AuthModal from '@/components/auth/AuthModal';
 import CommentSection from '@/components/comment/CommentSection';
 import { BgOrbs, MdxContent, Reveal, Tag } from '@/components/common';
@@ -169,6 +170,14 @@ export default function BlogDetail() {
                 )}
                 <MdxContent html={article.contentHtml} />
               </article>
+
+              {/* 智能助手（AI 一键总结 + 追问） */}
+              <ArticleAiAssistant
+                title={article.title}
+                excerpt={article.excerpt}
+                content={article.content}
+                onRequireLogin={() => { setAuthOpen(true); }}
+              />
 
               {/* 评论区 */}
               <CommentSection articleId={article.id} />

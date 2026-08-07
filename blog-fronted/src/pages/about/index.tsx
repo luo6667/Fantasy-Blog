@@ -156,7 +156,7 @@ export default function About() {
                 whileTap={{ scale: 0.95 }}
                 transition={springBtn}
               >
-                <i className="iconfont icon-GitHub text-accent" /> github.com/yourname
+                <i className="iconfont icon-GitHub text-accent" /> github.com/luo6667
               </motion.a>
               <motion.a
                 href="/blog"

@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BgOrbs } from '@/components/common';
 import { useAuth } from '@/hooks/useAuth';
 
+import AiSettings from './AiSettings';
 import ArticleManager from './ArticleManager';
 import SiteContentManager from './content';
 import LoginForm from './LoginForm';
@@ -85,6 +86,9 @@ export default function Admin() {
               <div className="grid gap-8 lg:grid-cols-[1fr_16rem]">
                 <ArticleManager />
                 <TagManager />
+              </div>
+              <div className="mt-12 border-t border-[var(--color-border-light)] pt-10">
+                <AiSettings />
               </div>
               <div className="mt-12 border-t border-[var(--color-border-light)] pt-10">
                 <SiteContentManager />

@@ -4,6 +4,7 @@ import helmet from 'helmet';
 
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import aiRoutes from './routes/ai.routes.js';
 import articleRoutes from './routes/article.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import commentRoutes from './routes/comment.routes.js';
@@ -59,6 +60,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // 业务路由
+app.use('/api/ai', aiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/comments', commentRoutes);

@@ -180,6 +180,19 @@ export interface UserManageItem {
   favoriteCount: number;
 }
 
+/** AI 配置（管理后台；apiKey 不回传明文，仅 hasKey 表示是否已配置） */
+export interface AiSettings {
+  baseURL: string;
+  model: string;
+  hasKey: boolean;
+}
+
+/** AI 对话消息（OpenAI 兼容） */
+export interface AiChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 /** 站点内容 key：简历页 4 块 + 首页精选项目 */
 export type SiteContentKey =
   | 'education'
