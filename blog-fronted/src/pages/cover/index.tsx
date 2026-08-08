@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 
-import { MotionLink } from '@/components/common';
+import { MotionLink, SafeImg } from '@/components/common';
 import { springBtn, springSlow } from '@/lib/motion';
 
 const btnCover =
@@ -14,8 +14,8 @@ const btnCover =
  */
 export default function Cover() {
   return (
-    <main className="relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden">
-      {/* 动态壁纸视频 — 全屏背景 */}
+    <main className="relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden bg-[#191613]">
+      {/* 动态壁纸视频 — 全屏背景（加载失败时显示深色底色，保证白色文字可读） */}
       <video
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         src="https://duoduowallpaper.fp.ps.netease.com/file/69bb69891f71e9c2b64c6336EcvtVzXo07"
@@ -47,11 +47,10 @@ export default function Cover() {
             animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.7, 0.3] }}
             transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
           />
-          <img
+          <SafeImg
             src="/head.jpg"
             alt="JasonLuo"
             className="relative h-40 w-40 rounded-full border-[3px] border-white/30 object-cover shadow-2xl shadow-black/30"
-            draggable={false}
           />
         </motion.div>
 

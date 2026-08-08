@@ -6,7 +6,8 @@
  */
 
 const pageLoaders: Record<string, () => Promise<unknown>> = {
-  '/': () => import('@/pages/home'),
+  '/': () => import('@/pages/cover'),
+  '/home': () => import('@/pages/home'),
   '/blog': () => import('@/pages/blog'),
   '/resume': () => import('@/pages/resume'),
   '/about': () => import('@/pages/about'),

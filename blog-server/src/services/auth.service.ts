@@ -69,8 +69,12 @@ export async function verifyToken(token: string): Promise<AuthUser> {
     throw new HttpError(401, '登录已过期，请重新登录');
   }
 
-  const role: UserRole = payload.role ?? 'admin';
   const id = payload.sub;
+  // 旧格式 token 无 role 时直接拒绝（不兑底为管理员），避免被伪造或误判身份
+  if (payload.role !== 'admin' && payload.role !== 'user') {
+    throw new HttpError(401, '登录已过期，请重新登录');
+  }
+  const role: UserRole = payload.role;
   if (role === 'admin') {
     const admin = await Admin.findById(id);
     if (!admin) throw new HttpError(401, '管理员不存在');

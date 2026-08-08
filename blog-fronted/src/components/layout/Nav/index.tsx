@@ -1,12 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { memo, useState } from 'react';
+import { lazy, memo, Suspense, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-import AuthModal from '@/components/auth/AuthModal';
-import { ChatWindowHost } from '@/components/chat/ChatWindow';
-import { MotionLink } from '@/components/common';
-import FavoritesPanel from '@/components/favorites/FavoritesPanel';
-import NotificationPanel from '@/components/notification/NotificationPanel';
+import { MotionLink, SafeImg } from '@/components/common';
 import { NAV_TABS } from '@/constants';
 import { useConversationsQuery } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +10,14 @@ import { springBtn } from '@/lib/motion';
 import { preloadRoute } from '@/lib/preload';
 import { useChatStore } from '@/stores/chatStore';
 import type { ThemeMode } from '@/types';
+
+// 弹窗 / 面板按需懒加载，避免打进首屏包（Nav 是 Layout 常驻组件）
+const AuthModal = lazy(() => import('@/components/auth/AuthModal'));
+const NotificationPanel = lazy(() => import('@/components/notification/NotificationPanel'));
+const FavoritesPanel = lazy(() => import('@/components/favorites/FavoritesPanel'));
+const ChatWindowHost = lazy(() =>
+  import('@/components/chat/ChatWindow').then((m) => ({ default: m.ChatWindowHost })),
+);
 
 interface NavProps {
   theme: ThemeMode;
@@ -70,11 +74,10 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
         to="/home"
         className="flex items-center gap-2 whitespace-nowrap text-base font-bold tracking-[-0.02em] text-accent"
       >
-        <img
+        <SafeImg
           src="/head.jpg"
           alt=""
           className="h-6 w-6 rounded-full object-cover ring-1 ring-[var(--color-border-light)]"
-          draggable={false}
         />
         JasonLuo
       </Link>
@@ -140,7 +143,9 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-[940]" onClick={closeNotifications} />
-                  <NotificationPanel onClose={closeNotifications} />
+                  <Suspense fallback={null}>
+                    <NotificationPanel onClose={closeNotifications} />
+                  </Suspense>
                 </>
               )}
             </AnimatePresence>
@@ -160,7 +165,9 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
               {favOpen && (
                 <>
                   <div className="fixed inset-0 z-[940]" onClick={() => { setFavOpen(false); }} />
-                  <FavoritesPanel onClose={() => { setFavOpen(false); }} />
+                  <Suspense fallback={null}>
+                    <FavoritesPanel onClose={() => { setFavOpen(false); }} />
+                  </Suspense>
                 </>
               )}
             </AnimatePresence>
@@ -284,10 +291,14 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
       </motion.button>
 
       {/* 登录 / 注册弹窗 */}
-      <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
+      <Suspense fallback={null}>
+        <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
+      </Suspense>
 
       {/* 私信聊天窗口（固定右下角） */}
-      <ChatWindowHost />
+      <Suspense fallback={null}>
+        <ChatWindowHost />
+      </Suspense>
     </motion.header>
   );
 });

@@ -6,6 +6,7 @@ export { default as MdxContent } from './MdxContent';
 export { default as MotionLink } from './MotionLink';
 export { default as PageSuspense } from './PageSuspense';
 export { default as Reveal } from './Reveal';
+export { default as SafeImg } from './SafeImg';
 export { default as ScrollProgress } from './ScrollProgress';
 export { default as SectionHeading } from './SectionHeading';
 export { default as Tag } from './Tag';

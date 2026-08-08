@@ -2,13 +2,14 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { BgOrbs, CursorGlow, Reveal, Tag } from '@/components/common';
+import { BgOrbs, CursorGlow, Reveal, SafeImg, Tag } from '@/components/common';
 import {
   useArticleListInfiniteQuery,
   useArticleTagsQuery,
   useDeleteArticleMutation,
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
+import { useSeo } from '@/hooks/useSeo';
 import { fadeUp, springHero } from '@/lib/motion';
 
 /**
@@ -25,6 +26,12 @@ export default function Blog() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+
+  // 动态 SEO：按当前筛选条件更新页面标题
+  useSeo({
+    title: activeTag ? `标签：${activeTag}` : search ? `搜索：${search}` : undefined,
+    description: 'JasonLuo 的技术博客 - 前端与全栈开发文章',
+  });
 
   // 搜索防抖：停止输入 400ms 后自动搜索；回车立即搜索
   useEffect(() => {
@@ -208,12 +215,10 @@ export default function Blog() {
                           className="shrink-0"
                           aria-label={post.title}
                         >
-                          <img
+                          <SafeImg
                             src={post.cover}
                             alt={post.title}
                             className="h-14 w-20 rounded-lg border border-[var(--color-border-light)] object-cover transition-transform duration-300 group-hover:scale-105"
-                            loading="lazy"
-                            draggable={false}
                           />
                         </Link>
                       )}

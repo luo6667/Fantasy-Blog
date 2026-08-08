@@ -1,8 +1,7 @@
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import WriterAiPanel from '@/components/ai/WriterAiPanel';
-import { BgOrbs } from '@/components/common';
+import { BgOrbs, SafeImg } from '@/components/common';
 import {
   useArticleDetailQuery,
   useCreateArticleMutation,
@@ -266,7 +265,7 @@ export default function ArticleEditor() {
                 />
                 {cover && (
                   <span className="flex items-center gap-2 text-xs text-text-muted">
-                    <img src={cover} alt="封面预览" className="h-12 w-20 rounded object-cover" />
+                    <SafeImg src={cover} alt="封面预览" className="h-12 w-20 rounded object-cover" />
                     <button
                       type="button"
                       onClick={() => { setCover(''); }}
@@ -354,14 +353,6 @@ export default function ArticleEditor() {
           </form>
         </div>
       </section>
-
-      {/* AI 写作助手（右下角浮动面板） */}
-      <WriterAiPanel
-        title={title}
-        excerpt={excerpt}
-        content={content}
-        onInsert={insertAtCursor}
-      />
     </main>
   );
 }

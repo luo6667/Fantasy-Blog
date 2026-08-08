@@ -28,7 +28,7 @@ const articleSchema = z.object({
   excerpt: z.string().trim().min(1, '摘要不能为空').max(500, '摘要最多 500 字'),
   content: z.string().min(1, '正文不能为空').max(200 * 1024, '正文最多 200KB'),
   tags: z
-    .array(z.string().trim().min(1, '标签不能为空'))
+    .array(z.string().trim().min(1, '标签不能为空').max(32, '单个标签最多 32 个字符'))
     .min(1, '至少选择一个分类标签')
     .max(20, '标签最多 20 个'),
   // 封面图：允许空、绝对 URL、或本地上传的相对路径（/uploads/...）

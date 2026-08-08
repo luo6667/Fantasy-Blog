@@ -25,6 +25,11 @@ import { ok } from './utils/response.js';
  */
 const app = express();
 
+// 部署在 Nginx / CDN 等反向代理之后必须启用（只信任一层代理），
+// 否则 express-rate-limit 会按「代理 IP」给所有用户计数，导致全员被限流。
+// 若服务是直接暴露公网（没有任何代理），请删除此行（否则可伪造 X-Forwarded-For 绕过限流）。
+app.set('trust proxy', 1);
+
 // 安全响应头（nosniff / CSP / X-Frame-Options / HSTS 等）
 // 注意：若将来把前端构建产物放到本服务托管，CSP 默认允许同源资源，无需调整
 app.use(helmet());

@@ -1,3 +1,4 @@
+import type { Types } from 'mongoose';
 import { Admin } from '../models/Admin.js';
 import { Conversation } from '../models/Conversation.js';
 import { Message, type MessageDoc } from '../models/Message.js';
@@ -65,26 +66,47 @@ export async function listConversations(user: AuthUser): Promise<ConversationIte
   const convs = await Conversation.find({ participants: meKey })
     .sort({ lastMessageAt: -1 })
     .lean();
+  if (convs.length === 0) return [];
 
-  return Promise.all(
-    convs.map(async (c) => {
-      const otherKey = c.participants.find((p) => p !== meKey);
-      const peer = otherKey ? await findPeer(otherKey) : null;
-      const unread = await Message.countDocuments({
-        conversation: c._id,
-        read: false,
-        senderKey: { $ne: meKey },
-      });
-      return {
-        id: c._id.toString(),
-        peer: peer ?? { id: '', username: '未知用户', role: 'user' as const },
-        lastMessage: c.lastMessage,
-        lastMessageAt: c.lastMessageAt.toISOString(),
-        unread,
-        isOnline: peer !== null && isUserOnline(peer),
-      };
-    }),
-  );
+  const convIds = convs.map((c) => c._id);
+
+  // 未读数：一次聚合按会话分组统计，避免逐会话 countDocuments（N+1）
+  const unreadRows = await Message.aggregate<{ _id: Types.ObjectId; count: number }>([
+    { $match: { conversation: { $in: convIds }, read: false, senderKey: { $ne: meKey } } },
+    { $group: { _id: '$conversation', count: { $sum: 1 } } },
+  ]);
+  const unreadMap = new Map(unreadRows.map((r) => [r._id.toString(), r.count]));
+
+  // 对方信息：按 role 分组各批量查询一次（避免逐会话 findPeer 的 2N 次 DB 往返）
+  const otherKeys = convs
+    .map((c) => c.participants.find((p) => p !== meKey))
+    .filter((k): k is string => Boolean(k));
+  const adminIds = otherKeys.filter((k) => k.startsWith('admin:')).map((k) => k.slice('admin:'.length));
+  const userIds = otherKeys.filter((k) => k.startsWith('user:')).map((k) => k.slice('user:'.length));
+  const [admins, users] = await Promise.all([
+    Admin.find({ _id: { $in: adminIds } }).select('username').lean(),
+    User.find({ _id: { $in: userIds } }).select('username').lean(),
+  ]);
+  const peerMap = new Map<string, ChatPeer>();
+  for (const d of admins) {
+    peerMap.set(`admin:${d._id.toString()}`, { id: d._id.toString(), username: d.username, role: 'admin' });
+  }
+  for (const d of users) {
+    peerMap.set(`user:${d._id.toString()}`, { id: d._id.toString(), username: d.username, role: 'user' });
+  }
+
+  return convs.map((c) => {
+    const otherKey = c.participants.find((p) => p !== meKey);
+    const peer = otherKey ? (peerMap.get(otherKey) ?? null) : null;
+    return {
+      id: c._id.toString(),
+      peer: peer ?? { id: '', username: '未知用户', role: 'user' as const },
+      lastMessage: c.lastMessage,
+      lastMessageAt: c.lastMessageAt.toISOString(),
+      unread: unreadMap.get(c._id.toString()) ?? 0,
+      isOnline: peer !== null && isUserOnline(peer),
+    };
+  });
 }
 
 /** 会话历史消息（倒序取最新 200 条再升序返回） */

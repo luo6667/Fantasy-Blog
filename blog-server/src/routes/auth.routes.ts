@@ -20,8 +20,9 @@ const registerSchema = z.object({
 
 /** 登录请求体（role 决定普通用户或管理员登录） */
 const loginSchema = z.object({
-  username: z.string().min(1, '用户名不能为空'),
-  password: z.string().min(1, '密码不能为空'),
+  username: z.string().min(1, '用户名不能为空').max(32, '用户名最多 32 个字符'),
+  // bcrypt 有效输入上限 72 字节，超长密码会浪费计算资源，显式限制
+  password: z.string().min(1, '密码不能为空').max(72, '密码最多 72 个字符'),
   role: z.enum(['user', 'admin']).default('user'),
 });
 

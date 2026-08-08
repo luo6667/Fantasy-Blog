@@ -13,7 +13,7 @@ const router = Router();
 
 /** 标记已读请求体（ids 可选，缺省标记全部） */
 const readSchema = z.object({
-  ids: z.array(z.string()).optional(),
+  ids: z.array(z.string().min(1)).max(100, '单次最多标记 100 条').optional(),
 });
 
 /**

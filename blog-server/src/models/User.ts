@@ -46,6 +46,9 @@ const userSchema = new Schema<UserDoc, UserModel, UserMethods>(
   { timestamps: true },
 );
 
+// 管理员列表按注册时间倒序排序（listUsersForAdmin）
+userSchema.index({ createdAt: -1 });
+
 /** 密码变更时自动哈希（bcrypt cost = 10） */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {

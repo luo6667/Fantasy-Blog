@@ -1,10 +1,12 @@
 import { motion } from 'motion/react';
 
-import { BgOrbs, CursorGlow, EducationList, Reveal, SectionHeading, Tag } from '@/components/common';
+import { BgOrbs, CursorGlow, EducationList, Reveal, SafeImg, SectionHeading, Tag } from '@/components/common';
 import { ABOUT_CORE_SKILLS, ABOUT_EDUCATION, ABOUT_TOOL_GROUPS } from '@/constants';
+import { useSeo } from '@/hooks/useSeo';
 import { springBtn } from '@/lib/motion';
 
 export default function About() {
+  useSeo({ title: '关于我', description: '前端工程师 JasonLuo 的技术栈、经历与工具' });
   return (
     <main>
       <BgOrbs />
@@ -26,11 +28,10 @@ export default function About() {
                 animate={{ scale: 1, opacity: 1, rotate: 0 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 18, mass: 0.6 }}
               >
-                <img
+                <SafeImg
                   src="/head.jpg"
                   alt="JasonLuo"
                   className="h-full w-full object-cover"
-                  draggable={false}
                 />
               </motion.div>
               <div>

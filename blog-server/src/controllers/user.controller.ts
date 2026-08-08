@@ -21,15 +21,29 @@ function escapeRegex(s: string): string {
 export const searchUsersHandler: RequestHandler = async (req, res) => {
   const me = req.user!;
   const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-  // 空搜索返回全部用户（排除自己），便于「新会话」直接选择
-  const rx = search !== '' ? new RegExp(escapeRegex(search), 'i') : null;
+
+  // 空搜索：列出全部普通用户（不含管理员账号），便于「新会话」直接选择
+  // 管理员不列出，避免用户名枚举暴露 admin 账号；搜索管理员时需输入关键词
+  if (search === '') {
+    const users = await User.find({})
+      .select('username')
+      .limit(200)
+      .lean();
+    const list: UserBrief[] = users
+      .map((d) => ({ id: d._id.toString(), username: d.username, role: 'user' as const }))
+      .filter((u) => !(u.role === me.role && u.id === me.id));
+    ok(res, list);
+    return;
+  }
+
+  const rx = new RegExp(escapeRegex(search), 'i');
 
   const [admins, users] = await Promise.all([
-    Admin.find(rx ? { username: rx } : {})
+    Admin.find({ username: rx })
       .select('username')
       .limit(50)
       .lean(),
-    User.find(rx ? { username: rx } : {})
+    User.find({ username: rx })
       .select('username')
       .limit(200)
       .lean(),

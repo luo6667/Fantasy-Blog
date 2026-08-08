@@ -20,7 +20,10 @@ const educationItemSchema = z.object({
 const resumeProjectItemSchema = z.object({
   title: z.string().trim().min(1, '项目名不能为空').max(128),
   meta: z.string().trim().max(256, 'meta 最多 256 字'),
-  desc: z.array(z.string().trim().min(1).max(1000, '单段描述最多 1000 字')).min(1, '至少一段描述'),
+  desc: z
+    .array(z.string().trim().min(1).max(1000, '单段描述最多 1000 字'))
+    .min(1, '至少一段描述')
+    .max(50, '描述最多 50 段'),
 });
 
 /** 首页精选项目项 */

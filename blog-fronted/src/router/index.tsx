@@ -13,6 +13,7 @@ const Admin = lazy(() => import('@/pages/admin'))
 const ArticleEditor = lazy(() => import('@/pages/admin/ArticleEditor'))
 const Resume = lazy(() => import('@/pages/resume'))
 const About = lazy(() => import('@/pages/about'))
+const NotFound = lazy(() => import('@/pages/not-found'))
 
 /**
  * 路由配置模块
@@ -104,6 +105,15 @@ export default function AppRouter() {
             }
           />
         </Route>
+        {/* 兜底：未匹配任何路由 → 404（独立于 Layout） */}
+        <Route
+          path="*"
+          element={
+            <PageSuspense>
+              <NotFound />
+            </PageSuspense>
+          }
+        />
       </Routes>
     </BrowserRouter>
   )

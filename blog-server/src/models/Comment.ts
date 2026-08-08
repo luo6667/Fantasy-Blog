@@ -30,7 +30,7 @@ export type CommentModel = Model<CommentDoc>;
 
 const commentSchema = new Schema<CommentDoc, CommentModel>(
   {
-    article: { type: Schema.Types.ObjectId, ref: 'Article', required: true, index: true },
+    article: { type: Schema.Types.ObjectId, ref: 'Article', required: true },
     parent: { type: Schema.Types.ObjectId, ref: 'Comment', default: null, index: true },
     authorType: { type: String, enum: ['user', 'admin'], required: true },
     authorId: { type: Schema.Types.ObjectId, required: true },
@@ -45,5 +45,7 @@ const commentSchema = new Schema<CommentDoc, CommentModel>(
 commentSchema.index({ article: 1, createdAt: 1 });
 // 删除评论时按 parent 清理回复
 commentSchema.index({ parent: 1 });
+// 删除用户时按作者级联清理评论
+commentSchema.index({ authorId: 1, authorType: 1 });
 
 export const Comment = model<CommentDoc, CommentModel>('Comment', commentSchema);

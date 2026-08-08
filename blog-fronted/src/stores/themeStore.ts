@@ -29,9 +29,23 @@ export const useThemeStore = create<ThemeState>()((set) => ({
   },
 }));
 
+/** 亮/暗主题下的浏览器地址栏颜色（与 index.css 的 --color-bg 一致） */
+const THEME_COLORS: Record<ThemeMode, string> = {
+  light: '#faf9f7',
+  dark: '#1d1b19',
+};
+
+/** 同步 <meta name="theme-color">（移动端浏览器地址栏颜色随主题变化） */
+function syncThemeColor(theme: ThemeMode): void {
+  const el = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (el) el.setAttribute('content', THEME_COLORS[theme]);
+}
+
 // 模块加载即同步初始主题，避免首屏闪错主题
 if (typeof window !== 'undefined') {
-  document.documentElement.setAttribute('data-theme', useThemeStore.getState().theme);
+  const initialTheme = useThemeStore.getState().theme;
+  document.documentElement.setAttribute('data-theme', initialTheme);
+  syncThemeColor(initialTheme);
 }
 
 // 主题变化时同步到 DOM 与 localStorage
@@ -39,4 +53,5 @@ useThemeStore.subscribe((s, prev) => {
   if (s.theme === prev.theme) return;
   document.documentElement.setAttribute('data-theme', s.theme);
   localStorage.setItem('theme', s.theme);
+  syncThemeColor(s.theme);
 });

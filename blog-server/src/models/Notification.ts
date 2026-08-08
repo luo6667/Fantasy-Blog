@@ -48,6 +48,8 @@ const notificationSchema = new Schema<NotificationDoc, NotificationModel>(
 // 按接收者拉取通知 + 未读计数走索引
 notificationSchema.index({ recipientType: 1, recipientId: 1, createdAt: -1 });
 notificationSchema.index({ recipientType: 1, recipientId: 1, read: 1 });
+// 删除用户时按触发者级联清理通知
+notificationSchema.index({ actorType: 1, actorId: 1 });
 
 export const Notification = model<NotificationDoc, NotificationModel>(
   'Notification',

@@ -57,7 +57,7 @@ export default function AiSettings() {
         AI 设置
       </h2>
       <p className="mb-4 text-sm text-text-muted">
-        配置智能助手（写文章辅助 + 文章一键总结）所用的对话模型，支持任意 OpenAI
+        配置文章详情页「AI 一键总结 / 智能问答」所用的对话模型，支持任意 OpenAI
         兼容接口（OpenAI / DeepSeek / Kimi / 通义千问等）。
         密钥仅保存在服务端数据库，不会回显到页面，也不会随前端代码泄露。
       </p>

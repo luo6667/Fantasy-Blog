@@ -1,11 +1,12 @@
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import ArticleAiAssistant from '@/components/ai/ArticleAiAssistant';
+import SelectionAiPopover from '@/components/ai/SelectionAiPopover';
 import AuthModal from '@/components/auth/AuthModal';
 import CommentSection from '@/components/comment/CommentSection';
-import { BgOrbs, MdxContent, Reveal, Tag } from '@/components/common';
+import { BgOrbs, MdxContent, Reveal, SafeImg, Tag } from '@/components/common';
 import {
   useArticleDetailQuery,
   useArticleFavoriteMutation,
@@ -13,6 +14,7 @@ import {
   useDeleteArticleMutation,
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
+import { useSeo } from '@/hooks/useSeo';
 import { fadeUp, springHero } from '@/lib/motion';
 
 /**
@@ -27,8 +29,12 @@ export default function BlogDetail() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
+  /** 正文容器 ref（划词 AI 只对正文内划选生效） */
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: article, isLoading: loading, error } = useArticleDetailQuery(id);
+  // 动态 SEO：文章标题/摘要同步到 document.title 与 meta description（分享预览）
+  useSeo({ title: article?.title, description: article?.excerpt });
   const deleteArticle = useDeleteArticleMutation();
   const likeArticle = useArticleLikeMutation(id ?? '');
   const favoriteArticle = useArticleFavoriteMutation(id ?? '');
@@ -161,14 +167,15 @@ export default function BlogDetail() {
                 </div>
 
                 {article.cover && (
-                  <img
+                  <SafeImg
                     src={article.cover}
-                    alt=""
+                    alt={article.title}
                     className="mb-8 w-full rounded-lg border border-[var(--color-border-light)] object-cover"
-                    draggable={false}
                   />
                 )}
-                <MdxContent html={article.contentHtml} />
+                <div ref={contentRef}>
+                  <MdxContent html={article.contentHtml} />
+                </div>
               </article>
 
               {/* 智能助手（AI 一键总结 + 追问） */}
@@ -178,6 +185,16 @@ export default function BlogDetail() {
                 content={article.content}
                 onRequireLogin={() => { setAuthOpen(true); }}
               />
+
+              {/* 划词 AI（划选正文段落 / 术语 / 代码进行解释） */}
+              {article.contentHtml && (
+                <SelectionAiPopover
+                  containerRef={contentRef}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  onRequireLogin={() => { setAuthOpen(true); }}
+                />
+              )}
 
               {/* 评论区 */}
               <CommentSection articleId={article.id} />

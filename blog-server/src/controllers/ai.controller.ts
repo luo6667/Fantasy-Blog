@@ -28,7 +28,7 @@ export const saveSettingsHandler: RequestHandler = async (req, res) => {
   ok(res, settings, 'AI 设置已保存');
 };
 
-/** 流式对话（登录用户可用；写文章助手与详情页智能助手共用） */
+/** 流式对话（登录用户可用；详情页智能助手使用） */
 export const chatHandler: RequestHandler = async (req, res) => {
   const { messages } = req.body as { messages: AiChatMessage[] };
   await chatStream(res, messages);
