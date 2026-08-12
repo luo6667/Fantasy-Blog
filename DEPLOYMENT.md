@@ -31,6 +31,7 @@ ADMIN_INITIAL_PASSWORD=
 - [ ] favicon `/head.jpg` 可换成 32×32 的 `.ico`
 - [ ] 用 `npm run seed` 创建管理员后，清空 `ADMIN_INITIAL_PASSWORD`
 - [ ] `GET /api/users?search=` 现在必须带关键词才返回结果（防用户名枚举），聊天新会话需输入用户名搜索
+- [ ] 私信会话唯一键迁移：服务启动时自动执行（`npm start` / `npm run dev` 均可），也可手动 `npm run migrate` 提前跑
 
 ## 二、构建与启动
 

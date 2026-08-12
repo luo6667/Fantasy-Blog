@@ -57,8 +57,10 @@ export function initSocket(server: HttpServer): SocketServer {
         conversationId: string;
         isTyping: boolean;
       }) => {
-        const participants = [`${user.role}:${user.id}`, `${data.recipientType}:${data.recipientId}`].sort();
-        const conv = await Conversation.findOne({ participants }).select('_id').lean();
+        const participantsKey = [`${user.role}:${user.id}`, `${data.recipientType}:${data.recipientId}`]
+          .sort()
+          .join('|');
+        const conv = await Conversation.findOne({ participantsKey }).select('_id').lean();
         if (!conv) return;
         socket.to(userRoom({ role: data.recipientType, id: data.recipientId })).emit('typing', {
           conversationId: data.conversationId,

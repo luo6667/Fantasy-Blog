@@ -21,6 +21,11 @@ function participantKey(user: Pick<AuthUser, 'role' | 'id'>): string {
   return `${user.role}:${user.id}`;
 }
 
+/** 会话规范化唯一键：两名参与者排序后以 "|" 连接 */
+function conversationKey(a: string, b: string): string {
+  return [a, b].sort().join('|');
+}
+
 function splitKey(key: string): { role: 'user' | 'admin'; id: string } {
   const [role, id] = key.split(':');
   return { role: role === 'admin' ? 'admin' : 'user', id: id ?? '' };
@@ -37,15 +42,30 @@ async function findPeer(key: string): Promise<ChatPeer | null> {
   return doc ? { id: doc._id.toString(), username: doc.username, role: 'user' } : null;
 }
 
-/** 获取或创建两名参与者之间的会话（参与者排序后唯一） */
+/**
+ * 获取或创建两名参与者之间的会话
+ *
+ * 用 participantsKey（字符串唯一索引）保证一对一唯一，避免对数组字段建唯一索引
+ * 导致「共享任一参与者的会话无法创建」的问题；并发创建时以 11000 兜底重查。
+ */
 async function getOrCreateConversation(
   a: Pick<AuthUser, 'role' | 'id'>,
   b: Pick<AuthUser, 'role' | 'id'>,
 ) {
   const participants = [participantKey(a), participantKey(b)].sort();
-  const existing = await Conversation.findOne({ participants });
+  const participantsKey = conversationKey(participants[0] as string, participants[1] as string);
+  const existing = await Conversation.findOne({ participantsKey });
   if (existing) return existing;
-  return Conversation.create({ participants });
+  try {
+    return await Conversation.create({ participants, participantsKey });
+  } catch (err) {
+    // 并发下两个请求同时发现会话不存在 → 双双创建，唯一索引冲突时回退查询
+    if (err instanceof Error && (err as { code?: number }).code === 11000) {
+      const again = await Conversation.findOne({ participantsKey });
+      if (again) return again;
+    }
+    throw err;
+  }
 }
 
 function toMessage(doc: MessageDoc, meKey: string): MessageItem {
@@ -109,7 +129,7 @@ export async function listConversations(user: AuthUser): Promise<ConversationIte
   });
 }
 
-/** 会话历史消息（倒序取最新 200 条再升序返回） */
+/** 会话历史消息（倒序取最新 100 条再升序返回） */
 export async function listMessages(
   conversationId: string,
   user: AuthUser,
@@ -120,7 +140,7 @@ export async function listMessages(
   }
   const docs = await Message.find({ conversation: conversationId })
     .sort({ createdAt: -1 })
-    .limit(200)
+    .limit(100)
     .lean();
   docs.reverse();
   const meKey = participantKey(user);

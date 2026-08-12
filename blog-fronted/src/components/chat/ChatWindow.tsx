@@ -38,6 +38,9 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
   const [newChatMode, setNewChatMode] = useState(false);
   const [newPeer, setNewPeer] = useState<UserBrief | null>(null);
   const [userSearch, setUserSearch] = useState('');
+  // 新会话发送第一条后、会话列表刷新前，用 lastPeer 保持输入框可用
+  const [lastPeer, setLastPeer] = useState<UserBrief | null>(null);
+  const [sendError, setSendError] = useState('');
 
   const { data: conversations = [] } = useConversationsQuery(true);
   const { data: messages = [], isLoading: msgLoading } = useConversationMessagesQuery(
@@ -98,7 +101,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
     ? newPeer
     : (() => {
         const conv = conversations.find((c) => c.id === activeConversationId);
-        return conv ? conv.peer : null;
+        return conv ? conv.peer : lastPeer;
       })();
 
   const typingInfo = activeConversationId ? typing[activeConversationId] : undefined;
@@ -121,30 +124,36 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
   async function handleSend() {
     const content = text.trim();
     if (!content || !user || sendMessage.isPending) return;
-    if (newPeer) {
-      const msg = await sendMessage.mutateAsync({
-        recipientType: newPeer.role,
-        recipientId: newPeer.id,
-        content,
-      });
-      setActiveConversation(msg.conversationId);
-      setNewPeer(null);
-      setNewChatMode(false);
-    } else if (activeConversationId && activePeer) {
-      await sendMessage.mutateAsync({
-        recipientType: activePeer.role,
-        recipientId: activePeer.id,
-        content,
-      });
-    }
-    setText('');
-    if (activeConversationId && activePeer) {
-      emitTyping({
-        recipientType: activePeer.role,
-        recipientId: activePeer.id,
-        conversationId: activeConversationId,
-        isTyping: false,
-      });
+    setSendError('');
+    try {
+      if (newPeer) {
+        const msg = await sendMessage.mutateAsync({
+          recipientType: newPeer.role,
+          recipientId: newPeer.id,
+          content,
+        });
+        setLastPeer(newPeer);
+        setActiveConversation(msg.conversationId);
+        setNewPeer(null);
+        setNewChatMode(false);
+      } else if (activeConversationId && activePeer) {
+        await sendMessage.mutateAsync({
+          recipientType: activePeer.role,
+          recipientId: activePeer.id,
+          content,
+        });
+      }
+      setText('');
+      if (activeConversationId && activePeer) {
+        emitTyping({
+          recipientType: activePeer.role,
+          recipientId: activePeer.id,
+          conversationId: activeConversationId,
+          isTyping: false,
+        });
+      }
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : '发送失败，请稍后重试');
     }
   }
 
@@ -158,6 +167,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
   function selectConversation(conv: ConversationItem) {
     setNewPeer(null);
     setNewChatMode(false);
+    setLastPeer(null);
     setActiveConversation(conv.id);
   }
 
@@ -325,6 +335,7 @@ export default function ChatWindow({ onClose }: { onClose: () => void }) {
               正在与 <span className="font-medium text-accent">{newPeer.username}</span> 发起新会话
             </p>
           )}
+          {sendError && <p className="mb-1.5 px-1 text-xs text-red-500">{sendError}</p>}
           <textarea
             value={text}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
