@@ -1,8 +1,8 @@
-import type { FilterQuery } from 'mongoose';
+import { Op } from 'sequelize';
 
-import { Admin } from '../models/Admin.js';
-import type { ArticleDoc } from '../models/Article.js';
-import { Notification, type NotificationDoc } from '../models/Notification.js';
+import Admin from '../models/Admin.js';
+import type Article from '../models/Article.js';
+import Notification from '../models/Notification.js';
 import { getIO, userRoom } from '../socket.js';
 import type { AuthUser } from '../types/auth.js';
 import type { NotificationItem, NotificationType } from '../types/notification.js';
@@ -19,13 +19,13 @@ import type { NotificationItem, NotificationType } from '../types/notification.j
  * （历史文章均由管理员发布）。返回 null 表示无接收者。
  */
 export async function resolveArticleRecipient(
-  article: ArticleDoc,
+  article: Article,
 ): Promise<{ role: 'user' | 'admin'; id: string } | null> {
   if (article.authorId && article.authorType) {
-    return { role: article.authorType, id: article.authorId.toString() };
+    return { role: article.authorType, id: article.authorId };
   }
-  const admin = await Admin.findOne().select('_id').lean();
-  return admin ? { role: 'admin', id: admin._id.toString() } : null;
+  const admin = await Admin.findOne({ attributes: ['id'] });
+  return admin ? { role: 'admin', id: admin.id } : null;
 }
 
 /** 创建通知入参 */
@@ -39,15 +39,15 @@ export interface CreateNotificationInput {
   commentContent?: string;
 }
 
-function toItem(doc: NotificationDoc): NotificationItem {
+function toItem(doc: Notification): NotificationItem {
   return {
-    id: doc._id.toString(),
+    id: doc.id,
     type: doc.type,
     actorName: doc.actorName,
     actorType: doc.actorType,
-    articleId: doc.articleId?.toString(),
-    articleTitle: doc.articleTitle,
-    commentContent: doc.commentContent,
+    articleId: doc.articleId ?? undefined,
+    articleTitle: doc.articleTitle ?? undefined,
+    commentContent: doc.commentContent ?? undefined,
     read: doc.read,
     createdAt: doc.createdAt.toISOString(),
   };
@@ -64,10 +64,10 @@ export async function createNotification(
     actorType: input.actor.role,
     actorId: input.actor.id,
     actorName: input.actor.username,
-    articleId: input.articleId,
-    articleTitle: input.articleTitle,
-    commentId: input.commentId,
-    commentContent: input.commentContent,
+    articleId: input.articleId ?? null,
+    articleTitle: input.articleTitle ?? null,
+    commentId: input.commentId ?? null,
+    commentContent: input.commentContent ?? null,
   });
   const item = toItem(doc);
   getIO()?.to(userRoom(input.recipient)).emit('notification:new', item);
@@ -76,19 +76,18 @@ export async function createNotification(
 
 /** 当前用户的通知列表（倒序，最多 50 条） */
 export async function listNotifications(user: AuthUser): Promise<NotificationItem[]> {
-  const docs = await Notification.find({ recipientType: user.role, recipientId: user.id })
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .lean();
+  const docs = await Notification.findAll({
+    where: { recipientType: user.role, recipientId: user.id },
+    order: [['createdAt', 'DESC']],
+    limit: 50,
+  });
   return docs.map(toItem);
 }
 
 /** 未读通知数 */
 export async function unreadNotificationCount(user: AuthUser): Promise<{ count: number }> {
-  const count = await Notification.countDocuments({
-    recipientType: user.role,
-    recipientId: user.id,
-    read: false,
+  const count = await Notification.count({
+    where: { recipientType: user.role, recipientId: user.id, read: false },
   });
   return { count };
 }
@@ -98,10 +97,13 @@ export async function markNotificationsRead(
   user: AuthUser,
   ids?: string[],
 ): Promise<{ ok: boolean }> {
-  const filter: FilterQuery<NotificationDoc> = { recipientType: user.role, recipientId: user.id };
+  const where: { recipientType: 'user' | 'admin'; recipientId: string; id?: { [Op.in]: string[] } } = {
+    recipientType: user.role,
+    recipientId: user.id,
+  };
   if (ids && ids.length > 0) {
-    filter._id = { $in: ids };
+    where.id = { [Op.in]: ids };
   }
-  await Notification.updateMany(filter, { $set: { read: true } });
+  await Notification.update({ read: true }, { where });
   return { ok: true };
 }

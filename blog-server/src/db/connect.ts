@@ -1,14 +1,13 @@
-import mongoose from 'mongoose';
-
+import { ensureDatabase, sequelize } from './sequelize.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * 建立 MongoDB 连接
+ * 建立 MySQL 连接
  *
- * @param uri 连接串（来自 env.MONGODB_URI）
+ * 流程：确保数据库存在（不存在则自动创建）→ 验证连接可用。
  */
-export async function connectDB(uri: string): Promise<void> {
-  mongoose.set('strictQuery', true);
-  await mongoose.connect(uri);
-  logger.info('MongoDB connected');
+export async function connectDB(): Promise<void> {
+  await ensureDatabase();
+  await sequelize.authenticate();
+  logger.info('MySQL connected');
 }

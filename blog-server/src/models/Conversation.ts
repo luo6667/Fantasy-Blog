@@ -1,41 +1,65 @@
-import { model, Schema, Types, type Model } from 'mongoose';
+import { randomBytes } from 'node:crypto';
+
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 
 /**
- * 私信会话模型
+ * 私信会话模型（conversations 表）
  *
- * - participants：恰好两个 "role:id" 字符串（排序后存储）
+ * - participants：恰好两个 "role:id" 字符串（排序后存储，JSON 列）
  * - participantsKey：参与者排序后以 "|" 连接的规范化键，唯一索引建在此字符串字段上。
- *   注意：不能把 unique 建在 participants（数组）字段上——MongoDB 多键索引会对数组的
- *   每个元素各建一条索引并全局唯一，导致任何两个共享同一参与者的会话都无法创建。
+ *   （MySQL 下仍以字符串唯一索引保证一对一唯一，避免对数组字段建唯一索引的歧义）
  * - lastMessage / lastMessageAt：会话列表排序与预览
  */
-export interface ConversationDoc {
-  _id: Types.ObjectId;
-  participants: string[];
-  participantsKey: string;
-  lastMessage?: string;
-  lastMessageAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
+class Conversation extends Model<InferAttributes<Conversation>, InferCreationAttributes<Conversation>> {
+  declare id: CreationOptional<string>;
+  declare participants: string[];
+  declare participantsKey: string;
+  declare lastMessage: string | null;
+  declare lastMessageAt: CreationOptional<Date>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
-export type ConversationModel = Model<ConversationDoc>;
-
-const conversationSchema = new Schema<ConversationDoc, ConversationModel>(
+Conversation.init(
   {
-    participants: { type: [String], required: true, validate: [(v: string[]) => v.length === 2, '会话必须恰好两名参与者'] },
+    id: {
+      type: DataTypes.STRING(24),
+      primaryKey: true,
+      defaultValue: () => randomBytes(12).toString('hex'),
+    },
+    participants: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      validate: {
+        /** 会话必须恰好两名参与者 */
+        isTwoParticipants(value: string[]) {
+          if (!Array.isArray(value) || value.length !== 2) {
+            throw new Error('会话必须恰好两名参与者');
+          }
+        },
+      },
+    },
     // 规范化唯一键：["user:A","user:B"] -> "user:A|user:B"
-    participantsKey: { type: String, required: true, unique: true },
-    lastMessage: { type: String, default: undefined, maxlength: 1000 },
-    lastMessageAt: { type: Date, default: () => new Date() },
+    participantsKey: { type: DataTypes.STRING(255), allowNull: false, unique: true },
+    lastMessage: { type: DataTypes.STRING(1000), allowNull: true },
+    lastMessageAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
   },
-  { timestamps: true },
+  {
+    sequelize,
+    modelName: 'Conversation',
+    tableName: 'conversations',
+    // participants 仅作普通查询（JSON_CONTAINS）；唯一性由 participantsKey 保证
+  },
 );
 
-// participants 仅作普通索引（按参与者查询会话）；唯一性由 participantsKey 保证
-conversationSchema.index({ participants: 1 });
-
-export const Conversation = model<ConversationDoc, ConversationModel>(
-  'Conversation',
-  conversationSchema,
-);
+export default Conversation;

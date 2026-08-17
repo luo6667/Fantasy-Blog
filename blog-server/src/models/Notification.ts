@@ -1,57 +1,78 @@
-import { model, Schema, Types, type Model } from 'mongoose';
+import { randomBytes } from 'node:crypto';
+
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 
 import type { NotificationType } from '../types/notification.js';
 
 /**
- * 通知模型
+ * 通知模型（notifications 表）
  *
  * 由评论文章、回复评论、收藏文章等行为自动生成：
  * - recipient：接收者（普通用户或管理员）
  * - actor：触发者
  * - read 标记是否已读；列表按时间倒序
  */
-export interface NotificationDoc {
-  _id: Types.ObjectId;
-  recipientType: 'user' | 'admin';
-  recipientId: Types.ObjectId;
-  type: NotificationType;
-  actorType: 'user' | 'admin';
-  actorId: Types.ObjectId;
-  actorName: string;
-  articleId?: Types.ObjectId;
-  articleTitle?: string;
-  commentId?: Types.ObjectId;
-  commentContent?: string;
-  read: boolean;
-  createdAt: Date;
+class Notification extends Model<InferAttributes<Notification>, InferCreationAttributes<Notification>> {
+  declare id: CreationOptional<string>;
+  declare recipientType: 'user' | 'admin';
+  declare recipientId: string;
+  declare type: NotificationType;
+  declare actorType: 'user' | 'admin';
+  declare actorId: string;
+  declare actorName: string;
+  declare articleId: string | null;
+  declare articleTitle: string | null;
+  declare commentId: string | null;
+  declare commentContent: string | null;
+  declare read: CreationOptional<boolean>;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
-export type NotificationModel = Model<NotificationDoc>;
-
-const notificationSchema = new Schema<NotificationDoc, NotificationModel>(
+Notification.init(
   {
-    recipientType: { type: String, enum: ['user', 'admin'], required: true },
-    recipientId: { type: Schema.Types.ObjectId, required: true },
-    type: { type: String, enum: ['comment', 'reply', 'like', 'favorite', 'article'], required: true },
-    actorType: { type: String, enum: ['user', 'admin'], required: true },
-    actorId: { type: Schema.Types.ObjectId, required: true },
-    actorName: { type: String, required: true, trim: true, maxlength: 32 },
-    articleId: { type: Schema.Types.ObjectId, default: undefined },
-    articleTitle: { type: String, default: undefined, maxlength: 200 },
-    commentId: { type: Schema.Types.ObjectId, default: undefined },
-    commentContent: { type: String, default: undefined, maxlength: 1000 },
-    read: { type: Boolean, default: false },
+    id: {
+      type: DataTypes.STRING(24),
+      primaryKey: true,
+      defaultValue: () => randomBytes(12).toString('hex'),
+    },
+    recipientType: { type: DataTypes.ENUM('user', 'admin'), allowNull: false },
+    recipientId: { type: DataTypes.STRING(24), allowNull: false },
+    type: {
+      type: DataTypes.ENUM('comment', 'reply', 'like', 'favorite', 'article'),
+      allowNull: false,
+    },
+    actorType: { type: DataTypes.ENUM('user', 'admin'), allowNull: false },
+    actorId: { type: DataTypes.STRING(24), allowNull: false },
+    actorName: { type: DataTypes.STRING(32), allowNull: false, validate: { notEmpty: true } },
+    articleId: { type: DataTypes.STRING(24), allowNull: true },
+    articleTitle: { type: DataTypes.STRING(200), allowNull: true },
+    commentId: { type: DataTypes.STRING(24), allowNull: true },
+    commentContent: { type: DataTypes.STRING(1000), allowNull: true },
+    read: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
   },
-  { timestamps: true },
+  {
+    sequelize,
+    modelName: 'Notification',
+    tableName: 'notifications',
+    indexes: [
+      // 按接收者拉取通知 + 未读计数走索引
+      { fields: ['recipientType', 'recipientId', 'createdAt'] },
+      { fields: ['recipientType', 'recipientId', 'read'] },
+      // 删除用户时按触发者级联清理通知
+      { fields: ['actorType', 'actorId'] },
+    ],
+  },
 );
 
-// 按接收者拉取通知 + 未读计数走索引
-notificationSchema.index({ recipientType: 1, recipientId: 1, createdAt: -1 });
-notificationSchema.index({ recipientType: 1, recipientId: 1, read: 1 });
-// 删除用户时按触发者级联清理通知
-notificationSchema.index({ actorType: 1, actorId: 1 });
-
-export const Notification = model<NotificationDoc, NotificationModel>(
-  'Notification',
-  notificationSchema,
-);
+export default Notification;

@@ -1,62 +1,69 @@
+import { randomBytes } from 'node:crypto';
+
 import bcrypt from 'bcryptjs';
-import { model, Schema, Types, type Model } from 'mongoose';
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 
 /**
- * 管理员模型
+ * 管理员模型（admins 表）
  *
  * - username 唯一索引，用于登录
- * - password 使用 bcrypt 哈希存储，查询默认不返回（select: false）
- * - 保存前自动哈希，提供 comparePassword 实例方法做密码比对
+ * - password 使用 bcrypt 哈希存储，defaultScope 默认不返回（查询时显式 include）
+ * - 保存前自动哈希（仅密码变更时），提供 comparePassword 实例方法做密码比对
  */
+class Admin extends Model<InferAttributes<Admin>, InferCreationAttributes<Admin>> {
+  declare id: CreationOptional<string>;
+  declare username: string;
+  declare password: string;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 
-/** Admin 文档字段 */
-export interface AdminDoc {
-  _id: Types.ObjectId;
-  username: string;
-  password: string;
-  createdAt: Date;
-  updatedAt: Date;
+  /** 密码比对 */
+  comparePassword(candidate: string): Promise<boolean> {
+    return bcrypt.compare(candidate, this.password);
+  }
 }
 
-/** Admin 实例方法 */
-export interface AdminMethods {
-  comparePassword(candidate: string): Promise<boolean>;
-}
-
-export type AdminModel = Model<AdminDoc, {}, AdminMethods>;
-
-const adminSchema = new Schema<AdminDoc, AdminModel, AdminMethods>(
+Admin.init(
   {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      minlength: 3,
-      maxlength: 32,
+    id: {
+      type: DataTypes.STRING(24),
+      primaryKey: true,
+      // 24 位 hex 字符串主键（与旧 MongoDB ObjectId 格式一致，迁移时直接沿用旧 _id）
+      defaultValue: () => randomBytes(12).toString('hex'),
     },
-    password: {
-      type: String,
-      required: true,
-      select: false,
+    username: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      unique: true,
+      validate: { len: [3, 32] },
+    },
+    password: { type: DataTypes.STRING(255), allowNull: false },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
+  },
+  {
+    sequelize,
+    modelName: 'Admin',
+    tableName: 'admins',
+    // 默认查询不返回 password，只有显式 attributes.include 才可取回（等价原 select: false）
+    defaultScope: { attributes: { exclude: ['password'] } },
+    hooks: {
+      /** 密码变更时自动哈希（bcrypt cost = 10） */
+      async beforeSave(admin) {
+        if (admin.changed('password')) {
+          admin.password = await bcrypt.hash(admin.password, 10);
+        }
+      },
     },
   },
-  { timestamps: true },
 );
 
-/** 密码变更时自动哈希（bcrypt cost = 10） */
-adminSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    next();
-    return;
-  }
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-/** 密码比对 */
-adminSchema.methods.comparePassword = function (candidate: string): Promise<boolean> {
-  return bcrypt.compare(candidate, this.password);
-};
-
-export const Admin = model<AdminDoc, AdminModel>('Admin', adminSchema);
+export default Admin;

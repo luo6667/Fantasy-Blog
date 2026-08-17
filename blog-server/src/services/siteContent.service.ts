@@ -1,4 +1,6 @@
-import { SiteContent } from '../models/SiteContent.js';
+import { Op } from 'sequelize';
+
+import SiteContent from '../models/SiteContent.js';
 import { SITE_CONTENT_KEYS, type SiteContentItem, type SiteContentKey, type SiteContentValue } from '../types/siteContent.js';
 import { SITE_CONTENT_DEFAULTS } from './siteContentDefaults.js';
 
@@ -11,15 +13,10 @@ import { SITE_CONTENT_DEFAULTS } from './siteContentDefaults.js';
  * - 管理员写：updateSiteContent（按 key upsert）
  */
 
-/** 文档 → API 项 */
-function toItem(doc: {
-  _id: { toString(): string };
-  key: SiteContentKey;
-  value: SiteContentValue;
-  updatedAt: Date;
-}): SiteContentItem {
+/** 行 → API 项 */
+function toItem(doc: SiteContent): SiteContentItem {
   return {
-    id: doc._id.toString(),
+    id: doc.id,
     key: doc.key,
     value: doc.value,
     updatedAt: doc.updatedAt.toISOString(),
@@ -28,27 +25,26 @@ function toItem(doc: {
 
 /** 启动时补齐缺失 key（幂等，可重复执行） */
 export async function seedSiteContent(): Promise<void> {
-  const existing = await SiteContent.find({}, { key: 1 }).lean();
-  const have = new Set(existing.map((d) => d.key as SiteContentKey));
+  const existing = await SiteContent.findAll({ attributes: ['key'] });
+  const have = new Set(existing.map((d) => d.key));
   const missing = SITE_CONTENT_KEYS.filter((k) => !have.has(k));
   if (missing.length === 0) return;
-  await SiteContent.insertMany(
-    missing.map((key) => ({ key, value: SITE_CONTENT_DEFAULTS[key] })),
-  );
+  await SiteContent.bulkCreate(missing.map((key) => ({ key, value: SITE_CONTENT_DEFAULTS[key] })));
 }
 
 /** 全部内容（管理员后台用；缺失 key 一并补齐默认值） */
 export async function listSiteContents(): Promise<SiteContentItem[]> {
   await seedSiteContent();
-  const docs = await SiteContent.find({ key: { $in: SITE_CONTENT_KEYS } })
-    .sort({ key: 1 })
-    .lean();
+  const docs = await SiteContent.findAll({
+    where: { key: { [Op.in]: SITE_CONTENT_KEYS } },
+    order: [['key', 'ASC']],
+  });
   return docs.map((d) => toItem(d));
 }
 
 /** 单个内容（公开读；key 不合法由路由层拦截，缺失时懒写入默认值） */
 export async function getSiteContent(key: SiteContentKey): Promise<SiteContentItem> {
-  let doc = await SiteContent.findOne({ key }).lean();
+  let doc = await SiteContent.findOne({ where: { key } });
   if (!doc) {
     doc = await SiteContent.create({ key, value: SITE_CONTENT_DEFAULTS[key] });
   }
@@ -60,10 +56,12 @@ export async function updateSiteContent(
   key: SiteContentKey,
   value: SiteContentValue,
 ): Promise<SiteContentItem> {
-  const doc = await SiteContent.findOneAndUpdate(
-    { key },
-    { $set: { value } },
-    { new: true, upsert: true },
-  );
+  let doc = await SiteContent.findOne({ where: { key } });
+  if (!doc) {
+    doc = await SiteContent.create({ key, value });
+  } else {
+    doc.value = value;
+    await doc.save();
+  }
   return toItem(doc);
 }

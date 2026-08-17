@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
-import mongoose from 'mongoose';
 import multer from 'multer';
+import { UniqueConstraintError, ValidationError } from 'sequelize';
 import { ZodError } from 'zod';
 
 import { logger } from '../utils/logger.js';
@@ -35,7 +35,7 @@ export const notFoundHandler: RequestHandler = (req, res) => {
  * 分类处理：
  * - HttpError：业务错误，原样透出状态码
  * - ZodError：请求校验失败
- * - Mongoose 校验/转换错误
+ * - Sequelize 校验/唯一约束错误
  * - 其余未知错误：记日志并返回 500，不向客户端泄露内部细节
  */
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
@@ -70,16 +70,14 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     return;
   }
 
-  if (err instanceof mongoose.Error.ValidationError) {
-    const msg = Object.values(err.errors)
-      .map((e) => e.message)
-      .join('; ');
+  if (err instanceof ValidationError) {
+    const msg = err.errors.map((e) => e.message).join('; ');
     res.status(400).json({ code: 400, msg, data: null });
     return;
   }
 
-  if (err instanceof mongoose.Error.CastError) {
-    res.status(400).json({ code: 400, msg: 'Invalid id format', data: null });
+  if (err instanceof UniqueConstraintError) {
+    res.status(409).json({ code: 409, msg: '记录已存在，请勿重复操作', data: null });
     return;
   }
 

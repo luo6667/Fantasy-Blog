@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 
 import { HttpError } from '../middleware/error.js';
-import { AiConfig, type AiConfigDoc } from '../models/AiConfig.js';
+import AiConfig from '../models/AiConfig.js';
 
 /**
  * AI 业务逻辑
@@ -25,8 +25,8 @@ export interface AiSettingsView {
 }
 
 export async function getSettings(): Promise<AiSettingsView> {
-  // 显式 select('+apiKey') 才能在内部判断是否已配置；返回值不包含 apiKey 明文
-  const cfg = await AiConfig.findOne().select('+apiKey');
+  // 显式 include apiKey 才能在内部判断是否已配置；返回值不包含 apiKey 明文
+  const cfg = await AiConfig.findOne({ attributes: { include: ['apiKey'] } });
   if (!cfg) {
     return { baseURL: '', model: '', hasKey: false };
   }
@@ -39,7 +39,7 @@ export async function saveSettings(input: {
   apiKey?: string;
   model?: string;
 }): Promise<AiSettingsView> {
-  let cfg: import('mongoose').HydratedDocument<AiConfigDoc> | null = await AiConfig.findOne();
+  let cfg = await AiConfig.findOne();
   if (!cfg) {
     cfg = await AiConfig.create({
       baseURL: input.baseURL ?? '',
@@ -75,7 +75,7 @@ export async function chatStream(
   res: Response,
   messages: AiChatMessage[],
 ): Promise<void> {
-  const cfg = await AiConfig.findOne().select('+apiKey');
+  const cfg = await AiConfig.findOne({ attributes: { include: ['apiKey'] } });
   if (!cfg || !cfg.apiKey) {
     throw new HttpError(400, '请先在管理后台「AI 设置」中配置接口地址与密钥');
   }

@@ -1,35 +1,45 @@
-import { model, Schema, Types, type Model } from 'mongoose';
+import { randomBytes } from 'node:crypto';
+
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 
 /**
- * 标签模型（分类标签库）
+ * 标签模型（tags 表，分类标签库）
  *
  * - name 唯一索引，作为分类标签的权威来源
  * - 文章创建/更新时从标签库中选择，管理员可增删
  * - 删除标签时同时从所有文章移除该标签（见 tag.service）
  */
-
-/** Tag 文档字段 */
-export interface TagDoc {
-  _id: Types.ObjectId;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
+class Tag extends Model<InferAttributes<Tag>, InferCreationAttributes<Tag>> {
+  declare id: CreationOptional<string>;
+  declare name: string;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
-export type TagModel = Model<TagDoc>;
-
-const tagSchema = new Schema<TagDoc, TagModel>(
+Tag.init(
   {
-    name: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      minlength: 1,
-      maxlength: 32,
+    id: {
+      type: DataTypes.STRING(24),
+      primaryKey: true,
+      defaultValue: () => randomBytes(12).toString('hex'),
     },
+    name: { type: DataTypes.STRING(32), allowNull: false, unique: true, validate: { notEmpty: true } },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
   },
-  { timestamps: true },
+  {
+    sequelize,
+    modelName: 'Tag',
+    tableName: 'tags',
+  },
 );
 
-export const Tag = model<TagDoc, TagModel>('Tag', tagSchema);
+export default Tag;

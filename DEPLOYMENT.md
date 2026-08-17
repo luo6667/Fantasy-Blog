@@ -1,6 +1,6 @@
 # 上线部署说明（JasonLuo Blog）
 
-前端 `blog-fronted`（Vite + React SPA）与后端 `blog-server`（Express + MongoDB）分离部署。
+前端 `blog-fronted`（Vite + React SPA）与后端 `blog-server`（Express + MySQL）分离部署。
 本文档列出上线前必须确认的配置项，以及一份可直接套用的 Nginx 反代配置。
 
 ## 一、上线前必须确认（环境变量）
@@ -15,8 +15,12 @@ PORT=4000
 JWT_SECRET=<openssl rand -hex 32 的结果>
 JWT_EXPIRES_IN=3d          # 建议从 7d 缩短到 3d
 
-MONGODB_URI=mongodb://<user>:<password>@<host>:<port>/blog
-# 使用 Atlas 时请开启 TLS；MongoDB 账号用最小权限，勿用 root
+MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=<账号>
+MYSQL_PASSWORD=<密码>
+MYSQL_DATABASE=jianli   # 库不存在时启动会自动创建（CREATE DATABASE IF NOT EXISTS）
+# 数据库账号用最小权限，勿用 root（若用 root 请限制来源 IP）
 
 # 真实前端域名（逗号分隔多来源）
 CORS_ORIGIN=https://blog.your-domain.com
@@ -31,7 +35,8 @@ ADMIN_INITIAL_PASSWORD=
 - [ ] favicon `/head.jpg` 可换成 32×32 的 `.ico`
 - [ ] 用 `npm run seed` 创建管理员后，清空 `ADMIN_INITIAL_PASSWORD`
 - [ ] `GET /api/users?search=` 现在必须带关键词才返回结果（防用户名枚举），聊天新会话需输入用户名搜索
-- [ ] 私信会话唯一键迁移：服务启动时自动执行（`npm start` / `npm run dev` 均可），也可手动 `npm run migrate` 提前跑
+- [ ] 从旧 MongoDB 迁移数据：先设置好 `MONGODB_URI`（仅迁移脚本使用），然后 `npm run migrate`（幂等，可 `npm run migrate -- --force` 重导）
+- [ ] 私信消息 180 天过期清理：服务启动时执行一次，之后每 24h 自动清理（无需手动操作）
 
 ## 二、构建与启动
 
@@ -113,7 +118,7 @@ app.set('trust proxy', 1);
 
 ## 五、其他建议
 
-- 给 MongoDB 开备份（Atlas 自带 / cron + mongodump）
+- 给 MySQL 开备份（cron + mysqldump / 云厂商快照）
 - 服务器上 `npm start` 用 `pm2` 或 systemd 托管，崩溃自动重启
 - 如域名走 HTTPS，`helmet()` 已默认启用 HSTS
 - 上线后访问 `/api/health` 确认服务存活

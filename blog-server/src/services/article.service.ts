@@ -1,10 +1,11 @@
-import type { FilterQuery } from 'mongoose';
+import { literal, Op, QueryTypes, type WhereOptions } from 'sequelize';
 
+import { sequelize } from '../db/sequelize.js';
 import { HttpError } from '../middleware/error.js';
-import { Article, type ArticleDoc } from '../models/Article.js';
-import { Comment } from '../models/Comment.js';
-import { Tag } from '../models/Tag.js';
-import { User } from '../models/User.js';
+import Article from '../models/Article.js';
+import Comment from '../models/Comment.js';
+import Tag from '../models/Tag.js';
+import User from '../models/User.js';
 import { createNotification, resolveArticleRecipient } from './notification.service.js';
 import { mdxToSafeHtml } from '../utils/mdx.js';
 import type { AuthUser } from '../types/auth.js';
@@ -39,9 +40,14 @@ function formatDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** 转义正则特殊字符，用于用户输入搜索 */
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** 转义 LIKE 通配符（用户输入搜索），MySQL LIKE 默认大小写不敏感 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+/** JSON 数组列包含指定字符串值（等价 MongoDB 的 { field: value } 数组匹配） */
+function jsonContains(column: string, value: string) {
+  return literal(`JSON_CONTAINS(${column}, JSON_QUOTE(${sequelize.escape(value)}))`);
 }
 
 /** "role:id" 用户标识 */
@@ -49,12 +55,12 @@ export function likeKey(user: AuthUser): string {
   return `${user.role}:${user.id}`;
 }
 
-function toListItem(doc: ArticleDoc, meKey?: string): ArticleListItem {
-  // 列表查询排除了 likedBy/favoritedBy 大数组，用冗余计数；旧数据无计数时回退数组长度
+function toListItem(doc: Article, meKey?: string): ArticleListItem {
+  // 列表查询排除了 content/contentHtml/likedBy/favoritedBy 大字段，用冗余计数
   const likedBy = doc.likedBy ?? [];
   const favoritedBy = doc.favoritedBy ?? [];
   return {
-    id: doc._id.toString(),
+    id: doc.id,
     title: doc.title,
     excerpt: doc.excerpt,
     tags: doc.tags,
@@ -69,7 +75,7 @@ function toListItem(doc: ArticleDoc, meKey?: string): ArticleListItem {
   };
 }
 
-function toDetail(doc: ArticleDoc, meKey?: string): ArticleDetail {
+function toDetail(doc: Article, meKey?: string): ArticleDetail {
   return { ...toListItem(doc, meKey), content: doc.content, contentHtml: doc.contentHtml ?? '' };
 }
 
@@ -79,23 +85,31 @@ export async function listArticles(
   currentUser?: AuthUser,
 ): Promise<PaginatedResult<ArticleListItem>> {
   const { page, pageSize, tag, search } = query;
-  const filter: FilterQuery<ArticleDoc> = {};
+  const where: WhereOptions = {};
   if (tag) {
-    filter.tags = tag;
+    Object.assign(where, { [Op.and]: [jsonContains('tags', tag)] });
   }
   if (search && search.trim() !== '') {
-    const rx = new RegExp(escapeRegex(search.trim()), 'i');
-    filter.$or = [{ title: rx }, { excerpt: rx }, { content: rx }];
+    const kw = escapeLike(search.trim());
+    Object.assign(where, {
+      [Op.or]: [
+        { title: { [Op.like]: `%${kw}%` } },
+        { excerpt: { [Op.like]: `%${kw}%` } },
+        { content: { [Op.like]: `%${kw}%` } },
+      ],
+    });
   }
 
   const [total, docs] = await Promise.all([
-    Article.countDocuments(filter),
-    Article.find(filter)
+    Article.count({ where }),
+    Article.findAll({
+      where,
       // 列表页不需要正文（几十 KB 的大字段）与点赞/收藏大数组，用冗余计数
-      .select('-content -contentHtml -likedBy -favoritedBy')
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize),
+      attributes: { exclude: ['content', 'contentHtml', 'likedBy', 'favoritedBy'] },
+      order: [['createdAt', 'DESC']],
+      offset: (page - 1) * pageSize,
+      limit: pageSize,
+    }),
   ]);
   const meKey = currentUser ? likeKey(currentUser) : undefined;
 
@@ -109,68 +123,70 @@ export async function listArticles(
 
 /** 获取全部标签及文章数（按文章数降序） */
 export async function listTags(): Promise<TagCount[]> {
-  const rows = await Article.aggregate<{ _id: string; count: number }>([
-    { $unwind: '$tags' },
-    { $group: { _id: '$tags', count: { $sum: 1 } } },
-    { $sort: { count: -1, _id: 1 } },
-  ]);
-  return rows.map((r) => ({ name: r._id, count: r.count }));
+  const rows = await sequelize.query<{ tag: string; cnt: number }>(
+    `SELECT jt.tag AS tag, COUNT(*) AS cnt
+     FROM articles, JSON_TABLE(articles.tags, '$[*]' COLUMNS (tag VARCHAR(64) PATH '$')) AS jt
+     GROUP BY jt.tag
+     ORDER BY cnt DESC, tag ASC`,
+    { type: QueryTypes.SELECT },
+  );
+  return rows.map((r) => ({ name: r.tag, count: Number(r.cnt) }));
 }
 
 /** 文章详情 */
 export async function getArticle(id: string, currentUser?: AuthUser): Promise<ArticleDetail> {
-  const doc = await Article.findById(id).lean();
+  const doc = await Article.findByPk(id);
   if (!doc) {
     throw new HttpError(404, 'Article not found');
   }
-  return toDetail(doc as unknown as ArticleDoc, currentUser ? likeKey(currentUser) : undefined);
+  return toDetail(doc, currentUser ? likeKey(currentUser) : undefined);
 }
 
 /**
  * 点赞 / 取消点赞（原子操作，并发安全；新点赞时通知文章作者）
  *
- * 条件更新实现「点过则取消、没点过则点赞」：
- * - 尝试点赞：仅当 likedBy 不含 key（$ne）时 $addToSet + $inc 计数
- * - 未命中说明已点过 → 取消分支：仅当 likedBy 含 key 时 $pull + $inc 减一
+ * 用事务 + 行锁（SELECT ... FOR UPDATE）实现「点过则取消、没点过则点赞」，
+ * 语义与旧 MongoDB 的条件更新（$addToSet + $inc / $pull + $inc）一致。
  */
 export async function toggleArticleLike(
   articleId: string,
   user: AuthUser,
 ): Promise<{ liked: boolean; likes: number }> {
   const key = likeKey(user);
-  const liked = await Article.findOneAndUpdate(
-    { _id: articleId, likedBy: { $ne: key } },
-    { $addToSet: { likedBy: key }, $inc: { likes: 1 } },
-    { new: true },
-  );
-
-  if (liked) {
-    // 新点赞且非本人时，通知文章作者
-    if (!(liked.authorType === user.role && liked.authorId?.toString() === user.id)) {
-      const recipient = await resolveArticleRecipient(liked);
-      if (recipient) {
-        await createNotification({
-          recipient,
-          actor: user,
-          type: 'like',
-          articleId: liked._id.toString(),
-          articleTitle: liked.title,
-        });
-      }
+  const { liked, likes, article } = await sequelize.transaction(async (t) => {
+    const doc = await Article.findByPk(articleId, { transaction: t, lock: t.LOCK.UPDATE });
+    if (!doc) {
+      throw new HttpError(404, '文章不存在');
     }
-    return { liked: true, likes: liked.likes };
-  }
+    let likedNow: boolean;
+    if (doc.likedBy.includes(key)) {
+      doc.likedBy = doc.likedBy.filter((k) => k !== key);
+      doc.likes -= 1;
+      likedNow = false;
+    } else {
+      // 重新赋值触发 Sequelize 变更检测（原地 push 不会标记字段为已修改）
+      doc.likedBy = [...doc.likedBy, key];
+      doc.likes += 1;
+      likedNow = true;
+    }
+    await doc.save({ transaction: t });
+    return { liked: likedNow, likes: doc.likes, article: doc };
+  });
 
-  // 已点过 → 取消
-  const doc = await Article.findOneAndUpdate(
-    { _id: articleId, likedBy: key },
-    { $pull: { likedBy: key }, $inc: { likes: -1 } },
-    { new: true },
-  );
-  if (!doc) {
-    throw new HttpError(404, '文章不存在');
+  // 新点赞且非本人时，通知文章作者（事务外执行，避免通知与点赞不一致）
+  if (liked && !(article.authorType === user.role && article.authorId === user.id)) {
+    const recipient = await resolveArticleRecipient(article);
+    if (recipient) {
+      await createNotification({
+        recipient,
+        actor: user,
+        type: 'like',
+        articleId: article.id,
+        articleTitle: article.title,
+      });
+    }
   }
-  return { liked: false, likes: doc.likes };
+  return { liked, likes };
 }
 
 /** 收藏 / 取消收藏（原子操作，并发安全；新收藏时通知文章作者） */
@@ -179,45 +195,49 @@ export async function toggleArticleFavorite(
   user: AuthUser,
 ): Promise<{ favorited: boolean; favorites: number }> {
   const key = likeKey(user);
-  const favorited = await Article.findOneAndUpdate(
-    { _id: articleId, favoritedBy: { $ne: key } },
-    { $addToSet: { favoritedBy: key }, $inc: { favorites: 1 } },
-    { new: true },
-  );
-
-  if (favorited) {
-    // 新收藏且非本人时，通知文章作者（旧数据无作者时回退管理员）
-    if (!(favorited.authorType === user.role && favorited.authorId?.toString() === user.id)) {
-      const recipient = await resolveArticleRecipient(favorited);
-      if (recipient) {
-        await createNotification({
-          recipient,
-          actor: user,
-          type: 'favorite',
-          articleId: favorited._id.toString(),
-          articleTitle: favorited.title,
-        });
-      }
+  const { favorited, favorites, article } = await sequelize.transaction(async (t) => {
+    const doc = await Article.findByPk(articleId, { transaction: t, lock: t.LOCK.UPDATE });
+    if (!doc) {
+      throw new HttpError(404, '文章不存在');
     }
-    return { favorited: true, favorites: favorited.favorites };
-  }
+    let favoritedNow: boolean;
+    if (doc.favoritedBy.includes(key)) {
+      doc.favoritedBy = doc.favoritedBy.filter((k) => k !== key);
+      doc.favorites -= 1;
+      favoritedNow = false;
+    } else {
+      // 重新赋值触发 Sequelize 变更检测（原地 push 不会标记字段为已修改）
+      doc.favoritedBy = [...doc.favoritedBy, key];
+      doc.favorites += 1;
+      favoritedNow = true;
+    }
+    await doc.save({ transaction: t });
+    return { favorited: favoritedNow, favorites: doc.favorites, article: doc };
+  });
 
-  // 已收藏 → 取消
-  const doc = await Article.findOneAndUpdate(
-    { _id: articleId, favoritedBy: key },
-    { $pull: { favoritedBy: key }, $inc: { favorites: -1 } },
-    { new: true },
-  );
-  if (!doc) {
-    throw new HttpError(404, '文章不存在');
+  // 新收藏且非本人时，通知文章作者（旧数据无作者时回退管理员）
+  if (favorited && !(article.authorType === user.role && article.authorId === user.id)) {
+    const recipient = await resolveArticleRecipient(article);
+    if (recipient) {
+      await createNotification({
+        recipient,
+        actor: user,
+        type: 'favorite',
+        articleId: article.id,
+        articleTitle: article.title,
+      });
+    }
   }
-  return { favorited: false, favorites: doc.favorites };
+  return { favorited, favorites };
 }
 
 /** 我收藏的文章列表 */
 export async function listFavoriteArticles(user: AuthUser): Promise<ArticleListItem[]> {
   const meKey = likeKey(user);
-  const docs = await Article.find({ favoritedBy: meKey }).sort({ createdAt: -1 }).lean();
+  const docs = await Article.findAll({
+    where: jsonContains('favoritedBy', meKey),
+    order: [['createdAt', 'DESC']],
+  });
   return docs.map((d) => toListItem(d, meKey));
 }
 
@@ -229,7 +249,7 @@ function normalizeTags(tags: string[]): string[] {
 /** 校验标签必须存在于标签库（管理员需先添加标签） */
 async function assertTagsExist(tags: string[]): Promise<void> {
   const uniq = [...new Set(tags)];
-  const found = await Tag.find({ name: { $in: uniq } }).select('name').lean();
+  const found = await Tag.findAll({ where: { name: { [Op.in]: uniq } }, attributes: ['name'] });
   const foundSet = new Set(found.map((t) => t.name));
   const missing = uniq.filter((t) => !foundSet.has(t));
   if (missing.length > 0) {
@@ -253,21 +273,23 @@ export async function createArticle(
     ...input,
     contentHtml,
     tags,
+    likedBy: [],
+    favoritedBy: [],
     authorType: author.role,
     authorId: author.id,
     authorName: author.username,
   });
 
   // 新文章发布：通知所有普通用户（发布者本身不通知）
-  const users = await User.find({}).select('_id').lean();
-  const recipients = users.filter((u) => !(author.role === 'user' && u._id.toString() === author.id));
+  const users = await User.findAll({ attributes: ['id'] });
+  const recipients = users.filter((u) => !(author.role === 'user' && u.id === author.id));
   await Promise.all(
     recipients.map((u) =>
       createNotification({
-        recipient: { role: 'user', id: u._id.toString() },
+        recipient: { role: 'user', id: u.id },
         actor: author,
         type: 'article',
-        articleId: doc._id.toString(),
+        articleId: doc.id,
         articleTitle: doc.title,
       }),
     ),
@@ -291,20 +313,29 @@ export async function updateArticle(id: string, input: UpdateArticleInput): Prom
   if (patch.content !== undefined) {
     patch.contentHtml = await mdxToSafeHtml(patch.content);
   }
-  const doc = await Article.findByIdAndUpdate(id, patch, { new: true, runValidators: true });
+
+  const doc = await Article.findByPk(id);
   if (!doc) {
     throw new HttpError(404, 'Article not found');
   }
+  // 只应用显式提供的字段（undefined 表示不更新），save 时自动校验
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined) {
+      (doc as unknown as Record<string, unknown>)[k] = v;
+    }
+  }
+  await doc.save();
   return toDetail(doc);
 }
 
 /** 删除文章（连带删除其全部评论） */
 export async function deleteArticle(id: string): Promise<{ id: string }> {
-  const doc = await Article.findByIdAndDelete(id);
+  const doc = await Article.findByPk(id);
   if (!doc) {
     throw new HttpError(404, 'Article not found');
   }
+  await Article.destroy({ where: { id } });
   // 级联删除该文章下的所有评论与回复，避免孤儿数据
-  await Comment.deleteMany({ article: doc._id });
-  return { id: doc._id.toString() };
+  await Comment.destroy({ where: { articleId: id } });
+  return { id: doc.id };
 }

@@ -5,7 +5,7 @@
  *    - 不存在时创建，密码取环境变量 ADMIN_INITIAL_PASSWORD（未设置则随机生成并打印）
  *    - 已存在时不重置密码（避免覆盖已修改的密码）；
  *      仅当显式设置了 ADMIN_INITIAL_PASSWORD 时按该值重置
- * 2. 把现有文章里用到的标签同步进标签库（Tag 集合）
+ * 2. 把现有文章里用到的标签同步进标签库（tags 表）
  *
  * 运行方式：cd blog-server && npm run seed
  */
@@ -13,18 +13,20 @@ import '../src/load-env.js';
 
 import { randomBytes } from 'node:crypto';
 
-import mongoose from 'mongoose';
-
+import { sequelize } from '../src/db/sequelize.js';
 import { env } from '../src/config/env.js';
-import { Admin } from '../src/models/Admin.js';
-import { Article } from '../src/models/Article.js';
-import { Tag } from '../src/models/Tag.js';
+import Admin from '../src/models/Admin.js';
+import Article from '../src/models/Article.js';
+import Tag from '../src/models/Tag.js';
 
 const ADMIN_USERNAME = 'admin';
 
 /** 确保管理员存在（不再使用固定弱口令 123456） */
 async function seedAdmin(): Promise<void> {
-  const admin = await Admin.findOne({ username: ADMIN_USERNAME }).select('+password');
+  const admin = await Admin.findOne({
+    where: { username: ADMIN_USERNAME },
+    attributes: { include: ['password'] },
+  });
   if (!admin) {
     const password = env.ADMIN_INITIAL_PASSWORD ?? randomBytes(12).toString('hex');
     await Admin.create({ username: ADMIN_USERNAME, password });
@@ -49,23 +51,30 @@ async function seedAdmin(): Promise<void> {
 
 /** 把现有文章标签同步进标签库 */
 async function seedTags(): Promise<void> {
-  const articleTags = (await Article.distinct('tags')) as string[];
-  const existing = new Set((await Tag.find().select('name').lean()).map((t) => t.name));
+  const articleDocs = await Article.findAll({ attributes: ['tags'] });
+  const articleTags = new Set<string>();
+  for (const doc of articleDocs) {
+    for (const name of doc.tags ?? []) {
+      if (name) articleTags.add(name);
+    }
+  }
+  const existing = new Set((await Tag.findAll({ attributes: ['name'] })).map((t) => t.name));
   let added = 0;
   for (const name of articleTags) {
-    if (name && !existing.has(name)) {
+    if (!existing.has(name)) {
       await Tag.create({ name });
       added += 1;
     }
   }
-  console.log(`✔ 标签库：新增 ${added} 个，共 ${await Tag.countDocuments()} 个`);
+  console.log(`✔ 标签库：新增 ${added} 个，共 ${await Tag.count()} 个`);
 }
 
 async function main(): Promise<void> {
-  await mongoose.connect(env.MONGODB_URI);
+  // 建表（IF NOT EXISTS 语义）
+  await sequelize.sync();
   await seedAdmin();
   await seedTags();
-  await mongoose.disconnect();
+  await sequelize.close();
   console.log('Seed 完成');
 }
 

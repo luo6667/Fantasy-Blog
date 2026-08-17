@@ -12,7 +12,14 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
-  MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+  // MySQL 连接配置（业务数据库）
+  MYSQL_HOST: z.string().min(1).default('127.0.0.1'),
+  MYSQL_PORT: z.coerce.number().int().positive().default(3306),
+  MYSQL_USER: z.string().min(1).default('root'),
+  MYSQL_PASSWORD: z.string().default('1234'),
+  MYSQL_DATABASE: z.string().min(1, 'MYSQL_DATABASE is required').default('jianli'),
+  /** 仅数据迁移脚本（scripts/migrate-mongodb-to-mysql.ts）读取旧 MongoDB 数据时使用 */
+  MONGODB_URI: z.string().optional(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().min(1).default('7d'),
   CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),

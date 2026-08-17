@@ -3,7 +3,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Server as SocketServer } from 'socket.io';
 
 import { env } from './config/env.js';
-import { Conversation } from './models/Conversation.js';
+import Conversation from './models/Conversation.js';
 import { verifyToken } from './services/auth.service.js';
 import type { AuthUser } from './types/auth.js';
 
@@ -60,7 +60,7 @@ export function initSocket(server: HttpServer): SocketServer {
         const participantsKey = [`${user.role}:${user.id}`, `${data.recipientType}:${data.recipientId}`]
           .sort()
           .join('|');
-        const conv = await Conversation.findOne({ participantsKey }).select('_id').lean();
+        const conv = await Conversation.findOne({ where: { participantsKey }, attributes: ['id'] });
         if (!conv) return;
         socket.to(userRoom({ role: data.recipientType, id: data.recipientId })).emit('typing', {
           conversationId: data.conversationId,

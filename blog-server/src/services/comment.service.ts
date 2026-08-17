@@ -1,6 +1,9 @@
+import { Op } from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 import { HttpError } from '../middleware/error.js';
-import { Article } from '../models/Article.js';
-import { Comment, type CommentDoc } from '../models/Comment.js';
+import Article from '../models/Article.js';
+import Comment from '../models/Comment.js';
 import { createNotification, resolveArticleRecipient } from './notification.service.js';
 import type { AuthUser } from '../types/auth.js';
 import type { CommentItem } from '../types/comment.js';
@@ -20,15 +23,15 @@ function likeKey(user: AuthUser): string {
 }
 
 function toItem(
-  doc: CommentDoc,
+  doc: Comment,
   likedByMe: boolean,
   mine: boolean,
   replyToName: string | null,
 ): CommentItem {
   return {
-    id: doc._id.toString(),
-    articleId: doc.article.toString(),
-    parentId: doc.parent ? doc.parent.toString() : null,
+    id: doc.id,
+    articleId: doc.articleId,
+    parentId: doc.parentId,
     authorName: doc.authorName,
     authorType: doc.authorType,
     content: doc.content,
@@ -45,19 +48,20 @@ export async function listComments(
   articleId: string,
   currentUser?: AuthUser,
 ): Promise<CommentItem[]> {
-  if (!(await Article.exists({ _id: articleId }))) {
+  const articleCount = await Article.count({ where: { id: articleId } });
+  if (articleCount === 0) {
     throw new HttpError(404, '文章不存在');
   }
-  const docs = await Comment.find({ article: articleId }).sort({ createdAt: 1 }).lean();
+  const docs = await Comment.findAll({ where: { articleId }, order: [['createdAt', 'ASC']] });
   const meKey = currentUser ? likeKey(currentUser) : '';
   // 构建 id → 作者名 映射，用于「谁回复谁」
-  const nameMap = new Map(docs.map((d) => [d._id.toString(), d.authorName]));
+  const nameMap = new Map(docs.map((d) => [d.id, d.authorName]));
   return docs.map((d) =>
     toItem(
       d,
       meKey !== '' && d.likedBy.includes(meKey),
-      currentUser !== undefined && d.authorType === currentUser.role && d.authorId.toString() === currentUser.id,
-      d.parent ? (nameMap.get(d.parent.toString()) ?? null) : null,
+      currentUser !== undefined && d.authorType === currentUser.role && d.authorId === currentUser.id,
+      d.parentId ? (nameMap.get(d.parentId) ?? null) : null,
     ),
   );
 }
@@ -68,29 +72,30 @@ export async function createComment(
   user: AuthUser,
   content: string,
 ): Promise<CommentItem> {
-  const article = await Article.findById(articleId);
+  const article = await Article.findByPk(articleId);
   if (!article) {
     throw new HttpError(404, '文章不存在');
   }
   const doc = await Comment.create({
-    article: articleId,
-    parent: null,
+    articleId,
+    parentId: null,
     authorType: user.role,
     authorId: user.id,
     authorName: user.username,
     content,
+    likedBy: [],
   });
   // 通知文章作者（作者非评论者本人；无作者时回退管理员）
-  if (!(article.authorType === user.role && article.authorId?.toString() === user.id)) {
+  if (!(article.authorType === user.role && article.authorId === user.id)) {
     const recipient = await resolveArticleRecipient(article);
     if (recipient) {
       await createNotification({
         recipient,
         actor: user,
         type: 'comment',
-        articleId: article._id.toString(),
+        articleId: article.id,
         articleTitle: article.title,
-        commentId: doc._id.toString(),
+        commentId: doc.id,
         commentContent: content,
       });
     }
@@ -104,82 +109,86 @@ export async function createReply(
   user: AuthUser,
   content: string,
 ): Promise<CommentItem> {
-  const parent = await Comment.findById(commentId);
+  const parent = await Comment.findByPk(commentId);
   if (!parent) {
     throw new HttpError(404, '评论不存在');
   }
   const doc = await Comment.create({
-    article: parent.article,
-    parent: parent._id,
+    articleId: parent.articleId,
+    parentId: parent.id,
     authorType: user.role,
     authorId: user.id,
     authorName: user.username,
     content,
+    likedBy: [],
   });
   // 通知被回复者（非本人时）
-  if (!(parent.authorType === user.role && parent.authorId.toString() === user.id)) {
-    const article = await Article.findById(parent.article);
+  if (!(parent.authorType === user.role && parent.authorId === user.id)) {
+    const article = await Article.findByPk(parent.articleId);
     await createNotification({
-      recipient: { role: parent.authorType, id: parent.authorId.toString() },
+      recipient: { role: parent.authorType, id: parent.authorId },
       actor: user,
       type: 'reply',
-      articleId: parent.article.toString(),
+      articleId: parent.articleId,
       articleTitle: article?.title,
-      commentId: doc._id.toString(),
+      commentId: doc.id,
       commentContent: content,
     });
   }
   return toItem(doc, false, true, parent.authorName);
 }
 
-/** 点赞 / 取消点赞（原子操作，并发安全），返回最新状态 */
+/**
+ * 点赞 / 取消点赞（原子操作，并发安全），返回最新状态
+ *
+ * 用事务 + 行锁（SELECT ... FOR UPDATE）实现「点过则取消、没点过则点赞」，
+ * 语义与旧 MongoDB 的条件更新（$addToSet / $pull）一致。
+ */
 export async function toggleLike(
   commentId: string,
   user: AuthUser,
 ): Promise<{ liked: boolean; likes: number }> {
-  const key = likeKey(user);
-  // 尝试点赞：仅当 likedBy 不含 key 时 $addToSet
-  const liked = await Comment.findOneAndUpdate(
-    { _id: commentId, likedBy: { $ne: key } },
-    { $addToSet: { likedBy: key } },
-    { new: true },
-  );
-  if (liked) {
-    return { liked: true, likes: liked.likedBy.length };
-  }
-  // 已点过 → 取消（仅当 likedBy 含 key 时 $pull）
-  const comment = await Comment.findOneAndUpdate(
-    { _id: commentId, likedBy: key },
-    { $pull: { likedBy: key } },
-    { new: true },
-  );
-  if (!comment) {
-    throw new HttpError(404, '评论不存在');
-  }
-  return { liked: false, likes: comment.likedBy.length };
+  return sequelize.transaction(async (t) => {
+    const comment = await Comment.findByPk(commentId, { transaction: t, lock: t.LOCK.UPDATE });
+    if (!comment) {
+      throw new HttpError(404, '评论不存在');
+    }
+    const key = likeKey(user);
+    if (comment.likedBy.includes(key)) {
+      comment.likedBy = comment.likedBy.filter((k) => k !== key);
+    } else {
+      // 重新赋值触发 Sequelize 变更检测（原地 push 不会标记字段为已修改）
+      comment.likedBy = [...comment.likedBy, key];
+    }
+    await comment.save({ transaction: t });
+    return { liked: comment.likedBy.includes(key), likes: comment.likedBy.length };
+  });
 }
 
 /** 删除评论及其全部子孙回复（作者本人或管理员） */
 export async function deleteComment(commentId: string, user: AuthUser): Promise<{ id: string }> {
-  const comment = await Comment.findById(commentId);
+  const comment = await Comment.findByPk(commentId);
   if (!comment) {
     throw new HttpError(404, '评论不存在');
   }
-  const isAuthor = comment.authorType === user.role && comment.authorId.toString() === user.id;
+  const isAuthor = comment.authorType === user.role && comment.authorId === user.id;
   if (!isAuthor && user.role !== 'admin') {
     throw new HttpError(403, '无权删除该评论');
   }
 
   // 收集评论本身及其所有子孙回复（BFS 沿 parent 链向下）
-  const ids = [comment._id];
-  let frontier = [comment._id];
+  const ids = [comment.id];
+  let frontier = [comment.id];
   while (frontier.length > 0) {
-    const children = await Comment.find({ parent: { $in: frontier } }).select('_id').lean();
-    const childIds = children.map((c) => c._id);
+    const children = await Comment.findAll({
+      where: { parentId: { [Op.in]: frontier } },
+      attributes: ['id'],
+    });
+    const childIds = children.map((c) => c.id);
     if (childIds.length === 0) break;
     ids.push(...childIds);
     frontier = childIds;
   }
-  await Comment.deleteMany({ _id: { $in: ids } });
+  await Comment.destroy({ where: { id: { [Op.in]: ids } } });
   return { id: commentId };
 }

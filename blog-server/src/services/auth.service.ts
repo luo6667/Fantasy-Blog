@@ -1,9 +1,10 @@
 import jwt from 'jsonwebtoken';
+import { UniqueConstraintError } from 'sequelize';
 
 import { env } from '../config/env.js';
 import { HttpError } from '../middleware/error.js';
-import { Admin } from '../models/Admin.js';
-import { User } from '../models/User.js';
+import Admin from '../models/Admin.js';
+import User from '../models/User.js';
 import type { AuthUser, JwtPayload, UserRole } from '../types/auth.js';
 
 /**
@@ -24,14 +25,22 @@ function signToken(id: string, username: string, role: UserRole): string {
 /** 注册普通用户：用户名与管理员/普通用户均冲突时返回 409 */
 export async function register(username: string, password: string): Promise<AuthUser> {
   const [adminExists, userExists] = await Promise.all([
-    Admin.exists({ username }),
-    User.exists({ username }),
+    Admin.findOne({ where: { username }, attributes: ['id'] }),
+    User.findOne({ where: { username }, attributes: ['id'] }),
   ]);
   if (adminExists || userExists) {
     throw new HttpError(409, '该用户名已被占用');
   }
-  const user = await User.create({ username, password });
-  return { id: user._id.toString(), username: user.username, role: 'user' };
+  try {
+    const user = await User.create({ username, password });
+    return { id: user.id, username: user.username, role: 'user' };
+  } catch (err) {
+    // 并发注册时唯一索引兜底，保持 409 语义
+    if (err instanceof UniqueConstraintError) {
+      throw new HttpError(409, '该用户名已被占用');
+    }
+    throw err;
+  }
 }
 
 /** 普通用户登录 */
@@ -39,11 +48,11 @@ export async function loginUser(
   username: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser }> {
-  const user = await User.findOne({ username }).select('+password');
+  const user = await User.findOne({ where: { username }, attributes: { include: ['password'] } });
   if (!user || !(await user.comparePassword(password))) {
     throw new HttpError(401, '用户名或密码错误');
   }
-  const authUser: AuthUser = { id: user._id.toString(), username: user.username, role: 'user' };
+  const authUser: AuthUser = { id: user.id, username: user.username, role: 'user' };
   return { token: signToken(authUser.id, authUser.username, authUser.role), user: authUser };
 }
 
@@ -52,11 +61,11 @@ export async function loginAdmin(
   username: string,
   password: string,
 ): Promise<{ token: string; user: AuthUser }> {
-  const admin = await Admin.findOne({ username }).select('+password');
+  const admin = await Admin.findOne({ where: { username }, attributes: { include: ['password'] } });
   if (!admin || !(await admin.comparePassword(password))) {
     throw new HttpError(401, '管理员账号或密码错误');
   }
-  const authUser: AuthUser = { id: admin._id.toString(), username: admin.username, role: 'admin' };
+  const authUser: AuthUser = { id: admin.id, username: admin.username, role: 'admin' };
   return { token: signToken(authUser.id, authUser.username, authUser.role), user: authUser };
 }
 
@@ -76,11 +85,11 @@ export async function verifyToken(token: string): Promise<AuthUser> {
   }
   const role: UserRole = payload.role;
   if (role === 'admin') {
-    const admin = await Admin.findById(id);
+    const admin = await Admin.findByPk(id);
     if (!admin) throw new HttpError(401, '管理员不存在');
-    return { id: admin._id.toString(), username: admin.username, role: 'admin' };
+    return { id: admin.id, username: admin.username, role: 'admin' };
   }
-  const user = await User.findById(id);
+  const user = await User.findByPk(id);
   if (!user) throw new HttpError(401, '用户不存在');
-  return { id: user._id.toString(), username: user.username, role: 'user' };
+  return { id: user.id, username: user.username, role: 'user' };
 }

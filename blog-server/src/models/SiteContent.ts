@@ -1,41 +1,49 @@
-import { model, Schema, Types, type Model } from 'mongoose';
+import { randomBytes } from 'node:crypto';
+
+import {
+  DataTypes,
+  Model,
+  type CreationOptional,
+  type InferAttributes,
+  type InferCreationAttributes,
+} from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 
 import type { SiteContentKey, SiteContentValue } from '../types/siteContent.js';
-import { SITE_CONTENT_KEYS } from '../types/siteContent.js';
 
 /**
- * 站点内容模型（简历页 / 首页展示内容的持久化）
+ * 站点内容模型（site_contents 表，简历页 / 首页展示内容的持久化）
  *
  * - key 唯一索引，一 key 一条记录
- * - value 以 Mixed 存储各内容的 JSON（教育背景 / 专业技能 / 项目经历 / 个人评价 / 精选项目）
+ * - value 以 JSON 列存储各内容的 JSON（教育背景 / 专业技能 / 项目经历 / 个人评价 / 精选项目）
  * - 由 service 在启动时 seed 默认值，管理员通过 /api/site-content 增删改
  */
-
-/** SiteContent 文档字段 */
-export interface SiteContentDoc {
-  _id: Types.ObjectId;
-  key: SiteContentKey;
-  value: SiteContentValue;
-  createdAt: Date;
-  updatedAt: Date;
+class SiteContent extends Model<InferAttributes<SiteContent>, InferCreationAttributes<SiteContent>> {
+  declare id: CreationOptional<string>;
+  declare key: SiteContentKey;
+  declare value: SiteContentValue;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 
-export type SiteContentModel = Model<SiteContentDoc>;
-
-const siteContentSchema = new Schema<SiteContentDoc, SiteContentModel>(
+SiteContent.init(
   {
-    key: {
-      type: String,
-      required: true,
-      unique: true,
-      enum: SITE_CONTENT_KEYS,
+    id: {
+      type: DataTypes.STRING(24),
+      primaryKey: true,
+      defaultValue: () => randomBytes(12).toString('hex'),
     },
-    value: {
-      type: Schema.Types.Mixed,
-      required: true,
-    },
+    key: { type: DataTypes.STRING(32), allowNull: false, unique: true },
+    value: { type: DataTypes.JSON, allowNull: false },
+    createdAt: DataTypes.DATE,
+    updatedAt: DataTypes.DATE,
   },
-  { timestamps: true },
+  {
+    sequelize,
+    modelName: 'SiteContent',
+    tableName: 'site_contents',
+  },
 );
 
-export const SiteContent = model<SiteContentDoc, SiteContentModel>('SiteContent', siteContentSchema);
+export default SiteContent;

@@ -1,6 +1,9 @@
+import { literal, QueryTypes, UniqueConstraintError } from 'sequelize';
+
+import { sequelize } from '../db/sequelize.js';
 import { HttpError } from '../middleware/error.js';
-import { Article } from '../models/Article.js';
-import { Tag } from '../models/Tag.js';
+import Article from '../models/Article.js';
+import Tag from '../models/Tag.js';
 import type { TagItem } from '../types/tag.js';
 
 /**
@@ -11,26 +14,34 @@ import type { TagItem } from '../types/tag.js';
  * deleteTag：删除标签，同时从所有文章移除该标签（保持数据一致）
  */
 
+/** JSON 列包含指定字符串值（等价 MongoDB 的 { field: value } 数组匹配） */
+function jsonContains(column: string, value: string) {
+  return literal(`JSON_CONTAINS(${column}, JSON_QUOTE(${sequelize.escape(value)}))`);
+}
+
 /** 标签库列表（含文章数） */
 export async function listTags(): Promise<TagItem[]> {
-  const [tags, counts] = await Promise.all([
-    Tag.find().sort({ createdAt: 1 }).lean(),
-    Article.aggregate<{ _id: string; count: number }>([
-      { $unwind: '$tags' },
-      { $group: { _id: '$tags', count: { $sum: 1 } } },
-    ]),
+  const [tags, rows] = await Promise.all([
+    Tag.findAll({ order: [['createdAt', 'ASC']] }),
+    // 展开每篇文章的 tags 数组并按标签统计文章数（等价原 $unwind + $group）
+    sequelize.query<{ tag: string; cnt: number }>(
+      `SELECT jt.tag AS tag, COUNT(*) AS cnt
+       FROM articles, JSON_TABLE(articles.tags, '$[*]' COLUMNS (tag VARCHAR(64) PATH '$')) AS jt
+       GROUP BY jt.tag`,
+      { type: QueryTypes.SELECT },
+    ),
   ]);
-  const countMap = new Map(counts.map((c) => [c._id, c.count]));
-  return tags.map((t) => ({ id: t._id.toString(), name: t.name, count: countMap.get(t.name) ?? 0 }));
+  const countMap = new Map(rows.map((r) => [r.tag, Number(r.cnt)]));
+  return tags.map((t) => ({ id: t.id, name: t.name, count: countMap.get(t.name) ?? 0 }));
 }
 
 /** 新增标签（name 已在路由层做过 trim/去重校验） */
 export async function createTag(name: string): Promise<TagItem> {
   try {
     const doc = await Tag.create({ name });
-    return { id: doc._id.toString(), name: doc.name, count: 0 };
+    return { id: doc.id, name: doc.name, count: 0 };
   } catch (err) {
-    if ((err as { code?: number }).code === 11000) {
+    if (err instanceof UniqueConstraintError) {
       throw new HttpError(409, `标签「${name}」已存在`);
     }
     throw err;
@@ -39,11 +50,15 @@ export async function createTag(name: string): Promise<TagItem> {
 
 /** 删除标签，并同步从所有文章移除该标签 */
 export async function deleteTag(name: string): Promise<{ name: string }> {
-  const doc = await Tag.findOneAndDelete({ name });
-  if (!doc) {
+  const affected = await Tag.destroy({ where: { name } });
+  if (affected === 0) {
     throw new HttpError(404, `标签「${name}」不存在`);
   }
   // 同步清理文章上的该标签，保持标签库与文章一致
-  await Article.updateMany({ tags: name }, { $pull: { tags: name } });
-  return { name: doc.name };
+  const articles = await Article.findAll({ where: jsonContains('tags', name) });
+  for (const article of articles) {
+    article.tags = article.tags.filter((t) => t !== name);
+    await article.save();
+  }
+  return { name };
 }
