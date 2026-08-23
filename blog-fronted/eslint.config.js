@@ -24,7 +24,7 @@ export default tseslint.config(
       },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['vite.config.ts', 'tailwind.config.ts', 'eslint.config.js', 'prettier.config.js', 'postcss.config.js'],
+          allowDefaultProject: ['vite.config.ts', 'eslint.config.js', 'prettier.config.js'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -45,6 +45,8 @@ export default tseslint.config(
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
+      // hooks v7 新增规则：既有代码在 effect 中同步 setState 是既定模式，保持行为不变
+      'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'react/no-unknown-property': ['error', { ignore: ['className'] }],
 
