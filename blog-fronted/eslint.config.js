@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import nextVitals from 'eslint-config-next/core-web-vitals';
 import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactCompiler from 'eslint-plugin-react-compiler';
@@ -9,8 +10,19 @@ import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
 export default tseslint.config(
+  // Next.js 官方规则（Babel parser + 67 条规则；parser 会被后面的 TS 块覆盖）
+  ...nextVitals,
+
   // 全局忽略
-  { ignores: ['dist', 'node_modules'] },
+  { ignores: ['.next', 'dist', 'node_modules'] },
+
+  // Next.js App Router 文件（layout/page 可导出 metadata 等非组件符号，无需 fast refresh）
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 
   // 基础 JS/TS 规则
   {
@@ -25,7 +37,7 @@ export default tseslint.config(
       },
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['vite.config.ts', 'eslint.config.js', 'prettier.config.js'],
+          allowDefaultProject: ['eslint.config.js', 'prettier.config.js'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -52,6 +64,10 @@ export default tseslint.config(
       // hooks v7 新增规则：既有代码在 effect 中同步 setState 是既定模式，保持行为不变
       'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // iconfont 字体走 public/ 静态资源 link（Next CSS import 无法引用 public 文件）
+      '@next/next/no-css-tags': 'off',
+      // SafeImg 是自定义图片组件（加载失败占位等），保持 <img> 而非 next/image
+      '@next/next/no-img-element': 'off',
       'react/no-unknown-property': ['error', { ignore: ['className'] }],
 
       // Import 排序
@@ -72,6 +88,14 @@ export default tseslint.config(
       // 允许不显式声明返回类型（TS 推导足够好）
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+    },
+  },
+
+  // Next.js App Router 文件（layout/page 可导出 metadata 等非组件符号，无需 fast refresh）
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 

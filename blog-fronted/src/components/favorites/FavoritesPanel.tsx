@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import { type MouseEvent } from 'react';
-import { Link } from 'react-router-dom';
 
 import { favoriteKeys, useFavoriteArticlesQuery } from '@/hooks/queries';
 import { articleApi } from '@/lib/api';
@@ -52,7 +52,7 @@ export default function FavoritesPanel({ onClose }: { onClose: () => void }) {
           {favorites.map((a) => (
             <li key={a.id} className="flex items-center gap-2 border-b border-[var(--color-border-light)] last:border-b-0">
               <Link
-                to={`/blog/${a.id}`}
+                href={`/blog/${a.id}`}
                 onClick={onClose}
                 className="block min-w-0 flex-1 px-4 py-3 transition-colors hover:text-accent"
               >

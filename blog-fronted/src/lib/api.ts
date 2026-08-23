@@ -37,7 +37,15 @@ import type {
   UserRole,
 } from '@/types/api';
 
-const API_BASE = '/api';
+/**
+ * API 基地址：
+ * - 浏览器：同源 /api（Next rewrites 代理到 Express）
+ * - 服务端（SSR 预取等）：直连 Express，绝对地址
+ */
+const API_BASE =
+  typeof window !== 'undefined'
+    ? '/api'
+    : `${process.env.API_TARGET ?? 'http://localhost:4000'}/api`;
 const TOKEN_KEY = 'blog_token';
 
 /** 业务/网络错误 */
@@ -53,9 +61,10 @@ export class ApiError extends Error {
   }
 }
 
-/** JWT token 存取 */
+/** JWT token 存取（服务端渲染时无 localStorage，get 做环境守卫） */
 export const tokenStore = {
-  get: (): string | null => localStorage.getItem(TOKEN_KEY),
+  get: (): string | null =>
+    typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null,
   set: (token: string): void => {
     localStorage.setItem(TOKEN_KEY, token);
   },

@@ -6,12 +6,12 @@
  */
 
 const pageLoaders: Record<string, () => Promise<unknown>> = {
-  '/': () => import('@/pages/cover'),
-  '/home': () => import('@/pages/home'),
-  '/blog': () => import('@/pages/blog'),
-  '/resume': () => import('@/pages/resume'),
-  '/about': () => import('@/pages/about'),
-  '/admin': () => import('@/pages/admin'),
+  '/': () => import('@/views/cover'),
+  '/home': () => import('@/views/home'),
+  '/blog': () => import('@/views/blog'),
+  '/resume': () => import('@/views/resume'),
+  '/about': () => import('@/views/about'),
+  '/admin': () => import('@/views/admin'),
 };
 
 /** 已触发过预加载的路径集合，避免重复 import */

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 import { useMarkNotificationsReadMutation, useNotificationsQuery } from '@/hooks/queries';
 import type { NotificationItem } from '@/types/api';
@@ -37,14 +37,14 @@ function notificationText(n: NotificationItem): string {
 }
 
 export default function NotificationPanel({ onClose }: { onClose: () => void }) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { data: notifications = [], isLoading } = useNotificationsQuery(true);
   const markRead = useMarkNotificationsReadMutation();
 
   /** 点击通知：未读则单条标记已读，再跳转 */
   function handleClick(n: NotificationItem) {
     if (!n.read) markRead.mutate([n.id]);
-    if (n.articleId) void navigate(`/blog/${n.articleId}`);
+    if (n.articleId) router.push(`/blog/${n.articleId}`);
     onClose();
   }
 

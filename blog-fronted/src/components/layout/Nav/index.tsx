@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { lazy, memo, Suspense, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { lazy, Suspense, useState } from 'react';
 
 import { MotionLink, SafeImg } from '@/components/common';
 import { NAV_TABS } from '@/constants';
@@ -33,11 +34,9 @@ const linkBase =
  * - 品牌 Logo 右侧：管理员登录后显示「管理」入口
  * - 右侧：未登录显示「请登录」（打开登录/注册弹窗），已登录显示用户名与退出
  * - 主题切换按钮、桌面/移动端导航菜单
- *
- * memo 化：路由切换 / 内容区重渲染时不重渲染（theme/onToggle 变化时仍正常更新）
  */
-export default memo(function Nav({ theme, onToggle }: NavProps) {
-  const location = useLocation();
+export default function Nav({ theme, onToggle }: NavProps) {
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -71,7 +70,7 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
       transition={{ type: 'spring', stiffness: 200, damping: 24, mass: 0.8 }}
     >
       <Link
-        to="/home"
+        href="/home"
         className="flex items-center gap-2 whitespace-nowrap text-base font-bold tracking-[-0.02em] text-accent"
       >
         <SafeImg
@@ -85,7 +84,7 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
       {/* 管理入口 — 仅管理员登录后显示 */}
       {isAdmin && (
         <MotionLink
-          to="/admin"
+          href="/admin"
           className="cursor-pointer whitespace-nowrap rounded-full border border-[var(--color-border)] px-2.5 py-0.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
           onMouseEnter={() => { preloadRoute('/admin'); }}
           whileHover={{ scale: 1.06 }}
@@ -207,11 +206,11 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
       {/* 桌面端导航（移动端隐藏） */}
       <nav className="hidden gap-0.5 md:flex">
         {NAV_TABS.map((t) => {
-          const isActive = location.pathname === t.to;
+          const isActive = pathname === t.to;
           return (
             <MotionLink
               key={t.to}
-              to={t.to}
+              href={t.to}
               className={`${linkBase} ${isActive ? '!font-semibold !text-accent' : ''}`}
               onMouseEnter={() => { preloadRoute(t.to); }}
               whileHover={{ y: -2 }}
@@ -235,7 +234,7 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 26, mass: 0.6 }}
           >
             {NAV_TABS.map((t, i) => {
-              const isActive = location.pathname === t.to;
+              const isActive = pathname === t.to;
               return (
                 <motion.div
                   key={t.to}
@@ -244,7 +243,7 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
                   transition={{ delay: i * 0.04, type: 'spring', stiffness: 300, damping: 22 }}
                 >
                   <MotionLink
-                    to={t.to}
+                    href={t.to}
                     className={`${linkBase} block py-2 ${isActive ? '!font-semibold !text-accent' : ''}`}
                     onMouseEnter={() => { preloadRoute(t.to); }}
                     onClick={() => {
@@ -301,4 +300,4 @@ export default memo(function Nav({ theme, onToggle }: NavProps) {
       </Suspense>
     </motion.header>
   );
-});
+}

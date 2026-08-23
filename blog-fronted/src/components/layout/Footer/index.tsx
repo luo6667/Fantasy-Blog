@@ -1,6 +1,5 @@
 import { motion } from 'motion/react';
-import { memo } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 import { NAV_TABS } from '@/constants';
 import { preloadRoute } from '@/lib/preload';
@@ -11,9 +10,8 @@ const MotionLink = motion.create(Link);
  * 底部页脚组件
  *
  * 包含导航链接、联系方式与版权信息。
- * memo 化：无 props，路由切换时不重渲染。
  */
-export default memo(function Footer() {
+export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
@@ -28,7 +26,7 @@ export default memo(function Footer() {
             {NAV_TABS.map((t) => (
               <MotionLink
                 key={t.to}
-                to={t.to}
+                href={t.to}
                 className="inline-block w-fit text-sm text-text-secondary"
                 onMouseEnter={() => { preloadRoute(t.to); }}
                 whileHover={{ x: 4, color: 'var(--color-accent)' }}
@@ -76,4 +74,4 @@ export default memo(function Footer() {
       </p>
     </footer>
   );
-});
+}

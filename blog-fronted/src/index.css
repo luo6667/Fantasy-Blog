@@ -43,7 +43,7 @@
   --color-text-muted: var(--color-text-muted);
   --color-border-light: var(--color-border-light);
 
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: var(--font-outfit), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --max-width-page: 860px;
 
   /* 恢复原 borderColor.DEFAULT（裸 border 类使用主题边框色而非 currentColor） */
@@ -61,7 +61,7 @@
   }
 
   body {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-outfit), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     color: var(--color-text);
     background: var(--color-bg);
     line-height: 1.65;

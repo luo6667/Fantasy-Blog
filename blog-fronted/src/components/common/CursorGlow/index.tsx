@@ -1,3 +1,5 @@
+'use client';
+
 import { motion, useMotionTemplate, useMotionValue, useSpring } from 'motion/react';
 import { useCallback } from 'react';
 
