@@ -5,20 +5,15 @@ import { lazy, Suspense, useState } from 'react';
 
 import { MotionLink, SafeImg } from '@/components/common';
 import { NAV_TABS } from '@/constants';
-import { useConversationsQuery } from '@/hooks/queries';
+import { useNotificationsUnreadQuery } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { springBtn } from '@/lib/motion';
 import { preloadRoute } from '@/lib/preload';
-import { useChatStore } from '@/stores/chatStore';
 import type { ThemeMode } from '@/types';
 
 // 弹窗 / 面板按需懒加载，避免打进首屏包（Nav 是 Layout 常驻组件）
 const AuthModal = lazy(() => import('@/components/auth/AuthModal'));
 const NotificationPanel = lazy(() => import('@/components/notification/NotificationPanel'));
-const FavoritesPanel = lazy(() => import('@/components/favorites/FavoritesPanel'));
-const ChatWindowHost = lazy(() =>
-  import('@/components/chat/ChatWindow').then((m) => ({ default: m.ChatWindowHost })),
-);
 
 interface NavProps {
   theme: ThemeMode;
@@ -40,26 +35,19 @@ export default function Nav({ theme, onToggle }: NavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [favOpen, setFavOpen] = useState(false);
   const { user, isAdmin, checking, logout } = useAuth();
 
-  const unreadNotifications = useChatStore((s) => s.unreadNotifications);
-  const setNotificationsOpen = useChatStore((s) => s.setNotificationsOpen);
-  const setChatOpen = useChatStore((s) => s.setChatOpen);
-
-  // 聊天未读徽标：所有会话未读总和
-  const { data: conversations = [] } = useConversationsQuery(Boolean(user));
-  const unreadMessages = conversations.reduce((sum, c) => sum + c.unread, 0);
+  // 通知未读数（REST 查询，登录后拉取）
+  const { data: unreadData } = useNotificationsUnreadQuery(Boolean(user));
+  const unreadNotifications = unreadData?.count ?? 0;
 
   /** 打开通知面板（已读由面板内的单条/全部已读按钮处理，避免一打开就全部标记） */
   function openNotifications() {
     setNotifOpen(true);
-    setNotificationsOpen(true);
   }
 
   function closeNotifications() {
     setNotifOpen(false);
-    setNotificationsOpen(false);
   }
 
   return (
@@ -149,43 +137,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
               )}
             </AnimatePresence>
           </div>
-
-          {/* 收藏：我的收藏列表 */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { setFavOpen(!favOpen); }}
-              aria-label="我的收藏"
-              className="cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-amber-400 hover:text-amber-500"
-            >
-              <i className="iconfont2 icon-shoucangxing text-base leading-none" />
-            </button>
-            <AnimatePresence>
-              {favOpen && (
-                <>
-                  <div className="fixed inset-0 z-[940]" onClick={() => { setFavOpen(false); }} />
-                  <Suspense fallback={null}>
-                    <FavoritesPanel onClose={() => { setFavOpen(false); }} />
-                  </Suspense>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* 聊天：打开聊天窗口（未读消息红点） */}
-          <button
-            type="button"
-            onClick={() => { setChatOpen(true); }}
-            aria-label="聊天"
-            className="relative cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            <i className="iconfont2 icon-liaotian text-base leading-none" />
-            {unreadMessages > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold text-white">
-                {unreadMessages > 99 ? '99+' : String(unreadMessages)}
-              </span>
-            )}
-          </button>
         </div>
       )}
 
@@ -292,11 +243,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
       {/* 登录 / 注册弹窗 */}
       <Suspense fallback={null}>
         <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
-      </Suspense>
-
-      {/* 私信聊天窗口（固定右下角） */}
-      <Suspense fallback={null}>
-        <ChatWindowHost />
       </Suspense>
     </motion.header>
   );

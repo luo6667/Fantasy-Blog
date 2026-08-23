@@ -131,44 +131,6 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-/** 聊天对方 */
-export interface ChatPeer {
-  id: string;
-  username: string;
-  role: UserRole;
-}
-
-/** 会话项 */
-export interface ConversationItem {
-  id: string;
-  peer: ChatPeer;
-  lastMessage?: string;
-  lastMessageAt: string;
-  /** 当前用户未读消息数 */
-  unread: number;
-  /** 对方是否在线 */
-  isOnline: boolean;
-}
-
-/** 消息项 */
-export interface MessageItem {
-  id: string;
-  conversationId: string;
-  sender: ChatPeer;
-  content: string;
-  /** 是否为当前用户自己发送 */
-  mine: boolean;
-  read: boolean;
-  createdAt: string;
-}
-
-/** 用户搜索项（发起聊天时选择对方） */
-export interface UserBrief {
-  id: string;
-  username: string;
-  role: UserRole;
-}
-
 /** 用户管理项（管理员后台列表） */
 export interface UserManageItem {
   id: string;
@@ -176,8 +138,6 @@ export interface UserManageItem {
   createdAt: string;
   /** 评论数（含回复） */
   commentCount: number;
-  /** 收藏文章数 */
-  favoriteCount: number;
 }
 
 /** AI 配置（管理后台；apiKey 不回传明文，仅 hasKey 表示是否已配置） */

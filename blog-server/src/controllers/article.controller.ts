@@ -6,9 +6,7 @@ import {
   deleteArticle,
   getArticle,
   listArticles,
-  listFavoriteArticles,
   listTags,
-  toggleArticleFavorite,
   toggleArticleLike,
   updateArticle,
 } from '../services/article.service.js';
@@ -51,12 +49,7 @@ export const tagsHandler: RequestHandler = async (_req, res) => {
   ok(res, tags);
 };
 
-/** GET /api/articles/favorites（登录，我的收藏） */
-export const favoritesHandler: RequestHandler = async (req, res) => {
-  ok(res, await listFavoriteArticles(req.user!));
-};
-
-/** GET /api/articles/:id（可选 token 返回点赞/收藏状态） */
+/** GET /api/articles/:id（可选 token 返回点赞状态） */
 export const detailHandler: RequestHandler = async (req, res) => {
   const currentUser = await optionalUser(req);
   const article = await getArticle(req.params.id as string, currentUser);
@@ -66,12 +59,6 @@ export const detailHandler: RequestHandler = async (req, res) => {
 /** POST /api/articles/:id/like（登录，点赞/取消） */
 export const likeHandler: RequestHandler = async (req, res) => {
   const result = await toggleArticleLike(req.params.id as string, req.user!);
-  ok(res, result);
-};
-
-/** POST /api/articles/:id/favorite（登录，收藏/取消） */
-export const favoriteHandler: RequestHandler = async (req, res) => {
-  const result = await toggleArticleFavorite(req.params.id as string, req.user!);
   ok(res, result);
 };
 

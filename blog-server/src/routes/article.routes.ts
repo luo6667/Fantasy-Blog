@@ -5,8 +5,6 @@ import {
   createHandler,
   deleteHandler,
   detailHandler,
-  favoriteHandler,
-  favoritesHandler,
   likeHandler,
   listHandler,
   tagsHandler,
@@ -54,24 +52,20 @@ const commentSchema = z.object({
  *
  * GET    /api/articles              列表（公开，支持 ?page=&pageSize=&tag=&search=）
  * GET    /api/articles/tags         标签聚合（公开）
- * GET    /api/articles/favorites    我的收藏（登录）
- * GET    /api/articles/:id          详情（公开，登录可返回点赞/收藏状态）
+ * GET    /api/articles/:id          详情（公开，登录可返回点赞状态）
  * GET    /api/articles/:id/comments 评论列表（公开，登录可返回点赞状态）
  * POST   /api/articles/:id/comments 发表评论（登录，普通用户/管理员均可）
  * POST   /api/articles/:id/like     点赞 / 取消（登录）
- * POST   /api/articles/:id/favorite 收藏 / 取消（登录）
  * POST   /api/articles              创建（管理员）
  * PUT    /api/articles/:id          更新（管理员）
  * DELETE /api/articles/:id          删除（管理员）
  */
 router.get('/', listHandler);
 router.get('/tags', tagsHandler);
-router.get('/favorites', requireAuth, favoritesHandler);
 router.get('/:id', detailHandler);
 router.get('/:id/comments', listCommentsHandler);
 router.post('/:id/comments', writeLimiter, requireAuth, validateBody(commentSchema), createCommentHandler);
 router.post('/:id/like', writeLimiter, requireAuth, likeHandler);
-router.post('/:id/favorite', writeLimiter, requireAuth, favoriteHandler);
 router.post('/', requireAdmin, validateBody(articleSchema), createHandler);
 router.put('/:id', requireAdmin, validateBody(updateSchema), updateHandler);
 router.delete('/:id', requireAdmin, deleteHandler);

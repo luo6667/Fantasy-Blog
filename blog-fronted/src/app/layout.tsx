@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
 import Script from 'next/script';
 
-import ChatProvider from '@/components/providers/ChatProvider';
 import QueryProvider from '@/components/providers/QueryProvider';
 
 /** Outfit 字体：next/font 构建时自托管（无运行时外部请求，无 FOUT/FOIT） */
@@ -30,7 +29,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" className={outfit.variable}>
+    <html lang="zh-CN" className={outfit.variable} suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#faf9f7" />
         <meta name="color-scheme" content="light dark" />
@@ -42,9 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="theme-init" strategy="beforeInteractive">
           {`try{var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}`}
         </Script>
-        <QueryProvider>
-          <ChatProvider>{children}</ChatProvider>
-        </QueryProvider>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );

@@ -21,9 +21,7 @@ import type {
   ArticleListItem,
   AuthUser,
   CommentItem,
-  ConversationItem,
   LoginResult,
-  MessageItem,
   NotificationItem,
   PaginatedResult,
   SiteContentItem,
@@ -32,7 +30,6 @@ import type {
   TagCount,
   TagItem,
   UploadResult,
-  UserBrief,
   UserManageItem,
   UserRole,
 } from '@/types/api';
@@ -166,15 +163,8 @@ export const articleApi = {
   /** 全部标签及文章数（用于筛选栏） */
   tags: () => request<TagCount[]>('/articles/tags'),
 
-  /** 我收藏的文章列表 */
-  favorites: () => request<ArticleListItem[]>('/articles/favorites'),
-
   /** 点赞 / 取消点赞 */
   like: (id: string) => request<{ liked: boolean; likes: number }>(`/articles/${id}/like`, { method: 'POST' }),
-
-  /** 收藏 / 取消收藏 */
-  favorite: (id: string) =>
-    request<{ favorited: boolean; favorites: number }>(`/articles/${id}/favorite`, { method: 'POST' }),
 
   create: (input: ArticleInput) =>
     request<ArticleDetail>('/articles', { method: 'POST', body: JSON.stringify(input) }),
@@ -266,38 +256,12 @@ export const notificationApi = {
     }),
 };
 
-/** 会话 API（登录） */
-export const conversationApi = {
-  list: () => request<ConversationItem[]>('/conversations'),
-  messages: (conversationId: string) =>
-    request<MessageItem[]>(`/conversations/${conversationId}/messages`),
-  markRead: (conversationId: string) =>
-    request<{ ok: boolean }>(`/conversations/${conversationId}/read`, { method: 'POST' }),
-};
-
-/** 私信 API（登录） */
-export const messageApi = {
-  send: (recipientType: UserRole, recipientId: string, content: string) =>
-    request<MessageItem>('/messages', {
-      method: 'POST',
-      body: JSON.stringify({ recipientType, recipientId, content }),
-    }),
-};
-
 /** 用户 API（登录） */
 export const userApi = {
-  /** 搜索可聊天的对方（登录） */
-  search: (search: string) => request<UserBrief[]>(`/users?search=${encodeURIComponent(search)}`),
   /** 用户列表 + 统计（管理员） */
   listManage: () => request<UserManageItem[]>('/users/manage'),
   /** 删除用户及级联数据（管理员） */
   remove: (id: string) => request<{ id: string }>(`/users/${id}`, { method: 'DELETE' }),
-};
-
-/** typing 上报（SSE 单向，客户端上报走 REST，服务端转发给对方） */
-export const typingApi = {
-  send: (payload: { recipientType: UserRole; recipientId: string; conversationId: string; isTyping: boolean }) =>
-    request<{ ok: boolean }>('/typing', { method: 'POST', body: JSON.stringify(payload) }),
 };
 
 /** AI API（配置管理 + 流式对话） */

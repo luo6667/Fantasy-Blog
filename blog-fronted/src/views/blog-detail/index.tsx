@@ -12,7 +12,6 @@ import CommentSection from '@/components/comment/CommentSection';
 import { BgOrbs, MdxContent, Reveal, SafeImg, Tag } from '@/components/common';
 import {
   useArticleDetailQuery,
-  useArticleFavoriteMutation,
   useArticleLikeMutation,
   useDeleteArticleMutation,
 } from '@/hooks/queries';
@@ -41,7 +40,6 @@ export default function BlogDetail() {
   useSeo({ title: article?.title, description: article?.excerpt });
   const deleteArticle = useDeleteArticleMutation();
   const likeArticle = useArticleLikeMutation(id);
-  const favoriteArticle = useArticleFavoriteMutation(id);
   const errorMessage = error?.message ?? deleteArticle.error?.message;
 
   /** 删除文章（管理员，确认后返回列表） */
@@ -155,18 +153,6 @@ export default function BlogDetail() {
                     }`}
                   >
                     <i className={`iconfont2 icon-dianzan ${article.likedByMe ? '' : 'opacity-60'}`} /> 点赞 {String(article.likes)}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={favoriteArticle.isPending}
-                    onClick={() => { if (requireLogin()) favoriteArticle.mutate(); }}
-                    className={`cursor-pointer rounded-full border px-3.5 py-1.5 transition-colors disabled:opacity-50 ${
-                      article.favoritedByMe
-                        ? 'border-amber-400/60 bg-amber-500/10 text-amber-500'
-                        : 'border-[var(--color-border)] text-text-muted hover:border-amber-400 hover:text-amber-500'
-                    }`}
-                  >
-                    <i className={`iconfont2 icon-shoucangxing ${article.favoritedByMe ? '' : 'opacity-60'}`} /> 收藏 {String(article.favorites)}
                   </button>
                 </div>
 

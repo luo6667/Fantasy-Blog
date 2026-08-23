@@ -189,59 +189,6 @@ export async function toggleArticleLike(
   return { liked, likes };
 }
 
-/** 收藏 / 取消收藏（原子操作，并发安全；新收藏时通知文章作者） */
-export async function toggleArticleFavorite(
-  articleId: string,
-  user: AuthUser,
-): Promise<{ favorited: boolean; favorites: number }> {
-  const key = likeKey(user);
-  const { favorited, favorites, article } = await sequelize.transaction(async (t) => {
-    const doc = await Article.findByPk(articleId, { transaction: t, lock: t.LOCK.UPDATE });
-    if (!doc) {
-      throw new HttpError(404, '文章不存在');
-    }
-    let favoritedNow: boolean;
-    if (doc.favoritedBy.includes(key)) {
-      doc.favoritedBy = doc.favoritedBy.filter((k) => k !== key);
-      doc.favorites -= 1;
-      favoritedNow = false;
-    } else {
-      // 重新赋值触发 Sequelize 变更检测（原地 push 不会标记字段为已修改）
-      doc.favoritedBy = [...doc.favoritedBy, key];
-      doc.favorites += 1;
-      favoritedNow = true;
-    }
-    await doc.save({ transaction: t });
-    return { favorited: favoritedNow, favorites: doc.favorites, article: doc };
-  });
-
-  // 新收藏且非本人时，通知文章作者（旧数据无作者时回退管理员）
-  if (favorited && !(article.authorType === user.role && article.authorId === user.id)) {
-    const recipient = await resolveArticleRecipient(article);
-    if (recipient) {
-      await createNotification({
-        recipient,
-        actor: user,
-        type: 'favorite',
-        articleId: article.id,
-        articleTitle: article.title,
-      });
-    }
-  }
-  return { favorited, favorites };
-}
-
-/** 我收藏的文章列表 */
-export async function listFavoriteArticles(user: AuthUser): Promise<ArticleListItem[]> {
-  const meKey = likeKey(user);
-  const docs = await Article.findAll({
-    where: jsonContains('favoritedBy', meKey),
-    order: [['createdAt', 'DESC']],
-  });
-  return docs.map((d) => toListItem(d, meKey));
-}
-
-/** 去重后的标签（去掉空白与重复） */
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((t) => t.trim()).filter(Boolean))];
 }

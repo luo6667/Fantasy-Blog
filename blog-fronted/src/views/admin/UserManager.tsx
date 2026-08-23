@@ -53,7 +53,6 @@ export default function UserManager() {
                 <th className="px-4 py-2.5 font-medium">用户名</th>
                 <th className="px-4 py-2.5 font-medium">注册时间</th>
                 <th className="px-4 py-2.5 text-center font-medium">评论数</th>
-                <th className="px-4 py-2.5 text-center font-medium">收藏数</th>
                 <th className="px-4 py-2.5 text-right font-medium">操作</th>
               </tr>
             </thead>
@@ -68,7 +67,6 @@ export default function UserManager() {
                     {new Date(u.createdAt).toLocaleString('zh-CN', { hour12: false })}
                   </td>
                   <td className="px-4 py-2.5 text-center">{String(u.commentCount)}</td>
-                  <td className="px-4 py-2.5 text-center">{String(u.favoriteCount)}</td>
                   <td className="px-4 py-2.5 text-right">
                     <button
                       type="button"

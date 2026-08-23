@@ -3,15 +3,14 @@ import { Op } from 'sequelize';
 import Admin from '../models/Admin.js';
 import type Article from '../models/Article.js';
 import Notification from '../models/Notification.js';
-import { pushToUser } from '../sse.js';
 import type { AuthUser } from '../types/auth.js';
 import type { NotificationItem, NotificationType } from '../types/notification.js';
 
 /**
  * 通知业务逻辑
  *
- * createNotification：评论文章 / 回复评论 / 点赞 / 收藏 / 新文章发布时调用；
- * 接收者在线时通过 Socket.IO 实时推送 notification:new。
+ * createNotification：评论文章 / 回复评论 / 点赞 / 新文章发布时调用，落库后由前端拉取。
+ * （已移除实时推送：SSE 随私信功能一并下线，通知改为 REST 查询）
  */
 
 /**
@@ -53,7 +52,7 @@ function toItem(doc: Notification): NotificationItem {
   };
 }
 
-/** 创建通知并实时推送 */
+/** 创建通知并落库（前端拉取展示） */
 export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<NotificationItem> {
@@ -69,9 +68,7 @@ export async function createNotification(
     commentId: input.commentId ?? null,
     commentContent: input.commentContent ?? null,
   });
-  const item = toItem(doc);
-  pushToUser(input.recipient, 'notification:new', item);
-  return item;
+  return toItem(doc);
 }
 
 /** 当前用户的通知列表（倒序，最多 50 条） */
