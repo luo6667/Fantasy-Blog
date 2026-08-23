@@ -9,6 +9,7 @@ import articleRoutes from './routes/article.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import commentRoutes from './routes/comment.routes.js';
 import conversationRoutes from './routes/conversation.routes.js';
+import eventsRoutes from './routes/events.routes.js';
 import messageRoutes from './routes/message.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import siteContentRoutes from './routes/siteContent.routes.js';
@@ -74,6 +75,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/site-content', siteContentRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api', eventsRoutes); // SSE 长连接（/api/events）+ typing 上报（/api/typing）
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
 

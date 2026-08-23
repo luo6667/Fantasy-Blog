@@ -3,7 +3,7 @@ import { Op } from 'sequelize';
 import Admin from '../models/Admin.js';
 import type Article from '../models/Article.js';
 import Notification from '../models/Notification.js';
-import { getIO, userRoom } from '../socket.js';
+import { pushToUser } from '../sse.js';
 import type { AuthUser } from '../types/auth.js';
 import type { NotificationItem, NotificationType } from '../types/notification.js';
 
@@ -70,7 +70,7 @@ export async function createNotification(
     commentContent: input.commentContent ?? null,
   });
   const item = toItem(doc);
-  getIO()?.to(userRoom(input.recipient)).emit('notification:new', item);
+  pushToUser(input.recipient, 'notification:new', item);
   return item;
 }
 

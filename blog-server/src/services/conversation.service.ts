@@ -6,7 +6,7 @@ import Admin from '../models/Admin.js';
 import Conversation from '../models/Conversation.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
-import { getIO, isUserOnline, userRoom } from '../socket.js';
+import { isUserOnline, pushToUser } from '../sse.js';
 import type { AuthUser } from '../types/auth.js';
 import type { ChatPeer, ConversationItem, MessageItem } from '../types/conversation.js';
 
@@ -197,7 +197,7 @@ export async function sendMessage(
   // 发送方视角（mine=true）返回给 REST 调用方；收件人视角（mine=false）实时推送
   const senderItem = toMessage(doc, participantKey(sender));
   const recipientItem = toMessage(doc, participantKey(recipient));
-  getIO()?.to(userRoom(recipient)).emit('message:new', recipientItem);
+  pushToUser(recipient, 'message:new', recipientItem);
   return senderItem;
 }
 

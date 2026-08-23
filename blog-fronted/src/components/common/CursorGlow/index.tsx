@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, useMotionTemplate, useMotionValue, useSpring } from 'motion/react';
-import { useCallback } from 'react';
 
 interface CursorGlowProps {
   /** 光晕颜色，默认使用 CSS 变量 --color-accent */
@@ -34,14 +33,11 @@ export default function CursorGlow({
 
   const background = useMotionTemplate`radial-gradient(${size}px at ${mouseX}px ${mouseY}px, ${color}, transparent 80%)`;
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      rawX.set(e.clientX - rect.left);
-      rawY.set(e.clientY - rect.top);
-    },
-    [rawX, rawY],
-  );
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    rawX.set(e.clientX - rect.left);
+    rawY.set(e.clientY - rect.top);
+  };
 
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`} onMouseMove={handleMouseMove}>

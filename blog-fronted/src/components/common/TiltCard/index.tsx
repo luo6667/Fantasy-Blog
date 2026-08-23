@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useMotionValue, useTransform } from 'motion/react';
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode } from 'react';
 
 interface TiltCardProps {
   children: ReactNode;
@@ -23,19 +23,16 @@ export default function TiltCard({ children, className = '', tiltDegree = 8 }: T
   const rotateX = useTransform(mouseY, [0, 1], [tiltDegree, -tiltDegree]);
   const rotateY = useTransform(mouseX, [0, 1], [-tiltDegree, tiltDegree]);
 
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      mouseX.set((e.clientX - rect.left) / rect.width);
-      mouseY.set((e.clientY - rect.top) / rect.height);
-    },
-    [mouseX, mouseY],
-  );
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set((e.clientX - rect.left) / rect.width);
+    mouseY.set((e.clientY - rect.top) / rect.height);
+  };
 
-  const onMouseLeave = useCallback(() => {
+  const onMouseLeave = () => {
     mouseX.set(0.5);
     mouseY.set(0.5);
-  }, [mouseX, mouseY]);
+  };
 
   return (
     <motion.div

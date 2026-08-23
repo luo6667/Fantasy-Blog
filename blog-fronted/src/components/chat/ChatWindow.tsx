@@ -24,7 +24,7 @@ import type { ConversationItem, UserBrief } from '@/types/api';
  *
  * - 左侧：会话列表（对方名 / 最后消息 / 未读红点 / 在线绿点）+ 新会话（搜索用户）
  * - 右侧：消息气泡 + 输入框（Enter 发送，Shift+Enter 换行）
- * - 对方「正在输入」实时提示（Socket.IO typing 事件）
+ * - 对方「正在输入」实时提示（SSE typing 事件）
  * - 打开会话自动标记已读；离线消息由后端落库，重连后列表拉取
  */
 export default function ChatWindow({ onClose }: { onClose: () => void }) {

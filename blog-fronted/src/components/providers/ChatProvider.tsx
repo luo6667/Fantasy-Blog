@@ -14,7 +14,7 @@ interface ChatProviderProps {
 /**
  * 聊天 / 通知 Provider
  *
- * 登录后自动建立 Socket.IO 连接（断线自动重连），
+ * 登录后自动建立 SSE（EventSource）连接（断线自动重连），
  * 并同步初始通知未读数。登出时断开连接。
  */
 export default function ChatProvider({ children }: ChatProviderProps) {
@@ -25,7 +25,7 @@ export default function ChatProvider({ children }: ChatProviderProps) {
   const setChatOpen = useChatStore((s) => s.setChatOpen);
   const setActiveConversation = useChatStore((s) => s.setActiveConversation);
 
-  // 连接 Socket.IO（登录后）
+  // 连接 SSE（登录后）
   useEffect(() => {
     if (!userId) return;
     const token = tokenStore.get();

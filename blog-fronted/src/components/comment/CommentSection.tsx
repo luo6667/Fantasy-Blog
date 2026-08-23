@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { memo, type SyntheticEvent, useCallback, useMemo, useState } from 'react';
+import { type SyntheticEvent, useState } from 'react';
 
 import AuthModal from '@/components/auth/AuthModal';
 import {
@@ -119,24 +119,21 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   }
 
   /** 发表回复（可回复任意评论/回复） */
-  const handleReply = useCallback(
-    (e: SyntheticEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (!replyTarget) return;
-      const content = replyText.trim();
-      if (!content) return;
-      replyComment
-        .mutateAsync({ commentId: replyTarget, content })
-        .then(() => {
-          setReplyTarget(null);
-          setReplyText('');
-        })
-        .catch(() => {
-          /* 错误已通过 errorMessage 展示 */
-        });
-    },
-    [replyTarget, replyText, replyComment],
-  );
+  const handleReply = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!replyTarget) return;
+    const content = replyText.trim();
+    if (!content) return;
+    replyComment
+      .mutateAsync({ commentId: replyTarget, content })
+      .then(() => {
+        setReplyTarget(null);
+        setReplyText('');
+      })
+      .catch(() => {
+        /* 错误已通过 errorMessage 展示 */
+      });
+  };
 
   /** 展开 / 收起某条评论的回复 */
   function toggleExpand(id: string) {
@@ -148,38 +145,32 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
     });
   }
 
-  /** 切换某条评论的回复框（稳定引用，配合 CommentCard memo） */
-  const handleReplyToggle = useCallback((id: string) => {
+  /** 切换某条评论的回复框 */
+  const handleReplyToggle = (id: string) => {
     setReplyTarget((prev) => (prev === id ? null : id));
     setReplyText('');
-  }, []);
+  };
 
   /** 点赞 / 取消点赞 */
-  const handleLike = useCallback(
-    (comment: CommentItem) => {
-      if (!user) {
-        setAuthOpen(true);
-        return;
-      }
-      likeComment.mutate(comment.id);
-    },
-    [user, likeComment],
-  );
+  const handleLike = (comment: CommentItem) => {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+    likeComment.mutate(comment.id);
+  };
 
   /** 删除评论（作者本人或管理员，连带全部子孙回复） */
-  const handleDelete = useCallback(
-    (comment: CommentItem) => {
-      if (!window.confirm('确定删除这条评论吗？其全部回复将一并删除，此操作不可恢复。')) return;
-      deleteComment.mutateAsync(comment.id).catch(() => {
-        /* 错误已通过 errorMessage 展示 */
-      });
-    },
-    [deleteComment],
-  );
+  const handleDelete = (comment: CommentItem) => {
+    if (!window.confirm('确定删除这条评论吗？其全部回复将一并删除，此操作不可恢复。')) return;
+    deleteComment.mutateAsync(comment.id).catch(() => {
+      /* 错误已通过 errorMessage 展示 */
+    });
+  };
 
-  // 父 → 回复映射与一级评论列表都只依赖 comments，缓存避免每次渲染重建
-  const repliesMap = useMemo(() => buildRepliesMap(comments), [comments]);
-  const topLevel = useMemo(() => comments.filter((c) => !c.parentId), [comments]);
+  // 父 → 回复映射与一级评论列表（React Compiler 自动记忆化）
+  const repliesMap = buildRepliesMap(comments);
+  const topLevel = comments.filter((c) => !c.parentId);
 
   return (
     <section className="mt-12 border-t border-[var(--color-border-light)] pt-8">
@@ -313,8 +304,8 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   );
 }
 
-/** 单条评论/回复卡片（memo 化：props 引用稳定时跳过重渲染） */
-const CommentCard = memo(function CommentCard({
+/** 单条评论/回复卡片（React Compiler 自动记忆化） */
+function CommentCard({
   comment,
   canDelete,
   isReply = false,
@@ -423,4 +414,4 @@ const CommentCard = memo(function CommentCard({
       )}
     </motion.div>
   );
-});
+}

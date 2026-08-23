@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 import { useSiteContentsQuery } from '@/hooks/queries';
 import type { EducationItem, HomeProjectItem, ResumeProjectItem, SiteContentKey, SiteContentValue } from '@/types/api';
 
@@ -18,13 +16,13 @@ import SkillEditor from './SkillEditor';
 export default function SiteContentManager() {
   const contentsQuery = useSiteContentsQuery();
 
-  const byKey = useMemo(() => {
+  const byKey = (() => {
     const map = new Map<SiteContentKey, SiteContentValue>();
     for (const item of contentsQuery.data ?? []) {
       map.set(item.key, item.value);
     }
     return map;
-  }, [contentsQuery.data]);
+  })();
 
   if (contentsQuery.isLoading) {
     return <p className="py-8 text-center text-text-muted">加载内容…</p>;

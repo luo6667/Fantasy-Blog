@@ -294,6 +294,12 @@ export const userApi = {
   remove: (id: string) => request<{ id: string }>(`/users/${id}`, { method: 'DELETE' }),
 };
 
+/** typing 上报（SSE 单向，客户端上报走 REST，服务端转发给对方） */
+export const typingApi = {
+  send: (payload: { recipientType: UserRole; recipientId: string; conversationId: string; isTyping: boolean }) =>
+    request<{ ok: boolean }>('/typing', { method: 'POST', body: JSON.stringify(payload) }),
+};
+
 /** AI API（配置管理 + 流式对话） */
 export const aiApi = {
   /** 读取配置（管理员；apiKey 不回传明文，仅 hasKey） */

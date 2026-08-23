@@ -8,7 +8,6 @@ import { connectDB } from './db/connect.js';
 import { sequelize } from './db/sequelize.js';
 import Message from './models/Message.js';
 import { seedSiteContent } from './services/siteContent.service.js';
-import { initSocket } from './socket.js';
 import { logger } from './utils/logger.js';
 import { Op } from 'sequelize';
 
@@ -35,7 +34,7 @@ async function cleanupExpiredMessages(): Promise<void> {
  *
  * 顺序：加载并校验环境变量（env.ts 内完成）→ 连接 MySQL（自动建库）→
  * 同步表结构（sequelize.sync，已存在则跳过）→ seed 站点内容默认值 →
- * 创建 HTTP server 并挂载 Socket.IO（私信/通知实时推送）→ 监听端口。
+ * 创建 HTTP server（SSE 实时推送无需挂载额外模块）→ 监听端口。
  * 任一步失败都会打印明确错误并以非零码退出。
  */
 async function bootstrap(): Promise<void> {
@@ -47,7 +46,6 @@ async function bootstrap(): Promise<void> {
   await cleanupExpiredMessages();
   setInterval(() => void cleanupExpiredMessages(), CLEANUP_INTERVAL_MS);
   const server = http.createServer(app);
-  initSocket(server);
   server.listen(env.PORT, () => {
     logger.info(`Server started: http://localhost:${env.PORT} (${env.NODE_ENV})`);
   });

@@ -1,20 +1,21 @@
-import { io, type Socket } from 'socket.io-client';
 import { create } from 'zustand';
 
 import { conversationKeys, notificationKeys } from '@/hooks/queries/useSocialQueries';
-import { conversationApi } from '@/lib/api';
+import { conversationApi, typingApi } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import type { ConversationItem, MessageItem, NotificationItem, UserRole } from '@/types/api';
+import type { ConversationItem, MessageItem, UserRole } from '@/types/api';
 
 /**
  * 聊天 / 通知 Store（zustand）
  *
- * 管理 Socket.IO 连接与实时事件：
+ * 基于 SSE（EventSource）订阅实时事件（替代 Socket.IO）：
  * - message:new：若当前正打开该会话则追加消息并标记已读，否则会话列表未读（invalidate 刷新）
  * - notification:new：通知未读数 +1 并失效通知列表
  * - typing：记录「正在输入」，2.5s 后自动清除
  *
- * 消息本身由 REST 落库（离线不丢），Socket 只负责实时性。
+ * SSE 单向（服务端 → 客户端），客户端上报（typing）走 REST POST /api/typing；
+ * EventSource 断线自动重连，无需手动重连逻辑。
+ * 消息本身由 REST 落库（离线不丢），SSE 只负责实时性。
  */
 
 interface TypingInfo {
@@ -24,7 +25,7 @@ interface TypingInfo {
 }
 
 interface ChatState {
-  socket: Socket | null;
+  eventSource: EventSource | null;
   connected: boolean;
   /** 通知未读徽标数 */
   unreadNotifications: number;
@@ -55,7 +56,7 @@ interface ChatState {
 const TYPING_TTL = 2500;
 
 export const useChatStore = create<ChatState>()((set, get) => ({
-  socket: null,
+  eventSource: null,
   connected: false,
   unreadNotifications: 0,
   chatOpen: false,
@@ -64,21 +65,20 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   typing: {},
 
   connect: (token) => {
-    if (get().socket) return;
-    const s = io({ auth: { token } });
+    if (get().eventSource) return;
+    // EventSource 无法自定义请求头，JWT 走 query 参数（与后端 GET /api/events 约定一致）
+    const es = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
 
-    s.on('connect', () => {
+    es.addEventListener('open', () => {
       set({ connected: true });
       // 重连后重新拉取会话列表与通知未读，补齐离线期间到达的消息
       void queryClient.invalidateQueries({ queryKey: conversationKeys.all });
       void queryClient.invalidateQueries({ queryKey: notificationKeys.unread });
     });
-    s.on('disconnect', () => {
-      set({ connected: false });
-    });
 
     // 收到私信：正在看该会话则实时追加（按 id 去重），否则更新未读
-    s.on('message:new', (msg: MessageItem) => {
+    es.addEventListener('message:new', (e) => {
+      const msg = JSON.parse(String(e.data)) as MessageItem;
       const { chatOpen, activeConversationId } = get();
       if (chatOpen && activeConversationId === msg.conversationId) {
         queryClient.setQueryData<MessageItem[]>(
@@ -100,7 +100,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     });
 
     // 收到通知：面板未打开时未读 +1
-    s.on('notification:new', (_n: NotificationItem) => {
+    es.addEventListener('notification:new', (_e) => {
       if (!get().notificationsOpen) {
         set((st) => ({ unreadNotifications: st.unreadNotifications + 1 }));
       }
@@ -109,7 +109,12 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     });
 
     // 对方正在输入
-    s.on('typing', (data: { conversationId: string; sender: { username: string }; isTyping: boolean }) => {
+    es.addEventListener('typing', (e) => {
+      const data = JSON.parse(String(e.data)) as {
+        conversationId: string;
+        sender: { username: string };
+        isTyping: boolean;
+      };
       if (!data.isTyping) {
         set((st) => {
           const { [data.conversationId]: _removed, ...rest } = st.typing;
@@ -134,13 +139,17 @@ export const useChatStore = create<ChatState>()((set, get) => ({
       }, TYPING_TTL);
     });
 
-    set({ socket: s });
+    // EventSource 断线自动重连；error 仅更新连接状态
+    es.onerror = () => {
+      set({ connected: false });
+    };
+
+    set({ eventSource: es });
   },
 
   disconnect: () => {
-    const { socket } = get();
-    socket?.disconnect();
-    set({ socket: null, connected: false, typing: {} });
+    get().eventSource?.close();
+    set({ eventSource: null, connected: false, typing: {} });
   },
 
   setUnreadNotifications: (count) => {
@@ -160,6 +169,9 @@ export const useChatStore = create<ChatState>()((set, get) => ({
   },
 
   emitTyping: (payload) => {
-    get().socket?.emit('typing', payload);
+    // SSE 单向：typing 上报走 REST，服务端校验会话后转发给对方
+    void typingApi.send(payload).catch(() => {
+      /* typing 丢失不影响聊天 */
+    });
   },
 }));
