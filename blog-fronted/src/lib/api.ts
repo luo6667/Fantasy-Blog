@@ -1,12 +1,17 @@
 /**
  * API 客户端
  *
- * 统一封装 fetch：
- * - 拼接 /api 前缀（开发环境由 Vite proxy 转发到后端）
- * - 自动附带 JWT（localStorage）
- * - 解包统一结构 { code, msg, data }，错误归一化为 ApiError
+ * 基于 axios 统一封装：
+ * - baseURL /api（开发环境由 Vite proxy 转发到后端）
+ * - 请求拦截器自动附带 JWT（localStorage）
+ * - 响应统一解包 { code, msg, data }，错误归一化为 ApiError
  * - 页面组件只负责调用与渲染，不感知网络细节
+ *
+ * 注意：AI 流式对话（SSE）保留原生 fetch——浏览器端 axios 对 SSE 流式
+ * 读取支持不成熟，fetch + ReadableStream 是最稳的写法（见 aiChatStream）。
  */
+
+import axios, { AxiosError } from 'axios';
 
 import type {
   AiChatMessage,
@@ -59,41 +64,79 @@ export const tokenStore = {
   },
 };
 
-interface RequestOptions extends RequestInit {
+interface RequestOptions {
+  /** HTTP 方法（默认 GET） */
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  /** 请求体（保持 fetch 风格命名；字符串/FormData 均可，axios 按 Content-Type 序列化） */
+  body?: unknown;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
   /** true 时不设置 Content-Type（用于 FormData 上传，由浏览器自动带 boundary） */
   raw?: boolean;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const headers = new Headers(options.headers);
-  if (!options.raw && options.body) {
-    headers.set('Content-Type', 'application/json');
-  }
+/** axios 实例：baseURL /api + 30s 超时 */
+const http = axios.create({
+  baseURL: API_BASE,
+  timeout: 30_000,
+});
+
+// 请求拦截器：自动附带 JWT
+http.interceptors.request.use((config) => {
   const token = tokenStore.get();
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// 响应拦截器：HTTP 非 2xx / 网络错误 / 超时归一化为 ApiError
+http.interceptors.response.use(
+  (res) => res,
+  (err: AxiosError<{ code?: number; msg?: string }>) => {
+    if (!err.response) {
+      const msg = err.code === 'ECONNABORTED' ? '请求超时' : '网络错误，请确认后端服务已启动';
+      return Promise.reject(new ApiError(msg, -1, 0));
+    }
+    const body = err.response.data;
+    const code = typeof body.code === 'number' ? body.code : -2;
+    return Promise.reject(
+      new ApiError(body.msg ?? `请求失败（HTTP ${String(err.response.status)}）`, code, err.response.status),
+    );
+  },
+);
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, headers, signal, raw } = options;
+  const reqHeaders: Record<string, string> = { ...(headers ?? {}) };
+  if (!raw && body && !(body instanceof FormData)) {
+    reqHeaders['Content-Type'] = 'application/json';
   }
 
-  let res: Response;
+  let res;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  } catch {
+    res = await http.request<T>({
+      url: path,
+      method,
+      data: body,
+      headers: reqHeaders,
+      signal,
+    });
+  } catch (e) {
+    // 拦截器已把网络错误/非 2xx 归一化为 ApiError，其余（如用户取消）也统一提示
+    if (e instanceof ApiError) throw e;
     throw new ApiError('网络错误，请确认后端服务已启动', -1, 0);
   }
 
-  const body = (await res.json().catch(() => null)) as {
-    code?: number;
-    msg?: string;
-    data?: T;
-  } | null;
-
-  if (!body || typeof body.code !== 'number') {
+  // 2xx：解包统一结构 { code, msg, data }
+  const payload = res.data as { code?: number; msg?: string; data?: T } | null;
+  if (!payload || typeof payload.code !== 'number') {
     throw new ApiError(`响应格式错误（HTTP ${String(res.status)}）`, -2, res.status);
   }
-  if (body.code !== 0 || !res.ok) {
-    throw new ApiError(body.msg ?? '请求失败', body.code, res.status);
+  if (payload.code !== 0) {
+    throw new ApiError(payload.msg ?? '请求失败', payload.code, res.status);
   }
-  return body.data as T;
+  return payload.data as T;
 }
 
 /** 文章 API */

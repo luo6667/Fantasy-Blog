@@ -4,7 +4,15 @@ import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    // React Compiler：自动记忆化，组件里无需手写 useMemo / useCallback / memo
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler']],
+      },
+    }),
+    tailwindcss(),
+  ],
 
   resolve: {
     alias: {
