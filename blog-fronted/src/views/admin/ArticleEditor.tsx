@@ -269,7 +269,7 @@ export default function ArticleEditor() {
                 />
                 {cover && (
                   <span className="flex items-center gap-2 text-xs text-text-muted">
-                    <SafeImg src={cover} alt="封面预览" className="h-12 w-20 rounded object-cover" />
+                    <SafeImg src={cover} alt="封面预览" className="h-12 w-20 rounded" />
                     <button
                       type="button"
                       onClick={() => { setCover(''); }}

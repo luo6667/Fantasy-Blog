@@ -1,3 +1,5 @@
+'use client';
+
 import { useSiteContentsQuery } from '@/hooks/queries';
 import type { EducationItem, HomeProjectItem, ResumeProjectItem, SiteContentKey, SiteContentValue } from '@/types/api';
 

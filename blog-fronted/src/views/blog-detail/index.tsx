@@ -160,7 +160,7 @@ export default function BlogDetail() {
                   <SafeImg
                     src={article.cover}
                     alt={article.title}
-                    className="mb-8 w-full rounded-lg border border-[var(--color-border-light)] object-cover"
+                    className="mb-8 aspect-video w-full rounded-lg border border-[var(--color-border-light)]"
                   />
                 )}
                 <div ref={contentRef}>

@@ -220,7 +220,7 @@ export default function Blog() {
                           <SafeImg
                             src={post.cover}
                             alt={post.title}
-                            className="h-14 w-20 rounded-lg border border-[var(--color-border-light)] object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="h-14 w-20 rounded-lg border border-[var(--color-border-light)] transition-transform duration-300 group-hover:scale-105"
                           />
                         </Link>
                       )}

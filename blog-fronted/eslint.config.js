@@ -16,14 +16,6 @@ export default tseslint.config(
   // 全局忽略
   { ignores: ['.next', 'dist', 'node_modules'] },
 
-  // Next.js App Router 文件（layout/page 可导出 metadata 等非组件符号，无需 fast refresh）
-  {
-    files: ['src/app/**/*.{ts,tsx}'],
-    rules: {
-      'react-refresh/only-export-components': 'off',
-    },
-  },
-
   // 基础 JS/TS 规则
   {
     extends: [js.configs.recommended, ...tseslint.configs.strictTypeChecked],
@@ -66,8 +58,6 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // iconfont 字体走 public/ 静态资源 link（Next CSS import 无法引用 public 文件）
       '@next/next/no-css-tags': 'off',
-      // SafeImg 是自定义图片组件（加载失败占位等），保持 <img> 而非 next/image
-      '@next/next/no-img-element': 'off',
       'react/no-unknown-property': ['error', { ignore: ['className'] }],
 
       // Import 排序
@@ -92,6 +82,7 @@ export default tseslint.config(
   },
 
   // Next.js App Router 文件（layout/page 可导出 metadata 等非组件符号，无需 fast refresh）
+  // 注意：必须放在基础规则块之后，否则会被其中的 react-refresh 规则覆盖
   {
     files: ['src/app/**/*.{ts,tsx}'],
     rules: {
