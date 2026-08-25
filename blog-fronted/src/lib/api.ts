@@ -11,6 +11,13 @@
  * 读取支持不成熟，fetch + ReadableStream 是最稳的写法（见 aiChatStream）。
  */
 
+/**
+ * 数据层技术栈:axios + 拦截器 + 统一解包。
+ * - 请求拦截器自动附带 JWT(localStorage);响应拦截器把网络错误/非 2xx/业务错误统一归一为 ApiError
+ * - request<T>() 解包 { code, msg, data },code !== 0 抛 ApiError
+ * - 浏览器端走同源 /api(由 next.config rewrites 代理到后端);服务端(SSR)直连 API_TARGET
+ * - SSE 流式对话不使用 axios(流式读取支持不成熟),见下方 aiChatStream(fetch + ReadableStream)
+ */
 import axios, { AxiosError } from 'axios';
 
 import type {

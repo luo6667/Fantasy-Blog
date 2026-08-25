@@ -1,0 +1,5 @@
+# Reasonix AI 工具配置（含本地命令历史与敏感信息，不入库）
+reasonix.toml
+
+# TypeScript 增量编译缓存
+*.tsbuildinfo

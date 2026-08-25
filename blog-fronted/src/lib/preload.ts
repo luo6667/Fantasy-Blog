@@ -5,6 +5,13 @@
  * 配合 React.lazy 使用，点击时页面已就绪，消除加载闪烁。
  */
 
+/**
+ * ⚠️ Vite → Next.js 迁移残留:
+ * 这套 React.lazy + 手动 import 预加载是 Vite SPA 时代的方案。App Router 中路由
+ * 由文件系统自动注册,Next.js 自带代码分割与链接预取,pageLoaders 的手动 import
+ * 会与路由 chunk 重复打包。当前仅 Nav 的 preloadRoute('/admin') 还在调用,
+ * 功能无害但已无实际收益,后续可整体移除。
+ */
 const pageLoaders: Record<string, () => Promise<unknown>> = {
   '/': () => import('@/views/cover'),
   '/home': () => import('@/views/home'),

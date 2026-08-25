@@ -12,7 +12,7 @@ export const SITE_CONTENT_DEFAULTS: Record<SiteContentKey, SiteContentValue> = {
       year: '2024.9 – 至今',
       title: '软件工程',
       school: '广东财经大学',
-      desc: '前端工程化与 Web 性能优化',
+      desc: '主修课程：数据结构、计算机组成原理、操作系统、计算机网络、Web开发技术',
     },
   ],
   skills: [

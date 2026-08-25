@@ -7,6 +7,13 @@
  */
 
 /** 文章相关：列表 / 详情 / 标签计数（/articles/tags） */
+/**
+ * TanStack Query 缓存键中心。
+ *
+ * 原理:queryKey 是缓存的"地址",同 key 的查询跨组件共享一份缓存;
+ * mutation 成功后 invalidateQueries(同前缀 key)即可让相关查询自动刷新。
+ * 所以 key 必须全局统一从本文件取,避免各组件手写字符串导致缓存对不上。
+ */
 export const articleKeys = {
   all: ['articles'] as const,
   list: (tag: string | null) => [...articleKeys.all, 'list', tag ?? 'all'] as const,

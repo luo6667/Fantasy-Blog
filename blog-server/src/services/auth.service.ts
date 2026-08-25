@@ -15,6 +15,12 @@ import type { AuthUser, JwtPayload, UserRole } from '../types/auth.js';
  * verifyToken：校验 token 并返回对应用户（旧 token 无 role 时按管理员兼容）
  */
 
+/**
+ * 认证技术栈:jsonwebtoken + bcryptjs(密码哈希在 User/Admin 模型的 hook 中完成)。
+ * - signToken:签发 JWT,payload 为 { sub, username, role },过期时间来自 env.JWT_EXPIRES_IN
+ * - verifyToken:校验签名/过期后回查数据库确认用户仍存在(支持吊销)
+ * - token 只存前端 localStorage,authStore 启动时调 /auth/me 校验并恢复登录态
+ */
 function signToken(id: string, username: string, role: UserRole): string {
   const payload: JwtPayload = { sub: id, username, role };
   return jwt.sign(payload, env.JWT_SECRET, {

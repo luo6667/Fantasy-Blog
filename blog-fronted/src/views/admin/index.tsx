@@ -14,6 +14,13 @@ import TagManager from './TagManager';
 import UserManager from './UserManager';
 import UserPanel from './UserPanel';
 
+/**
+ * 管理后台(/admin)技术栈:
+ * - 基于 authStore(zustand)判断登录态与角色,useAuth hook 读取
+ * - 子面板:ArticleManager / TagManager / UserManager / AiSettings / SiteContentManager
+ *   均为 client 组件,数据走 React Query(useXxxQuery / useXxxMutation)
+ * - ?new=1 / ?edit=:id 查询参数用于兼容旧链接,自动跳转独立编辑器页
+ */
 type AdminTab = 'user' | 'admin';
 
 const tabBase =

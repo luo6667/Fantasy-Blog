@@ -2,6 +2,7 @@ export { default as BgOrbs } from './BgOrbs';
 export { default as CursorGlow } from './CursorGlow';
 export { default as EducationList } from './EducationList';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as GitHubContributions } from './GitHubContributions';
 export { default as MdxContent } from './MdxContent';
 export { default as MotionLink } from './MotionLink';
 export { default as PageSuspense } from './PageSuspense';

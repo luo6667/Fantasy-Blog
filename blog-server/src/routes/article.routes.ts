@@ -18,6 +18,13 @@ import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { writeLimiter } from '../middleware/rateLimit.js';
 import { validateBody } from '../middleware/validate.js';
 
+/**
+ * 分层架构范式(后端所有路由同构):
+ * 路由层(routes)→ 控制器(controllers)→ 服务(services)→ 模型(models)。
+ * - 本文件只声明路由与中间件组合:限流(writeLimiter)→ 鉴权(requireAuth/requireAdmin)
+ *   → zod 校验(validateBody,把解析结果写回 req.body)→ 控制器
+ * - zod schema 即接口契约:字段约束在路由层校验,控制器拿到的 req.body 已类型安全
+ */
 const router = Router();
 
 /** 创建文章请求体 */

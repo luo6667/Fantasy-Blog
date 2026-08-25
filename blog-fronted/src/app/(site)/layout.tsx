@@ -13,6 +13,11 @@ import { useTheme } from '@/hooks/useTheme';
  * 主站布局（App Router 路由组 (site)）：
  * 滚动进度条 + 顶栏 + 页面淡入 + 内容区 + 底栏。
  * 对应原 SPA 的 router/Layout.tsx；路由过渡动画简化为淡入（App Router 无 exit 动画）。
+ *
+ * 技术栈:motion 做路由淡入过渡(以 pathname 为 key 重触发)；
+ * usePathname 监听路由变化实现滚动回顶(替代原 ScrollToTop 组件)。
+ * 注意:整个布局是 client 组件,意味着 (site) 下所有页面共享此客户端外壳,
+ * 首屏 HTML 仍由服务端渲染(SSR),交互逻辑在客户端。
  */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();

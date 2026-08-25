@@ -17,6 +17,11 @@ import { logger } from './utils/logger.js';
  * 创建 HTTP server 并监听端口。
  * 任一步失败都会打印明确错误并以非零码退出。
  */
+/**
+ * 技术栈:Express 5 + TypeScript(NodeNext ESM)+ Sequelize 6 + MySQL 8。
+ * 启动顺序见上方注释;HTTP server 由 node:http 创建(为将来挂载 WebSocket 预留,
+ * 当前无实时推送,SSE 仅用于 AI 流式对话)。
+ */
 async function bootstrap(): Promise<void> {
   await connectDB();
   // 建表（IF NOT EXISTS 语义，不触碰已存在的数据）

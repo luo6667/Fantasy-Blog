@@ -71,6 +71,14 @@ function normalizeBaseURL(base: string): string {
  * - 将上游的 SSE data 行原样转发给前端（保持 OpenAI 格式，含 [DONE]）
  * - 配置缺失 / 上游错误时在写响应头前抛 HttpError（由全局错误中间件返回 JSON）
  */
+/**
+ * SSE(Server-Sent Events)实现要点:
+ * - 用 fetch 流式读取上游 OpenAI 兼容接口(stream: true),逐块透传 data: 行
+ * - 响应头:text/event-stream + no-cache + keep-alive + X-Accel-Buffering: no
+ *   (X-Accel-Buffering 关闭 Nginx 缓冲,保证流式实时性)
+ * - apiKey 只存数据库、只在此服务端使用,绝不回传前端
+ * - 前端对应 lib/api.ts 的 aiChatStream(fetch + ReadableStream + AbortController 中断)
+ */
 export async function chatStream(
   res: Response,
   messages: AiChatMessage[],

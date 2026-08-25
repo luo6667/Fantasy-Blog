@@ -21,6 +21,12 @@ import { ok } from './utils/response.js';
  * 中间件顺序：CORS → body 解析 → 静态资源 → 业务路由 → 404 → 全局错误处理。
  * Express 5 对 async handler 的 rejected promise 会自动转发给错误中间件。
  */
+/**
+ * 中间件栈技术栈:helmet(安全头)+ cors + express.json + express.static(uploads)
+ * + express-rate-limit(见 middleware/rateLimit.ts)+ JWT 鉴权(按路由挂载)。
+ * 分层约定:路由(routes/)只做"路由声明 + zod 校验 + 中间件组合",业务在 services/,
+ * 控制器(controllers/)负责取参 / 调 service / 统一响应(utils/response.ts)。
+ */
 const app = express();
 
 // 部署在 Nginx / CDN 等反向代理之后必须启用（只信任一层代理），

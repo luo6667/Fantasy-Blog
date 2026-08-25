@@ -24,6 +24,11 @@ import { sequelize } from '../db/sequelize.js';
 /** 作者类型 */
 export type ArticleAuthorType = 'user' | 'admin';
 
+/**
+ * Sequelize ORM 模型 = 数据表结构的 TypeScript 映射:
+ * 类属性(declare)即列定义,Article.init 声明列类型/约束/索引;
+ * InferAttributes / InferCreationAttributes 让读写字段获得完整类型推导。
+ */
 class Article extends Model<InferAttributes<Article>, InferCreationAttributes<Article>> {
   declare id: CreationOptional<string>;
   declare title: string;

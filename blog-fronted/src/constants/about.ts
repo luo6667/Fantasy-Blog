@@ -7,7 +7,7 @@ export const ABOUT_CORE_SKILLS: SkillGroup[] = [
   },
   {
     label: '前端框架',
-    tags: ['Vue 3', 'React 19'],
+    tags: ['Vue 3', 'React 19','Next.js'],
   },
   {
     label: '前端工程化',
@@ -25,7 +25,7 @@ export const ABOUT_CORE_SKILLS: SkillGroup[] = [
 
 export const ABOUT_TOOL_GROUPS: SkillGroup[] = [
   { label: '版本控制', tags: ['Git'] },
-  { label: '部署运维', tags: ['Docker', 'CI/CD', 'GitHub Actions', '云服务部署'] },
+  { label: '部署运维', tags: ['Docker', 'CI/CD', 'GitHub Actions'] },
   { label: '开发工具', tags: ['VS Code', 'Cursor', 'Postman', 'ApiFox', 'WebStorm', 'Chrome DevTools'] },
   { label: 'AI 开发', tags: ['Claude Code', 'Codex', 'Reasonix', 'Deepseekv4','Trae'] },
 ];
@@ -35,6 +35,6 @@ export const ABOUT_EDUCATION: Education[] = [
     year: '2024.9 – 至今',
     title: '软件工程',
     school: '广东财经大学',
-    desc: '研究方向为前端工程化与 Web 性能优化。',
+    desc: '主修课程：数据结构、计算机组成原理、操作系统、计算机网络、Web开发技术。',
   },
 ];

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   BgOrbs,
   CursorGlow,
+  GitHubContributions,
   MotionLink,
   Reveal,
   SectionHeading,
@@ -14,6 +15,7 @@ import {
 } from '@/components/common';
 import { HOME_PROJECTS } from '@/constants';
 import { useSiteContentQuery } from '@/hooks/queries';
+import type { GitHubContributionsData } from '@/lib/github';
 import { fadeUp, springBtn, springHero } from '@/lib/motion';
 
 const btnBase =
@@ -21,7 +23,7 @@ const btnBase =
 
 const STATS = [
   { label: '学习时间', value: 1, suffix: ' 年+' },
-  { label: '完成项目', value: 9, suffix: '+' },
+  { label: '完成项目', value: 8, suffix: '+' },
   { label: '技术栈', value: 8, suffix: '+' },
 ];
 
@@ -55,7 +57,11 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
   );
 }
 
-export default function Home() {
+export default function Home({
+  contributions,
+}: {
+  contributions: GitHubContributionsData | null;
+}) {
   // 精选项目来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量
   const homeProjectsQuery = useSiteContentQuery('homeProjects');
   const homeProjects =
@@ -86,7 +92,7 @@ export default function Home() {
             animate="animate"
             transition={{ ...springHero, duration: 0.7, delay: 0.08 }}
           >
-            <span className="text-accent">yourname</span>
+            <span className="text-accent">罗坚文</span>
           </motion.h1>
 
           <motion.p
@@ -175,6 +181,7 @@ export default function Home() {
       {/* 精选项目 */}
       <section className="relative z-[1] bg-bg-alt/45 px-6 py-12 backdrop-blur-[1px]">
         <div className="mx-auto max-w-page">
+          <GitHubContributions data={contributions} />
           <Reveal>
             <SectionHeading>精选项目</SectionHeading>
           </Reveal>
