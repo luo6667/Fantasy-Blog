@@ -4,7 +4,6 @@ import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactCompiler from 'eslint-plugin-react-compiler';
 import reactHooks from 'eslint-plugin-react-hooks';
-import reactRefresh from 'eslint-plugin-react-refresh';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
@@ -38,7 +37,6 @@ export default tseslint.config(
       react,
       'react-compiler': reactCompiler,
       'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
       'simple-import-sort': simpleImportSort,
     },
     settings: {
@@ -55,7 +53,6 @@ export default tseslint.config(
       'react-compiler/react-compiler': 'error',
       // hooks v7 新增规则：既有代码在 effect 中同步 setState 是既定模式，保持行为不变
       'react-hooks/set-state-in-effect': 'off',
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // iconfont 字体走 public/ 静态资源 link（Next CSS import 无法引用 public 文件）
       '@next/next/no-css-tags': 'off',
       'react/no-unknown-property': ['error', { ignore: ['className'] }],
@@ -78,15 +75,6 @@ export default tseslint.config(
       // 允许不显式声明返回类型（TS 推导足够好）
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-    },
-  },
-
-  // Next.js App Router 文件（layout/page 可导出 metadata 等非组件符号，无需 fast refresh）
-  // 注意：必须放在基础规则块之后，否则会被其中的 react-refresh 规则覆盖
-  {
-    files: ['src/app/**/*.{ts,tsx}'],
-    rules: {
-      'react-refresh/only-export-components': 'off',
     },
   },
 

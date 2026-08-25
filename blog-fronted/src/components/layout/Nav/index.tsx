@@ -8,7 +8,6 @@ import { NAV_TABS } from '@/constants';
 import { useNotificationsUnreadQuery } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { springBtn } from '@/lib/motion';
-import { preloadRoute } from '@/lib/preload';
 import type { ThemeMode } from '@/types';
 
 // 弹窗 / 面板按需懒加载，避免打进首屏包（Nav 是 Layout 常驻组件）
@@ -74,7 +73,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
         <MotionLink
           href="/admin"
           className="cursor-pointer whitespace-nowrap rounded-full border border-[var(--color-border)] px-2.5 py-0.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
-          onMouseEnter={() => { preloadRoute('/admin'); }}
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.92 }}
           transition={springBtn}
@@ -163,7 +161,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
               key={t.to}
               href={t.to}
               className={`${linkBase} ${isActive ? '!font-semibold !text-accent' : ''}`}
-              onMouseEnter={() => { preloadRoute(t.to); }}
               whileHover={{ y: -2 }}
               whileTap={{ scale: 0.92 }}
               transition={springBtn}
@@ -196,7 +193,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
                   <MotionLink
                     href={t.to}
                     className={`${linkBase} block py-2 ${isActive ? '!font-semibold !text-accent' : ''}`}
-                    onMouseEnter={() => { preloadRoute(t.to); }}
                     onClick={() => {
                       setMenuOpen(false);
                     }}

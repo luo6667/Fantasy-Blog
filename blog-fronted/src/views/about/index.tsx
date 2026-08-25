@@ -146,7 +146,7 @@ export default function About() {
                 whileTap={{ scale: 0.95 }}
                 transition={springBtn}
               >
-                <i className="iconfont icon-youjian text-accent" /> 2627675225@qq.com
+                <i className="iconfont icon-youjian text-accent" /> ljw15875758942@163.com
               </motion.a>
               <motion.a
                 href="https://github.com/luo6667"

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 
 import { BgOrbs } from '@/components/common';
-import { useSeo } from '@/hooks/useSeo';
 
 /**
  * 404 页面（未匹配任何路由时展示）
@@ -11,7 +10,6 @@ import { useSeo } from '@/hooks/useSeo';
  * 独立于 Layout，避免未知 URL 白屏。
  */
 export default function NotFound() {
-  useSeo({ title: '页面不存在' });
 
   return (
     <main>

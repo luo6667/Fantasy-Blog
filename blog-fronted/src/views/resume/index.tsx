@@ -5,11 +5,9 @@ import { motion } from 'motion/react';
 import { BgOrbs, EducationList, Reveal, SectionHeading, Tag } from '@/components/common';
 import { RESUME_EDUCATION, RESUME_EVALUATION, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
 import { useSiteContentQuery } from '@/hooks/queries';
-import { useSeo } from '@/hooks/useSeo';
 import { springBtn } from '@/lib/motion';
 
 export default function Resume() {
-  useSeo({ title: '简历', description: '专业技能、项目经历与个人评价' });
   // 内容来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量，保证页面始终有内容
   const educationQuery = useSiteContentQuery('education');
   const skillsQuery = useSiteContentQuery('skills');
@@ -52,7 +50,7 @@ export default function Resume() {
               transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.24 }}
             >
               <span>
-                <i className="iconfont icon-youjian mr-1" /> 2627675225@qq.com
+                <i className="iconfont icon-youjian mr-1" /> ljw15875758942@163.com
               </span>
               <span>
                 <i className="iconfont icon-GitHub mr-1" /> https://github.com/luo6667

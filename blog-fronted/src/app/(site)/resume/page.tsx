@@ -1,8 +1,15 @@
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import type { Metadata } from 'next';
 
 import { siteContentApi } from '@/lib/api';
 import { siteContentKeys } from '@/lib/queryKeys';
 import Resume from '@/views/resume';
+
+/** 简历页 SEO（服务端渲染，替代原 useSeo） */
+export const metadata: Metadata = {
+  title: '简历 · JasonLuo',
+  description: '专业技能、项目经历与个人评价',
+};
 
 /**
  * /resume 页面（服务端组件 + react-query SSR 预取）：

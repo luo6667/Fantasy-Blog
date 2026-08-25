@@ -2,7 +2,6 @@ import { motion } from 'motion/react';
 import Link from 'next/link';
 
 import { NAV_TABS } from '@/constants';
-import { preloadRoute } from '@/lib/preload';
 
 const MotionLink = motion.create(Link);
 
@@ -28,7 +27,6 @@ export default function Footer() {
                 key={t.to}
                 href={t.to}
                 className="inline-block w-fit text-sm text-text-secondary"
-                onMouseEnter={() => { preloadRoute(t.to); }}
                 whileHover={{ x: 4, color: 'var(--color-accent)' }}
                 whileTap={{ scale: 0.94 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18 }}
@@ -52,7 +50,7 @@ export default function Footer() {
               whileTap={{ scale: 0.94 }}
               transition={{ type: 'spring', stiffness: 400, damping: 18 }}
             >
-              <i className="iconfont icon-youjian" /> 2627675225@qq.com
+              <i className="iconfont icon-youjian" /> ljw15875758942@163.com
             </motion.a>
             <motion.a
               href="https://github.com/luo6667"

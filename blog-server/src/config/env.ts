@@ -18,11 +18,9 @@ const envSchema = z.object({
   MYSQL_USER: z.string().min(1).default('root'),
   MYSQL_PASSWORD: z.string().default('1234'),
   MYSQL_DATABASE: z.string().min(1, 'MYSQL_DATABASE is required').default('jianli'),
-  /** 仅数据迁移脚本（scripts/migrate-mongodb-to-mysql.ts）读取旧 MongoDB 数据时使用 */
-  MONGODB_URI: z.string().optional(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters'),
   JWT_EXPIRES_IN: z.string().min(1).default('7d'),
-  CORS_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  CORS_ORIGIN: z.string().min(1).default('http://localhost:3000'),
   /** 可选：seed 脚本创建/重置管理员时使用的初始密码（不设置则随机生成并打印） */
   ADMIN_INITIAL_PASSWORD: z.string().min(8).optional(),
   UPLOAD_DIR: z.string().min(1).default('uploads'),

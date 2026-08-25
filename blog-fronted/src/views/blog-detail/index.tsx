@@ -16,7 +16,6 @@ import {
   useDeleteArticleMutation,
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
-import { useSeo } from '@/hooks/useSeo';
 import { fadeUp, springHero } from '@/lib/motion';
 
 /**
@@ -36,8 +35,6 @@ export default function BlogDetail() {
   const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: article, isLoading: loading, error } = useArticleDetailQuery(id);
-  // 动态 SEO：文章标题/摘要同步到 document.title 与 meta description（分享预览）
-  useSeo({ title: article?.title, description: article?.excerpt });
   const deleteArticle = useDeleteArticleMutation();
   const likeArticle = useArticleLikeMutation(id);
   const errorMessage = error?.message ?? deleteArticle.error?.message;

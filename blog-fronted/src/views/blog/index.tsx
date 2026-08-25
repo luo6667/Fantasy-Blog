@@ -11,7 +11,6 @@ import {
   useDeleteArticleMutation,
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
-import { useSeo } from '@/hooks/useSeo';
 import { fadeUp, springHero } from '@/lib/motion';
 
 /**
@@ -28,12 +27,6 @@ export default function Blog() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-
-  // 动态 SEO：按当前筛选条件更新页面标题
-  useSeo({
-    title: activeTag ? `标签：${activeTag}` : search ? `搜索：${search}` : undefined,
-    description: 'JasonLuo 的技术博客 - 前端与全栈开发文章',
-  });
 
   // 搜索防抖：停止输入 400ms 后自动搜索；回车立即搜索
   useEffect(() => {
