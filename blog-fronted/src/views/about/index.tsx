@@ -31,6 +31,8 @@ export default function About() {
                 <SafeImg
                   src="/head.jpg"
                   alt="JasonLuo"
+                  priority
+                  sizes="112px"
                   className="h-full w-full"
                 />
               </motion.div>

@@ -18,7 +18,7 @@ export const ABOUT_CORE_SKILLS: SkillGroup[] = [
     tags: ['HTTP 协议', 'WebSocket'],
   },
   {
-    label: 'Node.js 与后端',
+    label: '后端与数据库',
     tags: ['Node.js', 'Express', 'MongoDB', 'MySQL'],
   },
 ];

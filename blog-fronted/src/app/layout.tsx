@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" className={outfit.variable} suppressHydrationWarning>
+    <html lang="zh-CN" className={outfit.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta name="theme-color" content="#faf9f7" />
         <meta name="color-scheme" content="light dark" />

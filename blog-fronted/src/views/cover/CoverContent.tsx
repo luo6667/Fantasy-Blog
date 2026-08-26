@@ -37,6 +37,8 @@ export default function CoverContent() {
         <SafeImg
           src="/head.jpg"
           alt="JasonLuo"
+          priority
+          sizes="160px"
           className="h-40 w-40 rounded-full border-[3px] border-white/30 shadow-2xl shadow-black/30"
         />
       </motion.div>

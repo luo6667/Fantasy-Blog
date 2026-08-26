@@ -63,6 +63,8 @@ export default function Nav({ theme, onToggle }: NavProps) {
         <SafeImg
           src="/head.jpg"
           alt=""
+          priority
+          sizes="24px"
           className="h-6 w-6 rounded-full ring-1 ring-[var(--color-border-light)]"
         />
         JasonLuo
