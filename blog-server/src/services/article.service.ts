@@ -19,13 +19,16 @@ import type {
 } from '../types/article.js';
 
 /**
- * 文章业务逻辑
+ * 📘 services/article.service.ts —— 文章业务逻辑（后端最核心的业务层）
  *
- * listArticles：分页 + 标签筛选 + 关键字搜索（公开）
- * getArticle：详情（公开，返回当前用户点赞/收藏状态）
- * toggleLike / toggleFavorite：点赞 / 收藏（登录）
- * listFavoriteArticles：我的收藏（登录）
- * create/update/delete：增删改（由 requireAuth 中间件保护）
+ * 各能力与实现要点：
+ * - listArticles：分页 + 标签筛选(JSON_CONTAINS) + 关键字搜索(LIKE 转义)，公开；
+ * - listTags：用 SQL JSON_TABLE 把 JSON 数组列拆行统计标签计数；
+ * - toggleLike / toggleFavorite：点赞/收藏——事务 + 行锁(SELECT ... FOR UPDATE)
+ *   保证并发安全，JSON 数组存 "role:id" 去重 + 冗余计数，新点赞时通知作者；
+ * - createArticle：服务端把 Markdown 编译并消毒成 contentHtml（防存储型 XSS），
+ *   标签必须存在于标签库；发布时通知所有普通用户；
+ * - update/delete：部分字段更新；删除文章连带删其全部评论（防孤儿数据）。
  */
 
 /** 列表查询参数 */

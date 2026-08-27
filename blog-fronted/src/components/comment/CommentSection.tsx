@@ -2,12 +2,13 @@ import { motion } from 'motion/react';
 import { type SyntheticEvent, useState } from 'react';
 
 /**
- * 评论组件技术栈:
- * - React Query:useCommentsQuery 读列表,useCreate/Delete/Like/ReplyCommentMutation 写
- *   (评论列表 key 按 articleId + 当前用户隔离,见 commentKeys)
- * - 一级评论 + 回复:扁平数组 + parentId,用 buildRepliesMap 一次 O(n) 构建父子映射
- * - 回复折叠:超过 REPLY_COLLAPSE_THRESHOLD(5)条折叠,只展示前 3 条
- * - 未登录时点击"发表/回复"弹出 AuthModal(登录后 token 存 localStorage,authStore 刷新)
+ * 📘 components/comment/CommentSection.tsx —— 评论区（技术栈：React Query + 扁平表构建评论树）
+ *
+ * - 数据：useCommentsQuery 读列表，useCreate/Delete/Like/ReplyCommentMutation 写
+ *   （评论列表 key 按 articleId + 当前用户隔离，见 queryKeys.commentKeys）；
+ * - 结构：后端存扁平表（comment + parentId），前端 buildRepliesMap 一次 O(n) 构建父子映射；
+ * - 回复折叠：超过 REPLY_COLLAPSE_THRESHOLD(5)条折叠，只展示前 3 条；
+ * - 未登录时点击「发表/回复」弹出 AuthModal（登录后 token 存 localStorage，authStore 刷新）。
  */
 import AuthModal from '@/components/auth/AuthModal';
 import {

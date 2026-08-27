@@ -16,16 +16,16 @@ import userRoutes from './routes/user.routes.js';
 import { ok } from './utils/response.js';
 
 /**
- * Express 应用组装
+ * 📘 app.ts —— Express 应用组装（技术栈：helmet + cors + express.json + rate-limit + JWT）
  *
- * 中间件顺序：CORS → body 解析 → 静态资源 → 业务路由 → 404 → 全局错误处理。
- * Express 5 对 async handler 的 rejected promise 会自动转发给错误中间件。
- */
-/**
- * 中间件栈技术栈:helmet(安全头)+ cors + express.json + express.static(uploads)
- * + express-rate-limit(见 middleware/rateLimit.ts)+ JWT 鉴权(按路由挂载)。
- * 分层约定:路由(routes/)只做"路由声明 + zod 校验 + 中间件组合",业务在 services/,
- * 控制器(controllers/)负责取参 / 调 service / 统一响应(utils/response.ts)。
+ * 中间件顺序（顺序就是请求经过的顺序）：CORS → body 解析 → 静态资源(/uploads)
+ * → 业务路由 → 404 兜底 → 全局错误处理。Express 5 会自动把 async handler 的
+ * rejected promise 转发给错误中间件。
+ * 分层约定（本项目后端的关键规范）：
+ * - routes/ 只做「路由声明 + zod 校验 + 中间件组合」；
+ * - controllers/ 负责取参 / 调 service / 统一响应；
+ * - services/ 写业务（事务、通知、级联）；
+ * - models/ 定义表结构。
  */
 const app = express();
 

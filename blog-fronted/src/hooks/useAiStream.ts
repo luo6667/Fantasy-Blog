@@ -4,10 +4,12 @@ import { aiChatStream } from '@/lib/api';
 import type { AiChatMessage } from '@/types/api';
 
 /**
- * AI 流式对话 hook
+ * 📘 hooks/useAiStream.ts —— AI 流式对话 hook（技术栈：fetch + ReadableStream + AbortController）
  *
- * 封装 aiChatStream 的消费逻辑：发送消息 → 通过 onDelta 回调逐段更新
- * （打字机效果），支持中断（stop）。详情页智能助手使用。
+ * 封装 lib/api.ts 的 aiChatStream 消费逻辑：
+ * - 发送消息 → 用 for await 逐段读取增量，通过 onDelta 回调更新（打字机效果）；
+ * - AbortController 支持中断（stop 按钮）；
+ * - 统一管理 streaming / error 状态。详情页「AI 智能助手」使用。
  */
 export function useAiStream() {
   const [streaming, setStreaming] = useState(false);

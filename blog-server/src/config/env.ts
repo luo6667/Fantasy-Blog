@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
 /**
- * 环境变量校验
+ * 📘 config/env.ts —— 环境变量校验与集中读取（技术栈：zod）
  *
- * 所有敏感配置来自 .env，启动时用 zod 强校验：
- * 缺失、类型错误、长度不足都会在进程启动前报错退出，避免带病运行。
+ * 所有敏感配置（MySQL 账号、JWT 密钥、CORS 白名单等）来自 .env，
+ * 启动时用 zod 强校验：缺失 / 类型错误 / 长度不足都会在进程启动前
+ * 报错退出（fail-fast），避免带病运行。校验通过后导出类型安全的 env 对象。
  */
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

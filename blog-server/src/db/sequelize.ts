@@ -5,11 +5,15 @@ import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Sequelize 单例（MySQL）
+ * 📘 db/sequelize.ts —— Sequelize 单例（MySQL 连接，技术栈：Sequelize 6 + mysql2）
  *
- * 所有模型共享同一个实例；连接目标库 env.MYSQL_DATABASE（默认 jianli）。
- * 数组字段（tags / likedBy / favoritedBy / participants）与 SiteContent.value
- * 使用 MySQL 原生 JSON 列存储，保持与旧 MongoDB 文档一致的数据结构。
+ * 所有模型共享同一个 Sequelize 实例，连接目标库 env.MYSQL_DATABASE（默认 jianli）。
+ * 三个要点：
+ * - timezone '+08:00'：按中国时区存取时间；
+ * - 数组字段（tags / likedBy / favoritedBy）与 SiteContent.value 用 MySQL 原生
+ *   JSON 列存储，保持与旧 MongoDB 文档一致的数据结构；
+ * - ensureDatabase()：库不存在时先用不带库名的连接 CREATE DATABASE（Sequelize
+ *   连不存在的库会直接报错，所以要预建库）。
  */
 export const sequelize = new Sequelize(env.MYSQL_DATABASE, env.MYSQL_USER, env.MYSQL_PASSWORD, {
   host: env.MYSQL_HOST,

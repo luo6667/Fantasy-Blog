@@ -10,14 +10,15 @@ import Nav from '@/components/layout/Nav';
 import { useTheme } from '@/hooks/useTheme';
 
 /**
- * 主站布局（App Router 路由组 (site)）：
- * 滚动进度条 + 顶栏 + 页面淡入 + 内容区 + 底栏。
- * 对应原 SPA 的 router/Layout.tsx；路由过渡动画简化为淡入（App Router 无 exit 动画）。
+ * 📘 app/(site)/layout.tsx —— 主站布局（Client Component，路由组 (site) 的共享外壳）
  *
- * 技术栈:motion 做路由淡入过渡(以 pathname 为 key 重触发)；
- * usePathname 监听路由变化实现滚动回顶(替代原 ScrollToTop 组件)。
- * 注意:整个布局是 client 组件,意味着 (site) 下所有页面共享此客户端外壳,
- * 首屏 HTML 仍由服务端渲染(SSR),交互逻辑在客户端。
+ * (site) 是 App Router 的「路由组」：括号目录不参与 URL，但其中的 layout 会包住
+ * 组内所有页面（home/blog/about/resume/admin）。这里提供：
+ * - 滚动进度条 + 顶栏 Nav + 底栏 Footer（整站共享）；
+ * - 路由切换淡入动画：以 pathname 为 key 重触发 motion.div（App Router 无 exit 动画，只做进入）；
+ * - 路由切换滚动回顶（替代原 SPA 的 ScrollToTop）；
+ * - 首页专属的动态壁纸视频背景。
+ * 整个布局是 client 组件：首屏 HTML 仍由 SSR 输出，交互逻辑在客户端。
  */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();

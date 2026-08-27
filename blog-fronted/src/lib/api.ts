@@ -1,22 +1,13 @@
 /**
- * API 客户端
+ * 📘 lib/api.ts —— 数据层统一出口（技术栈：axios + 拦截器 + 统一解包）
  *
- * 基于 axios 统一封装：
- * - baseURL /api（开发环境由 Vite proxy 转发到后端）
- * - 请求拦截器自动附带 JWT（localStorage）
- * - 响应统一解包 { code, msg, data }，错误归一化为 ApiError
- * - 页面组件只负责调用与渲染，不感知网络细节
- *
- * 注意：AI 流式对话（SSE）保留原生 fetch——浏览器端 axios 对 SSE 流式
- * 读取支持不成熟，fetch + ReadableStream 是最稳的写法（见 aiChatStream）。
- */
-
-/**
- * 数据层技术栈:axios + 拦截器 + 统一解包。
- * - 请求拦截器自动附带 JWT(localStorage);响应拦截器把网络错误/非 2xx/业务错误统一归一为 ApiError
- * - request<T>() 解包 { code, msg, data },code !== 0 抛 ApiError
- * - 浏览器端走同源 /api(由 next.config rewrites 代理到后端);服务端(SSR)直连 API_TARGET
- * - SSE 流式对话不使用 axios(流式读取支持不成熟),见下方 aiChatStream(fetch + ReadableStream)
+ * 全站唯一的 HTTP 封装，页面/组件只调用这里的函数，不感知网络细节：
+ * - 请求拦截器自动附带 JWT（localStorage 的 token）；
+ * - 响应拦截器把网络错误 / 非 2xx / 业务错误统一归一化为 ApiError；
+ * - request<T>() 解包后端统一结构 { code, msg, data }，code !== 0 抛 ApiError；
+ * - 浏览器端走同源 /api（next.config rewrites 代理到后端）；服务端(SSR)直连 API_TARGET；
+ * - 注意：AI 流式对话(SSE)不用 axios（流式读取支持不成熟），
+ *   用原生 fetch + ReadableStream（见下方 aiChatStream）。
  */
 import axios, { AxiosError } from 'axios';
 

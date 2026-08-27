@@ -10,17 +10,15 @@ import { seedSiteContent } from './services/siteContent.service.js';
 import { logger } from './utils/logger.js';
 
 /**
- * 服务启动引导
+ * 📘 index.ts —— 服务启动引导（技术栈：Express 5 + TypeScript(NodeNext ESM) + Sequelize 6 + MySQL 8）
  *
- * 顺序：加载并校验环境变量（env.ts 内完成）→ 连接 MySQL（自动建库）→
- * 同步表结构（sequelize.sync，已存在则跳过）→ seed 站点内容默认值 →
- * 创建 HTTP server 并监听端口。
- * 任一步失败都会打印明确错误并以非零码退出。
- */
-/**
- * 技术栈:Express 5 + TypeScript(NodeNext ESM)+ Sequelize 6 + MySQL 8。
- * 启动顺序见上方注释;HTTP server 由 node:http 创建(为将来挂载 WebSocket 预留,
- * 当前无实时推送,SSE 仅用于 AI 流式对话)。
+ * 启动顺序（每步失败都会打印明确错误并以非零码退出）：
+ * 1. load-env：加载 .env 并校验环境变量（config/env.ts，zod 强校验）；
+ * 2. connectDB()：连接 MySQL，库不存在则自动创建；
+ * 3. sequelize.sync()：按 models/ 定义建表（IF NOT EXISTS 语义，不动已有数据）；
+ * 4. seedSiteContent()：写入站点内容的默认值；
+ * 5. http.createServer(app)：HTTP server 由 node:http 创建（为将来挂 WebSocket 预留，
+ *    当前无实时推送，SSE 仅用于 AI 流式对话）并监听端口。
  */
 async function bootstrap(): Promise<void> {
   await connectDB();

@@ -11,12 +11,13 @@ import { articleKeys, tagKeys } from '@/lib/queryKeys';
 import type { ArticleInput } from '@/types/api';
 
 /**
- * 文章查询 / 变更 hooks
+ * 📘 hooks/queries/useArticleQueries.ts —— 文章查询/变更 Hooks（技术栈：TanStack Query）
  *
- * 博客列表页、详情页、管理页、编辑器共用：
- * - 列表查询 key 统一，管理页与博客页共享 pageSize=50 的同一份缓存
- * - 详情 key 统一，详情页与编辑器（编辑模式）共享缓存
- * - 增删改成功后失效相关查询，页面自动刷新，无需手动 refetch
+ * 博客列表页、详情页、管理页、编辑器共用的数据层：
+ * - 列表查询 key 统一，管理页与博客页共享 pageSize=50 的同一份缓存；
+ * - 详情 key 统一，详情页与编辑器（编辑模式）共享缓存；
+ * - 增删改走 useMutation，成功后 invalidateQueries 相关 key，页面自动刷新，
+ *   无需手动 refetch。
  */
 
 /** 文章分页列表（支持标签筛选与关键字搜索；切换时保留上一份数据避免闪烁） */

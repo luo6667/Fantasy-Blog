@@ -4,12 +4,12 @@ import { authApi, tokenStore } from '@/lib/api';
 import type { AuthUser, UserRole } from '@/types/api';
 
 /**
- * 登录态 Store（zustand）
+ * 📘 stores/authStore.ts —— 登录态 Store（技术栈：zustand）
  *
- * 替代原 AuthContext/AuthProvider：
- * - 启动时（模块加载）校验本地 token（GET /api/auth/me）
- * - login（普通用户/管理员）/ register / logout 集中在此
- * - 通过 useAuth() hook 读取，组件订阅所需片段，避免整棵子树重渲染
+ * 替代原 AuthContext/AuthProvider 的全局登录状态：
+ * - 启动时（模块加载）校验本地 token（GET /api/auth/me），token 失效自动清除；
+ * - login（普通用户/管理员）/ register / logout 集中在此；
+ * - 通过 useAuth() hook 读取，组件只订阅所需片段，避免整棵子树重渲染。
  */
 interface AuthState {
   user: AuthUser | null;

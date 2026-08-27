@@ -4,10 +4,12 @@ import { verifyToken } from '../services/auth.service.js';
 import { HttpError } from './error.js';
 
 /**
- * 登录鉴权中间件
+ * 📘 middleware/auth.ts —— 登录/管理员鉴权中间件（技术栈：JWT + Express 中间件）
  *
- * 解析 `Authorization: Bearer <token>`，校验通过后把用户注入 req.user。
- * 普通用户与管理员均可通过（评论区等需要登录的接口使用）。
+ * requireAuth：解析 `Authorization: Bearer <token>`，verifyToken 校验后把用户
+ * 注入 req.user（评论区、点赞等"登录即可"的接口用）；
+ * requireAdmin：在 requireAuth 之上再校验 role === 'admin'（文章增删改、标签、
+ * 上传等管理接口用），非管理员返回 403。
  */
 export const requireAuth: RequestHandler = async (req, _res, next) => {
   const header = req.headers.authorization;

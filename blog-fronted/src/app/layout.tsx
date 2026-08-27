@@ -7,14 +7,15 @@ import Script from 'next/script';
 import QueryProvider from '@/components/providers/QueryProvider';
 
 /**
- * 根布局 (Root Layout)—— App Router 技术栈要点:
- * - next/font:Outfit 字体构建时自托管,零运行时字体请求,消除 FOUT/FOIT
- * - metadata 导出:静态 SEO 信息(标题/描述/OG),服务端渲染直接输出到 HTML
- * - 主题初始化:beforeInteractive 内联脚本在 React 加载前同步 <html data-theme>,
- *   避免暗色用户首屏闪白(localStorage 读取)
- * - QueryProvider 是 client 组件,作为全局 Provider 注入 TanStack Query
+ * 📘 app/layout.tsx —— 根布局（Server Component，无 'use client'）
+ *
+ * App Router 约定：layout.tsx 包裹所有页面，这里是全站 HTML 骨架，四个技术要点：
+ * - next/font：Outfit 字体构建时自托管，零运行时字体请求（消除 FOUT/FOIT）；
+ * - metadata 导出：静态 SEO 信息（标题/描述/OG 图），服务端渲染直接输出到 HTML；
+ * - 主题初始化：beforeInteractive 内联脚本在 React 加载前同步 <html data-theme>，
+ *   避免暗色用户首屏闪白（读 localStorage）；
+ * - QueryProvider 是 client 组件，作为全局 Provider 注入 TanStack Query。
  */
-/** Outfit 字体：next/font 构建时自托管（无运行时外部请求，无 FOUT/FOIT） */
 const outfit = Outfit({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800'],

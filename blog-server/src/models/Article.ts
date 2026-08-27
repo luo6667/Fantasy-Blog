@@ -11,14 +11,18 @@ import {
 import { sequelize } from '../db/sequelize.js';
 
 /**
- * 文章模型（articles 表）
+ * 📘 models/Article.ts —— 文章模型（articles 表，技术栈：Sequelize ORM）
  *
- * - title/excerpt/content 为必填（content 供详情页渲染正文）
- * - tags 字符串数组，用于列表页标签筛选（MySQL JSON 列存储）
- * - cover 封面图 URL（可选，配合 /api/upload 使用）
- * - author* 文章作者（创建时记录；旧数据可能为空）
- * - likedBy / favoritedBy 点赞者、收藏者标识数组（"role:id"），用于去重与计数（JSON 列）
- * - timestamps 自动维护 createdAt / updatedAt
+ * 一个 Model 类 = 一张表。核心列设计：
+ * - title / excerpt / content 必填（content 供详情页渲染正文）；
+ * - tags：字符串数组，用于列表页标签筛选（MySQL JSON 列存储）；
+ * - author*：文章作者（创建时记录，通知用）；
+ * - likedBy / favoritedBy：点赞者、收藏者标识数组（"role:id"），用于去重与计数（JSON 列）；
+ * - likes / favorites：冗余计数（点赞/收藏接口在事务中原子维护，避免读大数组算 length）；
+ * - id 用 24 位 hex 字符串（兼容旧 MongoDB ObjectId 形态）；
+ * - indexes: createdAt（列表按时间倒序）。
+ * 类属性(declare)即列定义，Article.init 声明列类型/约束/索引；
+ * InferAttributes / InferCreationAttributes 让读写字段获得完整类型推导。
  */
 
 /** 作者类型 */
