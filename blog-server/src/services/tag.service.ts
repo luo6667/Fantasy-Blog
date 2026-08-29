@@ -4,6 +4,7 @@ import { sequelize } from '../db/sequelize.js';
 import { HttpError } from '../middleware/error.js';
 import Article from '../models/Article.js';
 import Tag from '../models/Tag.js';
+import { revalidateNext } from '../utils/revalidate.js';
 import type { TagItem } from '../types/tag.js';
 
 /**
@@ -60,5 +61,8 @@ export async function deleteTag(name: string): Promise<{ name: string }> {
     article.tags = article.tags.filter((t) => t !== name);
     await article.save();
   }
+  // 发布即更新：文章标签被移除，重建列表页（标签计数）与全部详情页（文章标签显示）。
+  // 创建标签不需要——新标签没有文章使用，不会出现在列表页统计里。
+  void revalidateNext(['/blog', '/blog/[id]']);
   return { name };
 }

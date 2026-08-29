@@ -8,6 +8,7 @@ import Tag from '../models/Tag.js';
 import User from '../models/User.js';
 import { createNotification, resolveArticleRecipient } from './notification.service.js';
 import { mdxToSafeHtml } from '../utils/mdx.js';
+import { revalidateNext } from '../utils/revalidate.js';
 import type { AuthUser } from '../types/auth.js';
 import type {
   ArticleDetail,
@@ -207,6 +208,15 @@ async function assertTagsExist(tags: string[]): Promise<void> {
   }
 }
 
+/**
+ * 文章写操作（增/删/改）后触发静态页重建：列表（总数/标签计数）+ 全部详情页。
+ * fire-and-forget：失败只记 warn，不阻塞写操作响应。
+ */
+function revalidateArticlePages(): void {
+  // '/blog/[id]' 是动态段定义，revalidatePath 会重建所有详情页；点赞/评论不在此列
+  void revalidateNext(['/blog', '/blog/[id]']);
+}
+
 /** 创建文章（记录作者，供通知使用） */
 export async function createArticle(
   input: CreateArticleInput,
@@ -245,6 +255,9 @@ export async function createArticle(
     ),
   );
 
+  // 发布即更新：重建博客列表与全部详情静态页
+  revalidateArticlePages();
+
   return toDetail(doc);
 }
 
@@ -275,6 +288,8 @@ export async function updateArticle(id: string, input: UpdateArticleInput): Prom
     }
   }
   await doc.save();
+  // 发布即更新：重建博客列表与全部详情静态页
+  revalidateArticlePages();
   return toDetail(doc);
 }
 
@@ -287,5 +302,7 @@ export async function deleteArticle(id: string): Promise<{ id: string }> {
   await Article.destroy({ where: { id } });
   // 级联删除该文章下的所有评论与回复，避免孤儿数据
   await Comment.destroy({ where: { articleId: id } });
+  // 发布即更新：重建博客列表与全部详情静态页
+  revalidateArticlePages();
   return { id: doc.id };
 }

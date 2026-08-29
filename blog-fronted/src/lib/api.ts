@@ -5,7 +5,8 @@
  * - 请求拦截器自动附带 JWT（localStorage 的 token）；
  * - 响应拦截器把网络错误 / 非 2xx / 业务错误统一归一化为 ApiError；
  * - request<T>() 解包后端统一结构 { code, msg, data }，code !== 0 抛 ApiError；
- * - 浏览器端走同源 /api（next.config rewrites 代理到后端）；服务端(SSR)直连 API_TARGET；
+ * - 浏览器端走同源 /api（next.config rewrites 代理到后端）；服务端（SSR 运行时 /
+ *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET；
  * - 注意：AI 流式对话(SSE)不用 axios（流式读取支持不成熟），
  *   用原生 fetch + ReadableStream（见下方 aiChatStream）。
  */

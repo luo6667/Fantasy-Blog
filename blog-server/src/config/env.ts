@@ -26,6 +26,14 @@ const envSchema = z.object({
   ADMIN_INITIAL_PASSWORD: z.string().min(8).optional(),
   UPLOAD_DIR: z.string().min(1).default('uploads'),
   UPLOAD_MAX_SIZE: z.coerce.number().int().positive().default(5 * 1024 * 1024),
+  /**
+   * on-demand revalidation（静态页即时刷新）：
+   * NEXT_REVALIDATE_URL = Next.js 前端地址（如 http://localhost:3000）；
+   * REVALIDATE_SECRET = 与前端构建时 REVALIDATE_SECRET 同值的共享密钥。
+   * 两者不设置 = 关闭即时刷新（内容更新等 ISR 周期或重新部署）。
+   */
+  NEXT_REVALIDATE_URL: z.string().url().optional(),
+  REVALIDATE_SECRET: z.string().min(8).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

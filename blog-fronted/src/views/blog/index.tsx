@@ -12,17 +12,26 @@ import {
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { fadeUp, springHero } from '@/lib/motion';
+import type { ArticleListItem, PaginatedResult, TagCount } from '@/types/api';
 
 /**
  * 博客列表页
  *
- * 数据来自后端 GET /api/articles（分页 + 标签筛选），
- * 顶部标签栏来自 GET /api/articles/tags（含文章数），点击标签可按分类筛选。
+ * 首屏数据由 page.tsx（SSG）预渲染后经 props 注入：initialArticles 为第一页文章、
+ * initialTags 为标签计数——无搜索/筛选时直接展示，不发网络请求；
+ * 搜索、标签筛选、无限滚动是动态交互，仍由客户端 React Query 走
+ * GET /api/articles（分页 + 标签筛选 + 关键字搜索）。
  * 包含加载中 / 加载失败 / 空列表三种状态。
  *
  * 管理员登录后显示「写文章 / 编辑 / 删除」操作按钮。
  */
-export default function Blog() {
+export default function Blog({
+  initialArticles,
+  initialTags,
+}: {
+  initialArticles?: PaginatedResult<ArticleListItem> | null;
+  initialTags?: TagCount[] | null;
+}) {
   const { isAdmin } = useAuth();
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -36,8 +45,13 @@ export default function Blog() {
     return () => { window.clearTimeout(timer); };
   }, [searchInput]);
 
-  const articleQuery = useArticleListInfiniteQuery(activeTag, search);
-  const { data: tags = [] } = useArticleTagsQuery();
+  // 仅无搜索/无筛选时预填 SSG 首屏数据；一旦搜索/切标签，query key 变化，走正常客户端 fetch
+  const articleQuery = useArticleListInfiniteQuery(
+    activeTag,
+    search,
+    !activeTag && !search ? initialArticles : null,
+  );
+  const { data: tags = [] } = useArticleTagsQuery(initialTags);
   const deleteArticle = useDeleteArticleMutation();
 
   // 无限分页：合并所有已加载页；每页 10 篇

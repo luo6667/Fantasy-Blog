@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import SiteContent from '../models/SiteContent.js';
 import { SITE_CONTENT_KEYS, type SiteContentItem, type SiteContentKey, type SiteContentValue } from '../types/siteContent.js';
 import { SITE_CONTENT_DEFAULTS } from './siteContentDefaults.js';
+import { revalidateNext } from '../utils/revalidate.js';
 
 /**
  * 站点内容业务逻辑
@@ -63,5 +64,7 @@ export async function updateSiteContent(
     doc.value = value;
     await doc.save();
   }
+  // 发布即更新：重建简历页与首页静态页（内容进静态 HTML，需 on-demand revalidate）
+  void revalidateNext(['/resume', '/home']);
   return toItem(doc);
 }

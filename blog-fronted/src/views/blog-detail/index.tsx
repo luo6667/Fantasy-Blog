@@ -17,15 +17,22 @@ import {
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { fadeUp, springHero } from '@/lib/motion';
+import type { ArticleDetail } from '@/types/api';
 
 /**
  * 博客文章详情页 /blog/:id
  *
- * 从后端 GET /api/articles/:id 获取正文（MDX），含加载/失败（404）状态。
+ * 正文优先来自 page.tsx 服务端 SSG 预渲染的 initialArticle（首屏直出，不发请求）；
+ * 无 initialArticle（构建期后端不可用等降级场景）时由 useArticleDetailQuery
+ * 客户端加载，含加载 / 失败（404）状态。
  * 正文通过 MdxContent 运行时渲染，支持 Markdown / 图片 / 表格等。
  * 管理员登录后显示「编辑 / 删除」按钮。
  */
-export default function BlogDetail() {
+export default function BlogDetail({
+  initialArticle = null,
+}: {
+  initialArticle?: ArticleDetail | null;
+}) {
   const params = useParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
@@ -34,7 +41,7 @@ export default function BlogDetail() {
   /** 正文容器 ref（划词 AI 只对正文内划选生效） */
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const { data: article, isLoading: loading, error } = useArticleDetailQuery(id);
+  const { data: article, isLoading: loading, error } = useArticleDetailQuery(id, initialArticle);
   const deleteArticle = useDeleteArticleMutation();
   const likeArticle = useArticleLikeMutation(id);
   const errorMessage = error?.message ?? deleteArticle.error?.message;

@@ -12,6 +12,7 @@
 | 前端框架 | **Next.js 16 (App Router)** + React 19 + TypeScript | `blog-fronted/src/app/` 文件系统路由 |
 | 样式 | **Tailwind CSS v4**(CSS 变量 + `@custom-variant` 做暗色) | `src/index.css`,类名直接写在 JSX |
 | 数据获取 | **TanStack Query v5**(缓存/加载态/失效刷新) | `src/lib/queryClient.ts`、`hooks/queries/` |
+| 渲染模型 | **SSG + ISR + on-demand revalidate**(博客/简历内容) | `blog/[id]/page.tsx`、`api/revalidate/route.ts` |
 | HTTP 客户端 | **axios**(拦截器 + 统一解包) | `src/lib/api.ts` |
 | 状态管理 | **zustand**(登录态 / 主题) | `src/stores/` |
 | 动画 | **motion**(framer-motion 新包名) | `src/lib/motion.ts`、各视图 |
@@ -43,11 +44,27 @@
 │  middleware: 限流 → JWT 鉴权 → zod 校验 → 控制器                    │
 │  Sequelize → MySQL (jianli 库, JSON 列存数组/文档)                  │
 └────────────────────────────────────────────────────────────────────┘
+   │ 写操作成功(文章/站点内容) → fetch /api/revalidate → revalidatePath 重建静态页
 ```
 
 **核心结论**:前后端完全分离,前端通过 `/api` 同源代理访问后端;数据流是
 `页面(hooks) → api.ts(axios) → Express 路由 → 控制器 → 服务 → Sequelize 模型 → MySQL`,
 返回时按同一链路反向走,统一 `{ code, msg, data }` 结构。
+
+### 2.1 渲染模型:SSG / ISR / CSR 怎么分工(本项目的核心设计)
+
+| 数据特征 | 用什么 | 本项目例子 |
+|---|---|---|
+| 公开 + 改动不频繁(写一次读多次) | **SSG** 构建时预渲染进 HTML | 博客列表/正文、简历内容、首页 |
+| 内容不常变但有更新 | **ISR**(`revalidate`)定期按需重建 | 各静态页 `export const revalidate = 3600` |
+| 写完要立刻生效 | **on-demand revalidate** 写操作后重建 | 后端调 `/api/revalidate`(见下) |
+| 实时/交互/因人而异 | **CSR** 客户端 fetch | 评论、点赞、搜索、AI、admin |
+
+**「发布即更新」链路**:前端内容静态化后,发文章不会自动反映到页面。所以后端在
+`article.service.ts`(增删改)与 `siteContent.service.ts`(更新)成功后调用
+`revalidateNext(['/blog', '/blog/[id]'])` → fetch 前端 `app/api/revalidate/route.ts`
+(secret 校验)→ `revalidatePath` 重建静态页。**评论/点赞不走这条链**——它们不在
+静态 HTML 里,客户端 `invalidateQueries` 即刷新生效。
 
 ---
 
@@ -70,6 +87,8 @@
 | 3 | `src/app/(site)/layout.tsx` | 路由组布局:顶栏/底栏/路由淡入(整站共享) |
 | 4 | `src/app/page.tsx` | 封面页(Server Component + 拆分出的 client 子组件) |
 | 5 | `src/app/(site)/home/page.tsx` | **RSC 示例**:服务端取数 + ISR 缓存,props 传给 client 视图 |
+| 6 | `src/app/(site)/blog/[id]/page.tsx` | **SSG 示例**:generateStaticParams 构建时枚举文章,正文预渲染进 HTML |
+| 7 | `src/app/api/revalidate/route.ts` | **on-demand revalidate 入口**:后端写操作后重建静态页 |
 
 > 概念:App Router 里 `(site)` 是**路由组**(括号目录不参与 URL)。`layout.tsx` 是共享外壳,
 > `page.tsx` 是页面。标了 `'use client'` 的是客户端组件,没标的是 Server Component(RSC)。
@@ -77,7 +96,12 @@
 
 ### 3.3 前端:一次数据请求的旅程(以博客列表为例)
 
-1. `views/blog/index.tsx` 调用 `useArticleListQuery(tag, search)`(`hooks/queries/useArticleQueries.ts`)
+列表页现在是**两条路**:
+- **首屏(SSG)**:page.tsx 构建时拉第一页文章 + 标签,经 props 预填给 client 视图
+  (`views/blog` 用 `placeholderData` 预填,首屏直出、不发请求);
+- **交互(CSR)**:搜索 / 标签筛选 / 无限滚动改变 query key,走正常客户端请求。
+
+1. `views/blog/index.tsx` 调用 `useArticleListInfiniteQuery(tag, search, initialArticles)`(`hooks/queries/useArticleQueries.ts`)
 2. hook 返回 `useQuery({ queryKey, queryFn })` —— queryKey 来自 `lib/queryKeys.ts`(全局统一,决定缓存归属)
 3. `queryFn` 调 `articleApi.list()`(`lib/api.ts`)
 4. axios 实例自动带 JWT;响应拦截器解包 `{ code, msg, data }`,非 0 code 抛 `ApiError`
@@ -154,6 +178,15 @@ POST /api/articles/:id/comments
 7. **RSC 与 client 边界**:视图文件基本都标了 `'use client'`,只有 `app/` 下的 `page.tsx`
    可以做服务端取数(如首页贡献日历)。在 client 组件里直接用 fetch 不会经过代理的
    server 端环境,注意区分。
+8. **⚠️ SSG 构建时后端必须在线(或优雅降级)**:`generateStaticParams` / 页面级取数在
+   `next build` 时真实请求后端,所以每个取数点都 try/catch 降级(空列表/空壳页),
+   保证后端不在时构建照常通过。
+9. **⚠️ placeholderData 的坑**:给 TanStack Query 传 `initialData` 会把 `data`/`isLoading`
+   类型收窄(loading/空列表分支被判死代码,eslint no-unnecessary-condition 报错),
+   所以 SSG 预填一律用 `placeholderData`(语义等价:首屏直出 + 不写缓存)。
+10. **on-demand revalidate 配置**:后端 `.env` 的 `NEXT_REVALIDATE_URL`(前端地址)与
+   `REVALIDATE_SECRET`(与前端构建时 REVALIDATE_SECRET 同值)不设置 = 关闭即时刷新
+   (等 ISR 周期或重新部署),不影响写操作本身。
 
 ---
 
@@ -168,6 +201,11 @@ POST /api/articles/:id/comments
 - **上传为何安全**:magic bytes 验真实类型(拒 SVG 等可执行内容)+ 随机文件名 + nosniff。
 - **AI 如何流式**:后端 SSE 转发 OpenAI 兼容接口;前端 `fetch` 流式解析 `data:` 行,支持中断。
 - **暗色主题如何切换**:`<html data-theme>` + CSS 变量 + Tailwind `@custom-variant`。
+- **SSG 与 ISR 区别**:SSG 构建时生成一次;ISR = SSG + 定期/按需重新生成(`revalidate`)。
+- **发布文章后页面如何立即更新**:后端写操作 → `revalidateNext` → `/api/revalidate` →
+  `revalidatePath('/blog')` + `'/blog/[id]'`(重建全部详情页)。
+- **评论为何不用 revalidate**:评论/点赞不在静态 HTML 里,客户端 `invalidateQueries` 即刷新生效。
+- **哪些页面不该用 SSG**:实时/登录态/写操作(评论、admin、AI),全走 CSR。
 
 ---
 
@@ -182,6 +220,8 @@ POST /api/articles/:id/comments
 | 换 AI 接口 | 后端 `services/ai.service.ts` 的 `normalizeBaseURL`,前端无需改 |
 | 加实时通知 | 需要重新引入 Socket.IO(参考 dist 里残留的旧实现思路)或前端加轮询 |
 | 改主题色 | `index.css` 的 `--color-accent` 等变量,亮暗两套 |
+| 改静态页刷新周期 | 对应 `page.tsx` 的 `export const revalidate`(秒);即时刷新看后端 `revalidateNext` 与 `/api/revalidate` |
+| 让发布后立即生效 | 前端 `app/api/revalidate/route.ts`(secret) + 后端写操作处调 `revalidateNext(paths)` |
 
 ---
 
