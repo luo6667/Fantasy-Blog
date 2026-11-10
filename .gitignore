@@ -5,16 +5,19 @@ reasonix.toml
 *.tsbuildinfo
 
 # Go local toolchain caches (sandbox workaround)
-blog-server-go/.goenv
-blog-server-go/.gopath/
-blog-server-go/.gomodcache/
-blog-server-go/.gocache/
-blog-server-go/testdata/uploads/
+blog-server/.goenv
+blog-server/.gopath/
+blog-server/.gomodcache/
+blog-server/.gocache/
+blog-server/testdata/uploads/
 
 # Go 构建产物与回放产物
-blog-server-go/bin/
-blog-server-go/replay-server.log
-blog-server-go/replay.log
-blog-server-go/tests/contract/actual/
-blog-server-go/testdata/
-blog-server-go/.env
+blog-server/bin/
+blog-server/replay-server.log
+blog-server/replay.log
+blog-server/tests/contract/actual/
+blog-server/testdata/
+blog-server/.env
+
+# 用户上传的图片（运行时文件，不入库）
+blog-server/uploads/

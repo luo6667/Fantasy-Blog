@@ -1,0 +1,29 @@
+{
+  "id": "register_ok",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/register",
+    "auth": "none",
+    "body": {
+      "username": "golden_53089",
+      "password": "User@12345"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"20-in-15min\"; q=20; w=900; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 0,
+      "msg": "注册成功",
+      "data": {
+        "id": "f847a1fd8d13f642eb2e0c35",
+        "username": "golden_53089",
+        "role": "user"
+      }
+    }
+  }
+}

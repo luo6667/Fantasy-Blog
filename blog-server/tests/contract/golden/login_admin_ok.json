@@ -1,0 +1,33 @@
+{
+  "id": "login_admin_ok",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "auth": "none",
+    "body": {
+      "username": "admin",
+      "password": "Admin@12345",
+      "role": "admin"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"20-in-15min\"; q=20; w=900; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 0,
+      "msg": "登录成功",
+      "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTZmMmE2MzU3MGYzNGE1NWNlYWY3MzgiLCJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzk0Mjk2OTUzLCJleHAiOjE3OTQ5MDE3NTN9.FKrwGd27BYoC-oqANFbyWWDlGg8hyNkbPe9vqkR4X-o",
+        "user": {
+          "id": "6a6f2a63570f34a55ceaf738",
+          "username": "admin",
+          "role": "admin"
+        }
+      }
+    }
+  }
+}

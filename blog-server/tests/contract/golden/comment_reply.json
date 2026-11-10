@@ -1,0 +1,36 @@
+{
+  "id": "comment_reply",
+  "request": {
+    "method": "POST",
+    "path": "/api/comments/0a2caae1827b933c8da6ee36/replies",
+    "auth": "admin",
+    "body": {
+      "content": "管理员回复"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"30-in-1min\"; q=30; w=60; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 0,
+      "msg": "回复成功",
+      "data": {
+        "id": "8f26990303da58c080f84e2d",
+        "articleId": "c034d13c1feb12a78d61bed1",
+        "parentId": "0a2caae1827b933c8da6ee36",
+        "authorName": "admin",
+        "authorType": "admin",
+        "content": "管理员回复",
+        "likes": 0,
+        "likedByMe": false,
+        "mine": true,
+        "replyToName": "golden_53089",
+        "createdAt": "2026-11-10T07:49:14.453Z"
+      }
+    }
+  }
+}

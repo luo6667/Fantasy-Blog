@@ -1,0 +1,23 @@
+{
+  "id": "health",
+  "request": {
+    "method": "GET",
+    "path": "/api/health",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "status": "up",
+        "timestamp": "2026-11-10T07:49:13.157Z"
+      }
+    }
+  }
+}
