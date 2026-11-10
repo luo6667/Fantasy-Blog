@@ -53,6 +53,28 @@ tests/smoke/          前端联调冒烟
 | `REVALIDATE_SECRET` | 空 | 与 Next 共享的刷新密钥 |
 | `AI_CONFIG_ENC_KEY` | 空 | base64 的 32 字节主密钥；设置后 AI Key 以密文存取 |
 
+## 启动与 `.env`
+
+Go 版本内置了与旧服务一致的 dotenv 加载（不依赖第三方库），查找顺序：
+
+1. `ENV_FILE` 指定的文件（显式指定，缺失即报错）；
+2. 当前工作目录的 `.env`；
+3. 可执行文件所在模块根的 `.env`（`bin/server.exe` → 模块根）；
+4. 开发期兄弟目录 `../blog-server/.env`（与旧 Node 服务共用一份配置）。
+
+已存在的真实环境变量优先，`.env` 不会覆盖它们；生产建议用 systemd `EnvironmentFile` 注入。
+
+```bash
+# 方式一：开发脚本（自动加载 .env，参数透传）
+bash scripts/dev.sh            # 启动 HTTP 服务
+bash scripts/dev.sh migrate    # 执行迁移
+
+# 方式二：手动
+cp .env.example .env
+go build -o bin/server.exe ./cmd/server
+./bin/server.exe
+```
+
 ## 常用命令
 
 ```bash

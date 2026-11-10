@@ -24,6 +24,12 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
+	if path, count, err := config.LoadDotEnv(); err != nil {
+		logger.Warn("load env file failed", "error", err)
+	} else if path != "" {
+		logger.Info("env file loaded", "path", path, "vars", count)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		logger.Error("invalid environment variables", "error", err)
