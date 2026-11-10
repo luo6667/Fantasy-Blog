@@ -68,6 +68,19 @@ func main() {
 		}
 		logger.Info("migrate ai keys done", "migrated", count)
 		return
+	case "seed-admin":
+		if len(cfg.AdminInitialPassword) < 8 {
+			logger.Error("ADMIN_INITIAL_PASSWORD is required (at least 8 characters)")
+			os.Exit(1)
+		}
+		username := envOr("ADMIN_USERNAME", "admin")
+		action, err := service.SeedAdmin(db, username, cfg.AdminInitialPassword)
+		if err != nil {
+			logger.Error("seed admin failed", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("seed admin done", "action", action, "username", username)
+		return
 	}
 
 	serve(logger, cfg, db)
@@ -79,6 +92,14 @@ func command() string {
 		return ""
 	}
 	return os.Args[1]
+}
+
+// envOr 返回环境变量值，未设置时使用默认值。
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func serve(logger *slog.Logger, cfg *config.Config, db *gorm.DB) {

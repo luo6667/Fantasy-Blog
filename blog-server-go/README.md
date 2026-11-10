@@ -48,7 +48,7 @@ tests/smoke/          前端联调冒烟
 | `CORS_ORIGIN` | `http://localhost:3000` | 逗号分割白名单 |
 | `UPLOAD_DIR` | `uploads` | 上传落盘目录 |
 | `UPLOAD_MAX_SIZE` | `5242880` | 单文件上限（字节） |
-| `ADMIN_INITIAL_PASSWORD` | 空 | 可选：启动时创建/重置管理员 |
+| `ADMIN_INITIAL_PASSWORD` | 空 | `seed-admin` 子命令使用的管理员密码（≥8 位） |
 | `NEXT_REVALIDATE_URL` | 空 | Next 站点地址；缺省则跳过按需刷新 |
 | `REVALIDATE_SECRET` | 空 | 与 Next 共享的刷新密钥 |
 | `AI_CONFIG_ENC_KEY` | 空 | base64 的 32 字节主密钥；设置后 AI Key 以密文存取 |
@@ -87,6 +87,9 @@ go build -o bin/server.exe ./cmd/server
 
 # 把库里明文 AI Key 加密（需 AI_CONFIG_ENC_KEY）
 ./bin/server.exe migrate-ai-keys
+
+# 创建/重置管理员密码（需 ADMIN_INITIAL_PASSWORD，用户名默认 admin，可用 ADMIN_USERNAME 覆盖）
+ADMIN_INITIAL_PASSWORD='Admin@12345' ./bin/server.exe seed-admin
 
 # 一键门禁：gofmt + go vet + go test + build
 bash scripts/check.sh

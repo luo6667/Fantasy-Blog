@@ -84,6 +84,34 @@ func LoginUser(db *gorm.DB, username, password string) (*AuthUser, error) {
 	return &AuthUser{ID: user.ID, Username: user.Username, Role: "user"}, nil
 }
 
+// SeedAdmin 创建管理员，或把已存在管理员的密码重置为给定明文。
+// 对应旧 Node 的 seed 脚本：密码只以 bcrypt 哈希入库，明文不会落库。
+// 返回 "created" 或 "updated"。
+func SeedAdmin(db *gorm.DB, username, password string) (string, error) {
+	hash, err := HashPassword(password)
+	if err != nil {
+		return "", err
+	}
+
+	var admin model.Admin
+	err = db.Where("username = ?", username).Take(&admin).Error
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		admin = model.Admin{ID: NewID(), Username: username, Password: hash}
+		if err := db.Create(&admin).Error; err != nil {
+			return "", err
+		}
+		return "created", nil
+	case err != nil:
+		return "", err
+	}
+
+	if err := db.Model(&admin).Update("password", hash).Error; err != nil {
+		return "", err
+	}
+	return "updated", nil
+}
+
 // LoginAdmin 校验管理员密码并返回主体。
 func LoginAdmin(db *gorm.DB, username, password string) (*AuthUser, error) {
 	var admin model.Admin
