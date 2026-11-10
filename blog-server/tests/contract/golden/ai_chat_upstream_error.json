@@ -1,0 +1,29 @@
+{
+  "id": "ai_chat_upstream_error",
+  "request": {
+    "method": "POST",
+    "path": "/api/ai/chat",
+    "auth": "user",
+    "body": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "hi"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status": 502,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 502,
+      "msg": "上游 AI 服务错误（HTTP 500）：{\"error\":\"upstream exploded\"}",
+      "data": null
+    },
+    "sse": "{\"code\":502,\"msg\":\"上游 AI 服务错误（HTTP 500）：{\\\"error\\\":\\\"upstream exploded\\\"}\",\"data\":null}"
+  }
+}

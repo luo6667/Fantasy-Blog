@@ -1,0 +1,22 @@
+{
+  "id": "article_delete",
+  "request": {
+    "method": "DELETE",
+    "path": "/api/articles/c034d13c1feb12a78d61bed1",
+    "auth": "admin"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "Article deleted",
+      "data": {
+        "id": "c034d13c1feb12a78d61bed1"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "notifications_mark_read_ids",
+  "request": {
+    "method": "POST",
+    "path": "/api/notifications/read",
+    "auth": "user",
+    "body": {
+      "ids": []
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "ok": true
+      }
+    }
+  }
+}

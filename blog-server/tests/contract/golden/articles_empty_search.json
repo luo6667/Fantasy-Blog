@@ -1,0 +1,25 @@
+{
+  "id": "articles_empty_search",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles?search=zzz-no-such",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "list": [],
+        "total": 0,
+        "page": 1,
+        "pageSize": 10
+      }
+    }
+  }
+}

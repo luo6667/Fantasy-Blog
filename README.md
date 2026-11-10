@@ -9,21 +9,17 @@
 │   └── src/
 │       ├── app/           # App Router 页面与布局 (route groups: (site)/)
 │       ├── components/    # 通用组件 (common/、layout/、ai/、comment/、auth/、notification/、providers/)
-│       ├── views/         # 页面视图 (home、about、resume、blog、blog-detail、admin、cover、not-found)
+│       ├── views/         # 页面视图 (home、about、resume、plan、blog、blog-detail、admin、cover、not-found)
 │       ├── hooks/         # 自定义 hooks (queries/ 为 React Query 封装)
 │       ├── stores/        # zustand 状态 (authStore、themeStore)
 │       ├── lib/           # 基础设施 (api 客户端、queryClient、queryKeys、motion、utils)
 │       ├── constants/     # 静态数据
 │       └── types/         # 与后端对应的类型定义
-└── blog-server/           # 后端 — Express 5 + TypeScript + Sequelize + MySQL
-    └── src/
-        ├── routes/        # 路由定义
-        ├── controllers/   # 请求处理
-        ├── services/      # 业务逻辑
-        ├── models/        # Sequelize 模型
-        ├── middleware/    # auth、error、rateLimit、upload、validate
-        ├── config/        # 环境变量解析
-        └── utils/         # logger、response、mdx
+└── blog-server/           # 后端 — Go 1.27 + Gin + GORM + MySQL 8
+    ├── cmd/server/        # 入口与子命令 (migrate、seed-admin、migrate-ai-keys)
+    ├── internal/          # config、model、service、handler、middleware、migrate
+    ├── migrations/        # 版本化 SQL 迁移
+    └── tests/             # 契约回放 (contract/) 与冒烟脚本 (smoke/)
 ```
 
 ## 技术栈
@@ -31,12 +27,12 @@
 | 端 | 技术 |
 |---|---|
 | 前端 | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · React Query · zustand · motion · zod |
-| 后端 | Express 5 · TypeScript · Sequelize 6 · MySQL 8 · Socket.IO · JWT · multer |
-| 其他 | Socket.IO 实时消息 · SSE (AI 流式对话) · MDX 渲染 |
+| 后端 | Go 1.27 · Gin · GORM · MySQL 8 · JWT · bcrypt · goldmark |
+| 其他 | SSE (AI 流式对话) · 按需刷新 (Next.js revalidate) · Markdown 渲染 |
 
 ## 环境要求
 
-- Node.js >= 20
+- Go >= 1.27
 - MySQL 8 (本地或远程)
 
 ## 快速开始
@@ -45,10 +41,12 @@
 
 ```bash
 cd blog-server
-npm install
 # 复制 .env.example 为 .env 并填写数据库账号密码
-npm run dev        # 开发模式 (tsx watch)
+go run ./cmd/server   # 开发模式 (默认 http://localhost:4000)
 ```
+
+也可以使用 `scripts/dev.sh`：编译到 `bin/` 后启动，参数会透传
+（如 `scripts/dev.sh migrate`）。
 
 ### 2. 启动前端
 
@@ -65,7 +63,7 @@ npm run dev        # 开发模式 (默认 http://localhost:3000)
 
 ```bash
 cd blog-server
-npm run seed
+go run ./cmd/server seed-admin   # 创建或重置管理员，密码读 ADMIN_INITIAL_PASSWORD
 ```
 
 ## 常用脚本
@@ -85,11 +83,14 @@ npm run seed
 
 | 命令 | 说明 |
 |---|---|
-| `npm run dev` | 开发模式 (tsx watch) |
-| `npm run build` | 编译到 dist/ |
-| `npm run start` | 运行编译产物 |
-| `npm run seed` | 创建/重置管理员账号 |
-| `npm run typecheck` | 类型检查 |
+| `go run ./cmd/server` | 开发模式启动 (默认 :4000) |
+| `scripts/dev.sh` | 编译到 `bin/` 后启动 |
+| `scripts/dev.sh migrate` | 执行版本化 SQL 迁移 |
+| `go run ./cmd/server seed-admin` | 创建/重置管理员账号 |
+| `go run ./cmd/server migrate-ai-keys` | 把 AI Key 明文加密迁移 |
+| `scripts/check.sh` | gofmt / vet / test / build 一键检查 |
+| `bash tests/contract/replay.sh` | 101 个契约用例回放比对 |
+| `bash tests/smoke/frontend.sh` | 前端 + 后端联调冒烟 |
 
 ## 部署
 

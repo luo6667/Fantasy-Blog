@@ -1,0 +1,21 @@
+{
+  "id": "upload_forbidden_png",
+  "request": {
+    "method": "POST",
+    "path": "/api/upload",
+    "auth": "user",
+    "body": "<multipart>"
+  },
+  "response": {
+    "status": 403,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 403,
+      "msg": "需要管理员权限",
+      "data": null
+    }
+  }
+}

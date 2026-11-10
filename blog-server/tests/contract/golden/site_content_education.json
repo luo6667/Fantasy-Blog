@@ -1,0 +1,32 @@
+{
+  "id": "site_content_education",
+  "request": {
+    "method": "GET",
+    "path": "/api/site-content/education",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "id": "6a745ce03650f51f49aa5e11",
+        "key": "education",
+        "value": [
+          {
+            "desc": "主修课程：数据结构、计算机组成原理、操作系统、计算机网络、Web开发技术",
+            "year": "2024.9 – 至今",
+            "title": "软件工程",
+            "school": "广东财经大学"
+          }
+        ],
+        "updatedAt": "2026-08-25T11:20:36.000Z"
+      }
+    }
+  }
+}

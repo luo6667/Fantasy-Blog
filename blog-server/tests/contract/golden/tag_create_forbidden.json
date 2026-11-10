@@ -1,0 +1,23 @@
+{
+  "id": "tag_create_forbidden",
+  "request": {
+    "method": "POST",
+    "path": "/api/tags",
+    "auth": "user",
+    "body": {
+      "name": "X"
+    }
+  },
+  "response": {
+    "status": 403,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 403,
+      "msg": "需要管理员权限",
+      "data": null
+    }
+  }
+}

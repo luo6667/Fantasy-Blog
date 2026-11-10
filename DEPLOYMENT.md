@@ -1,7 +1,14 @@
 # 上线部署说明（JasonLuo Blog · 宝塔面板版）
 
 > 本文档面向 **宝塔面板（Linux）** 部署。
-> 架构：前端 `blog-fronted`（Next.js 16 App Router）＋后端 `blog-server`（Express 5 + MySQL）。
+> 架构：前端 `blog-fronted`（Next.js 16 App Router）＋后端 `blog-server`（Go 1.27 + Gin + GORM + MySQL 8）。
+>
+> ⚠️ 后端已从 Node/Express 迁移到 Go（提交 `87def6e`）。下文仍保留旧 Node + PM2 的部署步骤，
+> **尚未更新**；Go 版发布方式（systemd 托管）待迁移任务 11 完成后补齐。
+
+> 📌 **现在走自动化部署了**：`git push origin main` 即上线，支持一键回滚、失败自动退回上一版。
+> 流水线用法见 **[DEPLOY-CICD.md](./DEPLOY-CICD.md)**（目录结构、GitHub Secrets、bootstrap、回滚、老服务器数据迁移都在那里）。
+> 本文保留为**首次环境准备 / 没有 CI 时的手工流程**参考——两者不冲突：CICD 只是把下面第二节的手工步骤固化成了脚本。
 
 ## 〇、架构总览（先读这段，避免照旧文档部署翻车）
 
@@ -108,6 +115,8 @@ REVALIDATE_SECRET=<与后端 .env 里相同的值>
 > 不需要手动建表——后端启动时自动 `CREATE DATABASE IF NOT EXISTS` + 建表（只建不动的语义，不会碰已有数据）。
 
 ### 2. 上传代码
+
+> 走 CICD 时这一步由流水线自动完成（`rsync` 到 `releases/<时间戳>-<sha>/`，目录结构不同，见 [DEPLOY-CICD.md](./DEPLOY-CICD.md)）。下面是纯手工部署的路径。
 
 把项目里 **`blog-server/` 与 `blog-fronted/` 两个目录**（连同 `package.json`、`src/` 等，不含 `node_modules`、`.next`、`uploads`）上传到服务器，例如：
 

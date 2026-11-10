@@ -24,7 +24,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://your-domain.com'), // 上线前替换为真实域名
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.jasonluoblog.online'),
   title: 'JasonLuo · 个人简历',
   description: 'JasonLuo - 前端工程师个人简历与博客',
   icons: { icon: '/head.jpg' },

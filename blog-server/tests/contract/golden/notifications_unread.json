@@ -1,0 +1,22 @@
+{
+  "id": "notifications_unread",
+  "request": {
+    "method": "GET",
+    "path": "/api/notifications/unread-count",
+    "auth": "user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "count": 0
+      }
+    }
+  }
+}

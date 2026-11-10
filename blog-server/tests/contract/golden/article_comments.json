@@ -1,0 +1,20 @@
+{
+  "id": "article_comments",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles/6a75e3fa81e9a1ec314c5d56/comments",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": []
+    }
+  }
+}

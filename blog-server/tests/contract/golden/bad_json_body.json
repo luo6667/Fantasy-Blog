@@ -1,0 +1,21 @@
+{
+  "id": "bad_json_body",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "auth": "none",
+    "body": "{\"username\": "
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 400,
+      "msg": "请求体格式错误",
+      "data": null
+    }
+  }
+}
