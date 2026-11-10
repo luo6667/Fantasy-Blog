@@ -1,0 +1,28 @@
+{
+  "id": "register_short_username",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/register",
+    "auth": "none",
+    "body": {
+      "username": "a",
+      "password": "User@12345"
+    }
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "20-in-15min; q=20; w=900",
+      "ratelimit-limit": "20",
+      "ratelimit-remaining": "16",
+      "ratelimit-reset": "899"
+    },
+    "json": {
+      "code": 400,
+      "msg": "username: 用户名至少 2 个字符",
+      "data": null
+    }
+  }
+}

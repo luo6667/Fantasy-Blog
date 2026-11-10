@@ -1,0 +1,39 @@
+{
+  "id": "comment_create_for_delete",
+  "request": {
+    "method": "POST",
+    "path": "/api/articles/c2b6bf3129c875d44532f9c6/comments",
+    "auth": "user",
+    "body": {
+      "content": "待删除的评论"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "30-in-1min; q=30; w=60",
+      "ratelimit-limit": "30",
+      "ratelimit-remaining": "21",
+      "ratelimit-reset": "59"
+    },
+    "json": {
+      "code": 0,
+      "msg": "评论成功",
+      "data": {
+        "id": "e1a3ff62d0989f3aceb760db",
+        "articleId": "c2b6bf3129c875d44532f9c6",
+        "parentId": null,
+        "authorName": "golden_79932",
+        "authorType": "user",
+        "content": "待删除的评论",
+        "likes": 0,
+        "likedByMe": false,
+        "mine": true,
+        "replyToName": null,
+        "createdAt": "2026-11-10T08:06:21.281Z"
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "me_user",
+  "request": {
+    "method": "GET",
+    "path": "/api/auth/me",
+    "auth": "user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "id": "6db0009e2ba91b0e9b9cf180",
+        "username": "golden_79932",
+        "role": "user"
+      }
+    }
+  }
+}

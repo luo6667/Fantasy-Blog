@@ -1,0 +1,206 @@
+{
+  "id": "articles_clamped",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles?page=0&pageSize=999",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "list": [
+          {
+            "id": "6a75e3fa81e9a1ec314c5d56",
+            "title": "Node.js 入门：JavaScript 的服务端运行时",
+            "excerpt": "事件驱动、非阻塞 I/O、npm 生态……Node.js 为什么能成为服务端与工具链的主流选择？一篇讲清它的核心机制与适用场景。",
+            "tags": [
+              "后端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:10.000Z",
+            "updatedAt": "2026-11-10T07:12:03.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3fa81e9a1ec314c5d59",
+            "title": "Express 入门：中间件与路由驱动的 Web 框架",
+            "excerpt": "从 hello world 到中间件机制、路由与错误处理，用最短篇幅讲清 Express 的核心设计，以及它为什么长盛不衰。",
+            "tags": [
+              "后端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:10.000Z",
+            "updatedAt": "2026-11-10T07:11:56.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3fa81e9a1ec314c5d5c",
+            "title": "MongoDB 入门：文档型数据库与 Mongoose 实践",
+            "excerpt": "集合、文档、无固定 Schema、嵌套结构……MongoDB 与关系型数据库有何不同？如何用 Mongoose 在 Node.js 中操作它？",
+            "tags": [
+              "数据库"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:10.000Z",
+            "updatedAt": "2026-11-10T07:11:31.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3fa81e9a1ec314c5d5f",
+            "title": "MySQL 入门：关系型数据库的核心概念与常用 SQL",
+            "excerpt": "表、主键、外键、索引与事务（ACID）——用一篇讲清关系型数据库的基石，并给出最常用的 SQL 示例。",
+            "tags": [
+              "数据库"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:10.000Z",
+            "updatedAt": "2026-11-10T07:06:55.000Z",
+            "likes": 1,
+            "favorites": 1,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d4a",
+            "title": "React 19 来了：一文读懂新一代 React 的核心新特性",
+            "excerpt": "多年磨一剑的大版本更新。从 Actions、use() 到 React Compiler，React 19 带来了哪些改变开发体验的关键能力？",
+            "tags": [
+              "前端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-11-10T07:10:38.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d4d",
+            "title": "JavaScript 核心语法与异步编程：从 ES6 到 async/await",
+            "excerpt": "变量、解构、Promise、事件循环……把 JavaScript 最重要的语言特性与异步模型一次性讲清楚，适合系统梳理。",
+            "tags": [
+              "前端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-11-10T07:10:14.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d50",
+            "title": "TypeScript 入门：用类型安全驯服 JavaScript",
+            "excerpt": "interface 与 type 怎么选？泛型、类型收窄、工具类型分别解决什么问题？一篇讲清 TypeScript 的核心概念。",
+            "tags": [
+              "前端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-11-10T07:09:31.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d53",
+            "title": "前端常用库盘点：状态、数据、动画与样式（附本项目实践）",
+            "excerpt": "TanStack Query 管服务端状态、Zustand 管客户端状态、Framer Motion 做动画、Tailwind 写样式……本文用一个真实项目的选型讲清楚它们各管什么。",
+            "tags": [
+              "前端"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-11-10T07:07:38.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e1580ad4d6c0ec98ecba",
+            "title": "什么是流式传输？边生成边发送的传输方式与应用场景",
+            "excerpt": "把一次大响应拆成无数小块逐个到达，用户不用苦等全部完成——从 HTTP 分块传输到 AI 对话的「打字机效果」，一文讲清流式传输。",
+            "tags": [
+              "HTTP"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:44:56.000Z",
+            "updatedAt": "2026-11-10T07:09:00.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e1570ad4d6c0ec98ecb4",
+            "title": "什么是 HTTP 协议？一文讲清它背后的 IP、URL 与请求过程",
+            "excerpt": "浏览器输入网址到页面加载完成，中间发生了什么？从 URL 拆解、DNS 解析到 TCP 三次握手，用通俗的方式讲透 HTTP 协议。",
+            "tags": [
+              "HTTP"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:44:55.000Z",
+            "updatedAt": "2026-11-10T07:08:21.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e1570ad4d6c0ec98ecb7",
+            "title": "什么是 WebSocket？全双工实时通信详解（附前端代码示例）",
+            "excerpt": "HTTP 只能「一问一答」，服务器没法主动推送消息。WebSocket 用一条长连接打通双向通信，让实时应用成为可能。附可直接运行的前端示例与应用场景。",
+            "tags": [
+              "HTTP"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:44:55.000Z",
+            "updatedAt": "2026-11-10T07:09:13.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a6f443b33c7274e46c635f2",
+            "title": "前端工程化：从 ESLint 到 CI/CD",
+            "excerpt": "搭建一套完整的前端工程化体系，涵盖代码规范、自动化测试、持续集成与部署的最佳实践。",
+            "tags": [
+              "工程化"
+            ],
+            "date": "2025-05-20",
+            "createdAt": "2025-05-20T02:00:00.000Z",
+            "updatedAt": "2026-11-10T07:10:55.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          }
+        ],
+        "total": 12,
+        "page": 1,
+        "pageSize": 50
+      }
+    }
+  }
+}

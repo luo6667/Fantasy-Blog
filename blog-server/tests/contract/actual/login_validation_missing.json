@@ -1,0 +1,25 @@
+{
+  "id": "login_validation_missing",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "auth": "none",
+    "body": {}
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "20-in-15min; q=20; w=900",
+      "ratelimit-limit": "20",
+      "ratelimit-remaining": "11",
+      "ratelimit-reset": "899"
+    },
+    "json": {
+      "code": 400,
+      "msg": "username: Required; password: Required",
+      "data": null
+    }
+  }
+}

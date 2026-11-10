@@ -1,0 +1,26 @@
+{
+  "id": "upload_tiny_png",
+  "request": {
+    "method": "POST",
+    "path": "/api/upload",
+    "auth": "admin",
+    "body": "<multipart>"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "Uploaded successfully",
+      "data": {
+        "filename": "1794297981395-5e1a353a-9cee-2469-7993-5b3c26cebfaf.png",
+        "mimetype": "image/png",
+        "size": 70,
+        "url": "/uploads/1794297981395-5e1a353a-9cee-2469-7993-5b3c26cebfaf.png"
+      }
+    }
+  }
+}

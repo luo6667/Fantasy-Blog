@@ -1,0 +1,27 @@
+{
+  "id": "comment_like",
+  "request": {
+    "method": "POST",
+    "path": "/api/comments/ef954624bd41172fe244f5e3/like",
+    "auth": "user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "30-in-1min; q=30; w=60",
+      "ratelimit-limit": "30",
+      "ratelimit-remaining": "23",
+      "ratelimit-reset": "59"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "liked": true,
+        "likes": 1
+      }
+    }
+  }
+}

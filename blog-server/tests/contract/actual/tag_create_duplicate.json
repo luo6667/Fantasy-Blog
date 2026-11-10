@@ -1,0 +1,23 @@
+{
+  "id": "tag_create_duplicate",
+  "request": {
+    "method": "POST",
+    "path": "/api/tags",
+    "auth": "admin",
+    "body": {
+      "name": "MySQL"
+    }
+  },
+  "response": {
+    "status": 409,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 409,
+      "msg": "标签「MySQL」已存在",
+      "data": null
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "article_detail_as_liker",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles/c2b6bf3129c875d44532f9c6",
+    "auth": "user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "id": "c2b6bf3129c875d44532f9c6",
+        "title": "Golden 契约文章（改）",
+        "excerpt": "用于契约录制的临时文章",
+        "tags": [
+          "MySQL"
+        ],
+        "date": "2026-11-10",
+        "createdAt": "2026-11-10T08:06:21.000Z",
+        "updatedAt": "2026-11-10T08:06:21.000Z",
+        "likes": 1,
+        "favorites": 0,
+        "likedByMe": true,
+        "favoritedByMe": false,
+        "content": "# 标题\n\n正文 **加粗** 与 `code`。\n\n- a\n- b\n",
+        "contentHtml": "<h1>标题</h1>\n<p>正文 <strong>加粗</strong> 与 <code>code</code>。</p>\n<ul>\n<li>a</li>\n<li>b</li>\n</ul>"
+      }
+    }
+  }
+}

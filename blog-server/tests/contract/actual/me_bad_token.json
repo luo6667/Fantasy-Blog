@@ -1,0 +1,20 @@
+{
+  "id": "me_bad_token",
+  "request": {
+    "method": "GET",
+    "path": "/api/auth/me",
+    "auth": "user"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 401,
+      "msg": "登录已过期，请重新登录",
+      "data": null
+    }
+  }
+}

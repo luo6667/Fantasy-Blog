@@ -1,0 +1,28 @@
+{
+  "id": "site_content_update_ok",
+  "request": {
+    "method": "PUT",
+    "path": "/api/site-content/evaluation",
+    "auth": "admin",
+    "body": {
+      "value": "契约录制写入的简介\n第二行"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "Content updated",
+      "data": {
+        "id": "6a745ce13650f51f49aa5e14",
+        "key": "evaluation",
+        "value": "契约录制写入的简介\n第二行",
+        "updatedAt": "2026-11-10T08:06:21.645Z"
+      }
+    }
+  }
+}

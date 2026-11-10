@@ -1,0 +1,47 @@
+{
+  "id": "comments_after_reply",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles/c2b6bf3129c875d44532f9c6/comments",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": [
+        {
+          "id": "57d048ee1c9b461b804f4640",
+          "articleId": "c2b6bf3129c875d44532f9c6",
+          "parentId": "ef954624bd41172fe244f5e3",
+          "authorName": "admin",
+          "authorType": "admin",
+          "content": "管理员回复",
+          "likes": 0,
+          "likedByMe": false,
+          "mine": false,
+          "replyToName": "golden_79932",
+          "createdAt": "2026-11-10T08:06:21.000Z"
+        },
+        {
+          "id": "ef954624bd41172fe244f5e3",
+          "articleId": "c2b6bf3129c875d44532f9c6",
+          "parentId": null,
+          "authorName": "golden_79932",
+          "authorType": "user",
+          "content": "契约评论",
+          "likes": 0,
+          "likedByMe": false,
+          "mine": false,
+          "replyToName": null,
+          "createdAt": "2026-11-10T08:06:21.000Z"
+        }
+      ]
+    }
+  }
+}

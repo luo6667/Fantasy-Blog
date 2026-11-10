@@ -1,0 +1,27 @@
+{
+  "id": "comment_create_invalid",
+  "request": {
+    "method": "POST",
+    "path": "/api/articles/c2b6bf3129c875d44532f9c6/comments",
+    "auth": "user",
+    "body": {
+      "content": "   "
+    }
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "30-in-1min; q=30; w=60",
+      "ratelimit-limit": "30",
+      "ratelimit-remaining": "25",
+      "ratelimit-reset": "59"
+    },
+    "json": {
+      "code": 400,
+      "msg": "content: 评论内容不能为空",
+      "data": null
+    }
+  }
+}

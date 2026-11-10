@@ -1,0 +1,20 @@
+{
+  "id": "method_not_allowed",
+  "request": {
+    "method": "PATCH",
+    "path": "/api/articles",
+    "auth": "none"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 404,
+      "msg": "Route not found: PATCH /api/articles",
+      "data": null
+    }
+  }
+}

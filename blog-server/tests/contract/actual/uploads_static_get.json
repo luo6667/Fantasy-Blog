@@ -1,0 +1,18 @@
+{
+  "id": "uploads_static_get",
+  "request": {
+    "method": "GET",
+    "path": "/uploads/1794297981395-5e1a353a-9cee-2469-7993-5b3c26cebfaf.png",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "image/png",
+      "cache-control": "public, max-age=31536000, immutable",
+      "x-content-type-options": "nosniff"
+    },
+    "contentLength": "70",
+    "bytes": 70
+  }
+}

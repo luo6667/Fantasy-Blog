@@ -1,0 +1,42 @@
+{
+  "id": "notifications_admin_after_comment",
+  "request": {
+    "method": "GET",
+    "path": "/api/notifications",
+    "auth": "admin"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": [
+        {
+          "id": "36daa45c6042c772882e480f",
+          "type": "comment",
+          "actorName": "golden_79932",
+          "actorType": "user",
+          "articleId": "c2b6bf3129c875d44532f9c6",
+          "articleTitle": "Golden 契约文章（改）",
+          "commentContent": "契约评论",
+          "read": false,
+          "createdAt": "2026-11-10T08:06:21.000Z"
+        },
+        {
+          "id": "3232fffca3c3f9163068879f",
+          "type": "like",
+          "actorName": "golden_79932",
+          "actorType": "user",
+          "articleId": "c2b6bf3129c875d44532f9c6",
+          "articleTitle": "Golden 契约文章（改）",
+          "read": false,
+          "createdAt": "2026-11-10T08:06:21.000Z"
+        }
+      ]
+    }
+  }
+}

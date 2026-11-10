@@ -1,0 +1,22 @@
+{
+  "id": "tag_delete",
+  "request": {
+    "method": "DELETE",
+    "path": "/api/tags/GoldenTag",
+    "auth": "admin"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "Tag deleted",
+      "data": {
+        "name": "GoldenTag"
+      }
+    }
+  }
+}

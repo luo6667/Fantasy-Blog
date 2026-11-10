@@ -1,0 +1,22 @@
+{
+  "id": "comment_delete_own",
+  "request": {
+    "method": "DELETE",
+    "path": "/api/comments/e1a3ff62d0989f3aceb760db",
+    "auth": "user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "评论已删除",
+      "data": {
+        "id": "e1a3ff62d0989f3aceb760db"
+      }
+    }
+  }
+}

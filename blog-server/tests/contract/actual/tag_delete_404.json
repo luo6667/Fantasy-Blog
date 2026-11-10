@@ -1,0 +1,20 @@
+{
+  "id": "tag_delete_404",
+  "request": {
+    "method": "DELETE",
+    "path": "/api/tags/nope-tag",
+    "auth": "admin"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 404,
+      "msg": "标签「nope-tag」不存在",
+      "data": null
+    }
+  }
+}
