@@ -16,3 +16,4 @@ blog-server-go/bin/
 blog-server-go/replay-server.log
 blog-server-go/replay.log
 blog-server-go/tests/contract/actual/
+blog-server-go/testdata/
