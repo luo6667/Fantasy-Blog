@@ -1,7 +1,10 @@
 # JasonLuo 个人主页 & 博客 — 项目学习指南
 
-> 目标:按顺序读完本文,配合代码注释,即可吃透整个项目(前端 Next.js + 后端 Express)。
+> 目标:按顺序读完本文,配合代码注释,即可吃透整个项目(前端 Next.js + 后端 Go)。
 > 建议边读边在 `blog-fronted` 和 `blog-server` 里打开对应文件对照。
+>
+> ⚠️ 后端已由 Express 重写为 Go（提交 `87def6e`）。文中后端章节仍按旧 Node 实现讲解，
+> 阅读时请对照 `blog-server/internal/` 与 `blog-server/README.md`。
 
 ---
 

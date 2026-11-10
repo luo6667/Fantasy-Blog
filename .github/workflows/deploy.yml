@@ -1,0 +1,179 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 博客持续集成 / 持续部署
+#
+#   pull_request  → 只跑 verify（类型检查 + Lint），不碰服务器
+#   push main     → verify 通过后发布到 ECS
+#   workflow_dispatch → 手动 deploy / rollback / bootstrap（新服务器初始化用）
+#
+# 需要在仓库 Settings → Secrets and variables → Actions 里配置：
+#   Secrets: SSH_HOST / SSH_USER / SSH_PRIVATE_KEY（必填）、SSH_PORT / SSH_KNOWN_HOSTS（可选）
+#   Variables: APP_ROOT（可选，默认 /www/wwwroot/personal-blog）
+#
+# 发布过程：rsync 代码 → 服务器上构建（后端先起、前端后构建）→ 切 current 软链
+#           → 重启 PM2 → 健康检查 → 失败自动回滚到上一个发布
+# ─────────────────────────────────────────────────────────────────────────────
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'deploy=发布 main / rollback=回滚上一版 / bootstrap=初始化新服务器'
+        type: choice
+        options: [deploy, rollback, bootstrap]
+        default: deploy
+
+# 同一时间只允许一个发布任务，避免两次部署交叉切换软链
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  verify:
+    name: 类型检查与 Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            blog-fronted/package-lock.json
+            blog-server/package-lock.json
+
+      - name: 安装前端依赖
+        working-directory: blog-fronted
+        run: npm ci --no-audit --no-fund
+
+      - name: 前端类型检查
+        working-directory: blog-fronted
+        run: npm run type-check
+
+      - name: 前端 Lint
+        working-directory: blog-fronted
+        run: npm run lint
+
+      - name: 安装后端依赖
+        working-directory: blog-server
+        run: npm ci --no-audit --no-fund
+
+      - name: 后端类型检查
+        working-directory: blog-server
+        run: npm run typecheck
+
+  deploy:
+    name: 发布到 ECS
+    needs: verify
+    # PR 不部署；main 的 push 与手动触发才部署
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      APP_ROOT: ${{ vars.APP_ROOT || '/www/wwwroot/personal-blog' }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 准备 SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          if [ -n "${SSH_KNOWN_HOSTS:-}" ]; then
+            # 推荐：把服务器公钥指纹固定成 Secret，防中间人
+            printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+            echo "使用固定 known_hosts"
+          else
+            # 退路：首次连接时信任服务器公钥（TOFU），存在中间人风险
+            ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+            echo "::warning::未配置 SSH_KNOWN_HOSTS，已退化为 ssh-keyscan 临时信任主机公钥"
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / $(node -v 2>/dev/null || echo "node 未安装")"'
+
+      - name: 计算发布目录名
+        id: rel
+        run: |
+          set -euo pipefail
+          echo "name=$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: 同步代码到服务器（rsync）
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        run: |
+          set -euo pipefail
+          REL="${{ steps.rel.outputs.name }}"
+          echo "同步到 $APP_ROOT/releases/$REL"
+          # 先建目录，这样即使跳过了 bootstrap 也能发布（releases/ 必须存在 rsync 才能创建子目录）
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+            "mkdir -p '$APP_ROOT/releases/$REL' '$APP_ROOT/logs'"
+          rsync -az --delete --no-owner --no-group \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude 'node_modules' \
+            --exclude '.next' \
+            --exclude 'dist' \
+            --exclude 'uploads' \
+            --exclude '.env' \
+            --exclude '.env.local' \
+            --exclude '*.tsbuildinfo' \
+            --exclude '.idea' \
+            --exclude '.vscode' \
+            --exclude 'reasonix.toml' \
+            -e "ssh -p $SSH_PORT -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
+            ./ "$SSH_USER@$SSH_HOST:$APP_ROOT/releases/$REL/"
+
+      - name: 初始化服务器（bootstrap）
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.action == 'bootstrap' }}
+        run: |
+          set -euo pipefail
+          REL="${{ steps.rel.outputs.name }}"
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+            "bash '$APP_ROOT/releases/$REL/deploy/deploy.sh' bootstrap"
+
+      - name: 发布
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action == 'deploy' }}
+        run: |
+          set -euo pipefail
+          REL="${{ steps.rel.outputs.name }}"
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+            "bash '$APP_ROOT/releases/$REL/deploy/deploy.sh' deploy '$APP_ROOT/releases/$REL'"
+
+      - name: 回滚
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' }}
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
+            "bash '$APP_ROOT/current/deploy/deploy.sh' rollback"
+
+      - name: 汇总
+        if: always()
+        run: |
+          {
+            echo "### 部署结果"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "| --- | --- |"
+            echo "| 动作 | ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'deploy' }} |"
+            echo "| 提交 | \`${{ github.sha }}\` |"
+            echo "| 发布目录 | \`${{ steps.rel.outputs.name }}\` |"
+            echo "| 结果 | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

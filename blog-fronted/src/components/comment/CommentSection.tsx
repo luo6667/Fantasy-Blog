@@ -177,7 +177,7 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
     });
   };
 
-  // 父 → 回复映射与一级评论列表（React Compiler 自动记忆化）
+  // 父 → 回复映射与一级评论列表（依赖 React Compiler 自动记忆化，无需手写 useMemo）
   const repliesMap = buildRepliesMap(comments);
   const topLevel = comments.filter((c) => !c.parentId);
 
@@ -313,7 +313,7 @@ export default function CommentSection({ articleId }: CommentSectionProps) {
   );
 }
 
-/** 单条评论/回复卡片（React Compiler 自动记忆化） */
+/** 单条评论/回复卡片（由 React Compiler 自动记忆化，无需手动 React.memo） */
 function CommentCard({
   comment,
   canDelete,

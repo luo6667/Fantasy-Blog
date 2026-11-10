@@ -23,8 +23,8 @@ const btnBase =
 
 const STATS = [
   { label: '学习时间', value: 1, suffix: ' 年+' },
-  { label: '完成项目', value: 8, suffix: '+' },
-  { label: '技术栈', value: 8, suffix: '+' },
+  { label: '完成项目', value: 10, suffix: '+' },
+  { label: '技术栈', value: 10, suffix: '+' },
 ];
 
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
@@ -112,7 +112,7 @@ export default function Home({
             animate="animate"
             transition={{ ...springHero, duration: 0.6, delay: 0.18 }}
           >
-            构建高性能 Web 体验的前端工程师
+            全栈工程师，专注于前端开发和后端开发，擅长使用Vue、React、Golang、MySQL等技术栈。
           </motion.p>
 
           <motion.div

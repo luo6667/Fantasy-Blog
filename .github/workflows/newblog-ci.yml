@@ -1,0 +1,49 @@
+name: Newblog CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['newblog/**', '.github/workflows/newblog-ci.yml']
+  pull_request:
+    paths: ['newblog/**', '.github/workflows/newblog-ci.yml']
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: newblog/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: newblog/api/go.mod
+          cache-dependency-path: newblog/api/go.sum
+      - run: go test ./...
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: newblog/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: newblog/web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: newblog/api/go.mod
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm audit --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: newblog-playwright-report
+          path: newblog/web/playwright-report/

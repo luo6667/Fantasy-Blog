@@ -12,6 +12,7 @@ import type { NextConfig } from 'next';
 const API_TARGET = process.env.API_TARGET ?? 'http://localhost:4000';
 
 const nextConfig: NextConfig = {
+  reactCompiler: true,
   reactStrictMode: true,
   devIndicators: false,
   rewrites() {

@@ -153,13 +153,14 @@ export interface AiChatMessage {
   content: string;
 }
 
-/** 站点内容 key：简历页 4 块 + 首页精选项目 */
+/** 站点内容 key：简历页 4 块 + 首页精选项目 + 规划页路线图 */
 export type SiteContentKey =
   | 'education'
   | 'skills'
   | 'resumeProjects'
   | 'evaluation'
-  | 'homeProjects';
+  | 'homeProjects'
+  | 'plan';
 
 /** 教育背景项 */
 export interface EducationItem {
@@ -185,13 +186,34 @@ export interface HomeProjectItem {
   link?: string;
 }
 
+/** 规划条目状态：未开始 / 进行中 / 已完成 */
+export type PlanItemStatus = 'planned' | 'active' | 'done';
+
+/** 规划阶段下的单个目标 */
+export interface PlanGoal {
+  title: string;
+  desc: string;
+  status: PlanItemStatus;
+  tags: string[];
+}
+
+/** 规划阶段（成长路线图的一个时间段） */
+export interface PlanStage {
+  period: string;
+  title: string;
+  summary: string;
+  status: PlanItemStatus;
+  goals: PlanGoal[];
+}
+
 /** 各 key 对应的内容值 */
 export type SiteContentValue =
   | EducationItem[]
   | string[]
   | ResumeProjectItem[]
   | string
-  | HomeProjectItem[];
+  | HomeProjectItem[]
+  | PlanStage[];
 
 /** 站点内容项 */
 export interface SiteContentItem {

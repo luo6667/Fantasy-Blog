@@ -9,6 +9,7 @@ import type { NavTab } from '@/types';
 export const NAV_TABS: NavTab[] = [
   { to: '/home', label: '首页' },
   { to: '/blog', label: '博客' },
+  { to: '/plan', label: '规划' },
   { to: '/resume', label: '简历' },
   { to: '/about', label: '关于' },
 ];
