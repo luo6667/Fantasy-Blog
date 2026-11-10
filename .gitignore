@@ -3,3 +3,16 @@ reasonix.toml
 
 # TypeScript 增量编译缓存
 *.tsbuildinfo
+
+# Go local toolchain caches (sandbox workaround)
+blog-server-go/.goenv
+blog-server-go/.gopath/
+blog-server-go/.gomodcache/
+blog-server-go/.gocache/
+blog-server-go/testdata/uploads/
+
+# Go 构建产物与回放产物
+blog-server-go/bin/
+blog-server-go/replay-server.log
+blog-server-go/replay.log
+blog-server-go/tests/contract/actual/
