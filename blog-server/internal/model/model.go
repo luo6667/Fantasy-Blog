@@ -1,5 +1,8 @@
 // Package model 定义 GORM 映射。表名、列名、长度、默认值全部与既有库保持一致，
 // 不做任何自动迁移（生产只用 migrations/ 下的版本化 SQL）。
+//
+// 2026-11 改造后，普通用户、评论、通知与 AI 配置已从库中移除，
+// 对应模型一并删除；文章只用「1 个主标签 + 自由子标签」分类。
 package model
 
 import (
@@ -82,19 +85,7 @@ func (j JSONValue) MarshalJSON() ([]byte, error) {
 	return j, nil
 }
 
-// User 对应 users 表。
-type User struct {
-	ID        string    `gorm:"column:id;primaryKey;size:24"`
-	Username  string    `gorm:"column:username;size:32;uniqueIndex"`
-	Password  string    `gorm:"column:password;size:255"`
-	CreatedAt time.Time `gorm:"column:createdAt"`
-	UpdatedAt time.Time `gorm:"column:updatedAt"`
-}
-
-// TableName users。
-func (User) TableName() string { return "users" }
-
-// Admin 对应 admins 表。
+// Admin 对应 admins 表，是唯一的登录主体。
 type Admin struct {
 	ID        string    `gorm:"column:id;primaryKey;size:24"`
 	Username  string    `gorm:"column:username;size:32;uniqueIndex"`
@@ -108,45 +99,22 @@ func (Admin) TableName() string { return "admins" }
 
 // Article 对应 articles 表。
 type Article struct {
-	ID          string     `gorm:"column:id;primaryKey;size:24"`
-	Title       string     `gorm:"column:title;size:200"`
-	Excerpt     string     `gorm:"column:excerpt;size:500"`
-	Content     string     `gorm:"column:content"`
-	ContentHTML string     `gorm:"column:contentHtml"`
-	Tags        StringList `gorm:"column:tags"`
-	Cover       string     `gorm:"column:cover;size:2048"`
-	AuthorType  *string    `gorm:"column:authorType"`
-	AuthorID    *string    `gorm:"column:authorId;size:24"`
-	AuthorName  *string    `gorm:"column:authorName;size:32"`
-	LikedBy     StringList `gorm:"column:likedBy"`
-	FavoritedBy StringList `gorm:"column:favoritedBy"`
-	Likes       int        `gorm:"column:likes"`
-	Favorites   int        `gorm:"column:favorites"`
-	CreatedAt   time.Time  `gorm:"column:createdAt"`
-	UpdatedAt   time.Time  `gorm:"column:updatedAt"`
+	ID           string     `gorm:"column:id;primaryKey;size:24"`
+	Title        string     `gorm:"column:title;size:200"`
+	Excerpt      string     `gorm:"column:excerpt;size:500"`
+	Content      string     `gorm:"column:content"`
+	ContentHTML  string     `gorm:"column:contentHtml"`
+	PrimaryTagID string     `gorm:"column:primaryTagId;size:24"`
+	SubTags      StringList `gorm:"column:subTags"`
+	Cover        string     `gorm:"column:cover;size:2048"`
+	CreatedAt    time.Time  `gorm:"column:createdAt"`
+	UpdatedAt    time.Time  `gorm:"column:updatedAt"`
 }
 
 // TableName articles。
 func (Article) TableName() string { return "articles" }
 
-// Comment 对应 comments 表。
-type Comment struct {
-	ID         string     `gorm:"column:id;primaryKey;size:24"`
-	ArticleID  string     `gorm:"column:articleId;size:24"`
-	ParentID   *string    `gorm:"column:parentId;size:24"`
-	AuthorType string     `gorm:"column:authorType"`
-	AuthorID   string     `gorm:"column:authorId;size:24"`
-	AuthorName string     `gorm:"column:authorName;size:32"`
-	Content    string     `gorm:"column:content;size:1000"`
-	LikedBy    StringList `gorm:"column:likedBy"`
-	CreatedAt  time.Time  `gorm:"column:createdAt"`
-	UpdatedAt  time.Time  `gorm:"column:updatedAt"`
-}
-
-// TableName comments。
-func (Comment) TableName() string { return "comments" }
-
-// Tag 对应 tags 表。
+// Tag 对应 tags 表，语义为「主标签库」。
 type Tag struct {
 	ID        string    `gorm:"column:id;primaryKey;size:24"`
 	Name      string    `gorm:"column:name;size:32;uniqueIndex"`
@@ -156,27 +124,6 @@ type Tag struct {
 
 // TableName tags。
 func (Tag) TableName() string { return "tags" }
-
-// Notification 对应 notifications 表。
-type Notification struct {
-	ID             string    `gorm:"column:id;primaryKey;size:24"`
-	RecipientType  string    `gorm:"column:recipientType"`
-	RecipientID    string    `gorm:"column:recipientId;size:24"`
-	Type           string    `gorm:"column:type"`
-	ActorType      string    `gorm:"column:actorType"`
-	ActorID        string    `gorm:"column:actorId;size:24"`
-	ActorName      string    `gorm:"column:actorName;size:32"`
-	ArticleID      *string   `gorm:"column:articleId;size:24"`
-	ArticleTitle   *string   `gorm:"column:articleTitle;size:200"`
-	CommentID      *string   `gorm:"column:commentId;size:24"`
-	CommentContent *string   `gorm:"column:commentContent;size:1000"`
-	Read           bool      `gorm:"column:read"`
-	CreatedAt      time.Time `gorm:"column:createdAt"`
-	UpdatedAt      time.Time `gorm:"column:updatedAt"`
-}
-
-// TableName notifications。
-func (Notification) TableName() string { return "notifications" }
 
 // SiteContent 对应 site_contents 表。
 type SiteContent struct {
@@ -189,16 +136,3 @@ type SiteContent struct {
 
 // TableName site_contents。
 func (SiteContent) TableName() string { return "site_contents" }
-
-// AIConfig 对应 ai_configs 表。
-type AIConfig struct {
-	ID        string    `gorm:"column:id;primaryKey;size:24"`
-	BaseURL   string    `gorm:"column:baseURL;size:500"`
-	APIKey    string    `gorm:"column:apiKey"`
-	ModelName string    `gorm:"column:modelName;size:100"`
-	CreatedAt time.Time `gorm:"column:createdAt"`
-	UpdatedAt time.Time `gorm:"column:updatedAt"`
-}
-
-// TableName ai_configs。
-func (AIConfig) TableName() string { return "ai_configs" }

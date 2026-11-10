@@ -7,3 +7,6 @@ export GOPATH="$(cygpath -w "$ROOT/.gopath")"
 export GOMODCACHE="$(cygpath -w "$ROOT/.gomodcache")"
 export GOCACHE="$(cygpath -w "$ROOT/.gocache")"
 export GOFLAGS="-mod=mod"
+# 本机访问 sum.golang.org 会 EOF，改用国内代理并关闭 sumdb（go.sum 仍校验依赖哈希）。
+export GOPROXY="${GOPROXY:-https://goproxy.cn,direct}"
+export GOSUMDB="${GOSUMDB:-off}"

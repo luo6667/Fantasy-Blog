@@ -14,7 +14,7 @@ import (
 // bcryptCost 与旧版 bcryptjs.hash(password, 10) 一致。
 const bcryptCost = 10
 
-// AuthUser 是登录/注册返回的主体视图。
+// AuthUser 是登录返回的主体视图。
 type AuthUser struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
@@ -41,52 +41,8 @@ func IsDuplicateKey(err error) bool {
 	return false
 }
 
-// Register 注册普通用户；用户名与管理员/普通用户冲突时返回 409。
-func Register(db *gorm.DB, username, password string) (*AuthUser, error) {
-	var count int64
-	if err := db.Model(&model.Admin{}).Where("username = ?", username).Count(&count).Error; err != nil {
-		return nil, err
-	}
-	if count > 0 {
-		return nil, httpx.Conflict("该用户名已被占用")
-	}
-	if err := db.Model(&model.User{}).Where("username = ?", username).Count(&count).Error; err != nil {
-		return nil, err
-	}
-	if count > 0 {
-		return nil, httpx.Conflict("该用户名已被占用")
-	}
-
-	hash, err := HashPassword(password)
-	if err != nil {
-		return nil, err
-	}
-	user := model.User{ID: NewID(), Username: username, Password: hash}
-	if err := db.Create(&user).Error; err != nil {
-		if IsDuplicateKey(err) {
-			return nil, httpx.Conflict("该用户名已被占用")
-		}
-		return nil, err
-	}
-	return &AuthUser{ID: user.ID, Username: user.Username, Role: "user"}, nil
-}
-
-// LoginUser 校验普通用户密码并返回主体（token 由 handler 层签发）。
-func LoginUser(db *gorm.DB, username, password string) (*AuthUser, error) {
-	var user model.User
-	err := db.Where("username = ?", username).Take(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && !PasswordMatches(user.Password, password)) {
-		return nil, httpx.Unauthorized("用户名或密码错误")
-	}
-	if err != nil {
-		return nil, err
-	}
-	return &AuthUser{ID: user.ID, Username: user.Username, Role: "user"}, nil
-}
-
 // SeedAdmin 创建管理员，或把已存在管理员的密码重置为给定明文。
-// 对应旧 Node 的 seed 脚本：密码只以 bcrypt 哈希入库，明文不会落库。
-// 返回 "created" 或 "updated"。
+// 密码只以 bcrypt 哈希入库，明文不会落库。返回 "created" 或 "updated"。
 func SeedAdmin(db *gorm.DB, username, password string) (string, error) {
 	hash, err := HashPassword(password)
 	if err != nil {
@@ -120,6 +76,18 @@ func LoginAdmin(db *gorm.DB, username, password string) (*AuthUser, error) {
 		return nil, httpx.Unauthorized("管理员账号或密码错误")
 	}
 	if err != nil {
+		return nil, err
+	}
+	return &AuthUser{ID: admin.ID, Username: admin.Username, Role: "admin"}, nil
+}
+
+// FindAdmin 按 id 查管理员，用于 token 校验。
+func FindAdmin(db *gorm.DB, id string) (*AuthUser, error) {
+	var admin model.Admin
+	if err := db.Select("id", "username").Where("id = ?", id).Take(&admin).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, httpx.Unauthorized("管理员不存在")
+		}
 		return nil, err
 	}
 	return &AuthUser{ID: admin.ID, Username: admin.Username, Role: "admin"}, nil

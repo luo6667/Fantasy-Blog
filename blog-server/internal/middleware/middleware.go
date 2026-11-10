@@ -201,27 +201,20 @@ type Auth struct {
 }
 
 // verify 校验 token 并回查数据库，返回当前主体。
+// 改造后只有管理员可以登录；普通用户 token 一律视为失效。
 func (a *Auth) verify(token string) (*auth.Actor, error) {
 	claims, err := a.Manager.Parse(token)
 	if err != nil {
 		return nil, httpx.Unauthorized("登录已过期，请重新登录")
 	}
-	switch claims.Role {
-	case "admin":
-		var admin model.Admin
-		if err := a.DB.Select("id", "username").Where("id = ?", claims.Subject).Take(&admin).Error; err != nil {
-			return nil, httpx.Unauthorized("管理员不存在")
-		}
-		return &auth.Actor{ID: admin.ID, Username: admin.Username, Role: "admin"}, nil
-	case "user":
-		var user model.User
-		if err := a.DB.Select("id", "username").Where("id = ?", claims.Subject).Take(&user).Error; err != nil {
-			return nil, httpx.Unauthorized("用户不存在")
-		}
-		return &auth.Actor{ID: user.ID, Username: user.Username, Role: "user"}, nil
-	default:
+	if claims.Role != "admin" {
 		return nil, httpx.Unauthorized("登录已过期，请重新登录")
 	}
+	var admin model.Admin
+	if err := a.DB.Select("id", "username").Where("id = ?", claims.Subject).Take(&admin).Error; err != nil {
+		return nil, httpx.Unauthorized("管理员不存在")
+	}
+	return &auth.Actor{ID: admin.ID, Username: admin.Username, Role: "admin"}, nil
 }
 
 // RequireAuth 要求有效登录态。
@@ -265,19 +258,6 @@ func (a *Auth) RequireAdmin() gin.HandlerFunc {
 			return
 		}
 		c.Set(ActorKey, actor)
-		c.Next()
-	}
-}
-
-// OptionalAuth 解析登录态但不强制（公开接口读取 likedByMe/mine 用）。
-func (a *Auth) OptionalAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if strings.HasPrefix(header, "Bearer ") {
-			if actor, err := a.verify(strings.TrimPrefix(header, "Bearer ")); err == nil {
-				c.Set(ActorKey, actor)
-			}
-		}
 		c.Next()
 	}
 }

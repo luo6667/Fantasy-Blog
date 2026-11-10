@@ -35,8 +35,6 @@ type Config struct {
 
 	NextRevalidateURL string
 	RevalidateSecret  string
-
-	AIConfigEncKey string
 }
 
 // Load 从环境变量读取配置，缺省值与 Node 版一致。
@@ -54,7 +52,6 @@ func Load() (*Config, error) {
 		AdminInitialPassword: os.Getenv("ADMIN_INITIAL_PASSWORD"),
 		NextRevalidateURL:    os.Getenv("NEXT_REVALIDATE_URL"),
 		RevalidateSecret:     os.Getenv("REVALIDATE_SECRET"),
-		AIConfigEncKey:       os.Getenv("AI_CONFIG_ENC_KEY"),
 	}
 
 	if c.MySQLPass == "" {

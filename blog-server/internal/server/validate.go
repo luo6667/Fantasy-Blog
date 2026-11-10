@@ -49,3 +49,11 @@ func issuesError(issues []httpx.Issue) error {
 	}
 	return httpx.Validation(issues...)
 }
+
+// oneIssue 把可选的单个 issue 包成切片，便于复用 issuesError。
+func oneIssue(issue *httpx.Issue) []httpx.Issue {
+	if issue == nil {
+		return nil
+	}
+	return []httpx.Issue{*issue}
+}
