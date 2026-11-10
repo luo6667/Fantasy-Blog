@@ -1,0 +1,81 @@
+{
+  "id": "article_tags",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles/tags",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": [
+        {
+          "name": "Node.js",
+          "count": 3
+        },
+        {
+          "name": "CI/CD",
+          "count": 2
+        },
+        {
+          "name": "工程化",
+          "count": 2
+        },
+        {
+          "name": "网络",
+          "count": 2
+        },
+        {
+          "name": "Express",
+          "count": 1
+        },
+        {
+          "name": "HTTP",
+          "count": 1
+        },
+        {
+          "name": "JavaScript",
+          "count": 1
+        },
+        {
+          "name": "MongoDB",
+          "count": 1
+        },
+        {
+          "name": "MySQL",
+          "count": 1
+        },
+        {
+          "name": "React",
+          "count": 1
+        },
+        {
+          "name": "TypeScript",
+          "count": 1
+        },
+        {
+          "name": "WebSocket",
+          "count": 1
+        },
+        {
+          "name": "前端生态",
+          "count": 1
+        },
+        {
+          "name": "性能优化",
+          "count": 1
+        },
+        {
+          "name": "流式传输",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

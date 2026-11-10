@@ -1,0 +1,27 @@
+{
+  "id": "tag_create",
+  "request": {
+    "method": "POST",
+    "path": "/api/tags",
+    "auth": "admin",
+    "body": {
+      "name": "Golden Tag"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "Tag created",
+      "data": {
+        "id": "ebbc920d6f4ee6ebdc3ad415",
+        "name": "GoldenTag",
+        "count": 0
+      }
+    }
+  }
+}

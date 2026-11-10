@@ -1,0 +1,32 @@
+{
+  "id": "login_user_ok",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "auth": "none",
+    "body": {
+      "username": "golden_39779",
+      "password": "User@12345"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"20-in-15min\"; q=20; w=900; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 0,
+      "msg": "登录成功",
+      "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OGQyZDc4YTM4OWQwZjE0MDA1YmRmNDAiLCJ1c2VybmFtZSI6ImdvbGRlbl8zOTc3OSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzk0Mjg1MjQwLCJleHAiOjE3OTQ4OTAwNDB9.FsvQiDmQlTumhuLX2zDWin-hMzmLenuYzpm1LPKz9Tg",
+        "user": {
+          "id": "98d2d78a389d0f14005bdf40",
+          "username": "golden_39779",
+          "role": "user"
+        }
+      }
+    }
+  }
+}

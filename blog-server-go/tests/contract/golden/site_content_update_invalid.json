@@ -1,0 +1,23 @@
+{
+  "id": "site_content_update_invalid",
+  "request": {
+    "method": "PUT",
+    "path": "/api/site-content/evaluation",
+    "auth": "admin",
+    "body": {
+      "value": ""
+    }
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 400,
+      "msg": "内容不能为空",
+      "data": null
+    }
+  }
+}

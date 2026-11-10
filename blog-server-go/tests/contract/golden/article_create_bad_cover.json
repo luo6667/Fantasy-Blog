@@ -1,0 +1,29 @@
+{
+  "id": "article_create_bad_cover",
+  "request": {
+    "method": "POST",
+    "path": "/api/articles",
+    "auth": "admin",
+    "body": {
+      "title": "cover test",
+      "excerpt": "cover test",
+      "content": "x",
+      "tags": [
+        "MySQL"
+      ],
+      "cover": "ftp://nope"
+    }
+  },
+  "response": {
+    "status": 400,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 400,
+      "msg": "cover: 封面图必须是合法 URL 或 /uploads/ 路径",
+      "data": null
+    }
+  }
+}

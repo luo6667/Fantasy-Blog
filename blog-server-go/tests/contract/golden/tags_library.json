@@ -1,0 +1,111 @@
+{
+  "id": "tags_library",
+  "request": {
+    "method": "GET",
+    "path": "/api/tags",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": [
+        {
+          "id": "6a6f52354a22dea36b776e9b",
+          "name": "CI/CD",
+          "count": 2
+        },
+        {
+          "id": "6a6f52354a22dea36b776e9f",
+          "name": "E2E",
+          "count": 0
+        },
+        {
+          "id": "6a6f52354a22dea36b776ea5",
+          "name": "Node.js",
+          "count": 3
+        },
+        {
+          "id": "6a6f52354a22dea36b776ea7",
+          "name": "React",
+          "count": 1
+        },
+        {
+          "id": "6a6f52354a22dea36b776eab",
+          "name": "TypeScript",
+          "count": 1
+        },
+        {
+          "id": "6a6f52354a22dea36b776ead",
+          "name": "工程化",
+          "count": 2
+        },
+        {
+          "id": "6a6f52354a22dea36b776eaf",
+          "name": "性能优化",
+          "count": 1
+        },
+        {
+          "id": "6a6f52354a22dea36b776eb3",
+          "name": "设计系统",
+          "count": 0
+        },
+        {
+          "id": "6a6f52354a22dea36b776eb5",
+          "name": "部署",
+          "count": 0
+        },
+        {
+          "id": "6a74477d909f8a19196f72a9",
+          "name": "网络",
+          "count": 2
+        },
+        {
+          "id": "6a75e1570ad4d6c0ec98eca6",
+          "name": "HTTP",
+          "count": 1
+        },
+        {
+          "id": "6a75e1570ad4d6c0ec98eca9",
+          "name": "WebSocket",
+          "count": 1
+        },
+        {
+          "id": "6a75e1570ad4d6c0ec98ecaf",
+          "name": "流式传输",
+          "count": 1
+        },
+        {
+          "id": "6a75e3f981e9a1ec314c5d36",
+          "name": "JavaScript",
+          "count": 1
+        },
+        {
+          "id": "6a75e3f981e9a1ec314c5d39",
+          "name": "前端生态",
+          "count": 1
+        },
+        {
+          "id": "6a75e3f981e9a1ec314c5d3f",
+          "name": "Express",
+          "count": 1
+        },
+        {
+          "id": "6a75e3f981e9a1ec314c5d43",
+          "name": "MongoDB",
+          "count": 1
+        },
+        {
+          "id": "6a75e3f981e9a1ec314c5d46",
+          "name": "MySQL",
+          "count": 1
+        }
+      ]
+    }
+  }
+}

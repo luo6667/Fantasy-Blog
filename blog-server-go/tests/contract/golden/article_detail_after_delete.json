@@ -1,0 +1,20 @@
+{
+  "id": "article_detail_after_delete",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles/630228920790b156a92466d8",
+    "auth": "none"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 404,
+      "msg": "Article not found",
+      "data": null
+    }
+  }
+}

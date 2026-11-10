@@ -1,0 +1,29 @@
+{
+  "id": "ai_settings_save",
+  "request": {
+    "method": "PUT",
+    "path": "/api/ai/settings",
+    "auth": "admin",
+    "body": {
+      "baseURL": "http://127.0.0.1:4009/v1",
+      "apiKey": "sk-golden",
+      "model": "golden-model"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "AI 设置已保存",
+      "data": {
+        "baseURL": "http://127.0.0.1:4009/v1",
+        "model": "golden-model",
+        "hasKey": true
+      }
+    }
+  }
+}

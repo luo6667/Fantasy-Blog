@@ -1,0 +1,25 @@
+{
+  "id": "register_duplicate",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/register",
+    "auth": "none",
+    "body": {
+      "username": "golden_39779",
+      "password": "User@12345"
+    }
+  },
+  "response": {
+    "status": 409,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"20-in-15min\"; q=20; w=900; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 409,
+      "msg": "该用户名已被占用",
+      "data": null
+    }
+  }
+}

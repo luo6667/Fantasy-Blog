@@ -1,0 +1,41 @@
+{
+  "id": "articles_by_tag",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles?tag=React",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "list": [
+          {
+            "id": "6a75e3f981e9a1ec314c5d4a",
+            "title": "React 19 来了：一文读懂新一代 React 的核心新特性",
+            "excerpt": "多年磨一剑的大版本更新。从 Actions、use() 到 React Compiler，React 19 带来了哪些改变开发体验的关键能力？",
+            "tags": [
+              "React"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-08-07T13:57:54.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          }
+        ],
+        "total": 1,
+        "page": 1,
+        "pageSize": 10
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "rate_limit_11",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/login",
+    "auth": "none",
+    "body": {
+      "username": "nobody",
+      "password": "wrong-password"
+    }
+  },
+  "response": {
+    "status": 429,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff",
+      "ratelimit-policy": "\"20-in-15min\"; q=20; w=900; pk=:MTJjYTE3YjQ5YWYy:"
+    },
+    "json": {
+      "code": 429,
+      "msg": "尝试过于频繁，请 15 分钟后再试",
+      "data": null
+    }
+  }
+}

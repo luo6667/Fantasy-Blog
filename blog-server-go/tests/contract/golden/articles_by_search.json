@@ -1,0 +1,72 @@
+{
+  "id": "articles_by_search",
+  "request": {
+    "method": "GET",
+    "path": "/api/articles?search=React",
+    "auth": "none"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json; charset=utf-8",
+      "x-content-type-options": "nosniff"
+    },
+    "json": {
+      "code": 0,
+      "msg": "success",
+      "data": {
+        "list": [
+          {
+            "id": "6a75e3f981e9a1ec314c5d4a",
+            "title": "React 19 来了：一文读懂新一代 React 的核心新特性",
+            "excerpt": "多年磨一剑的大版本更新。从 Actions、use() 到 React Compiler，React 19 带来了哪些改变开发体验的关键能力？",
+            "tags": [
+              "React"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-08-07T13:57:54.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d4d",
+            "title": "JavaScript 核心语法与异步编程：从 ES6 到 async/await",
+            "excerpt": "变量、解构、Promise、事件循环……把 JavaScript 最重要的语言特性与异步模型一次性讲清楚，适合系统梳理。",
+            "tags": [
+              "JavaScript"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-08-07T13:57:54.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          },
+          {
+            "id": "6a75e3f981e9a1ec314c5d53",
+            "title": "前端常用库盘点：状态、数据、动画与样式（附本项目实践）",
+            "excerpt": "TanStack Query 管服务端状态、Zustand 管客户端状态、Framer Motion 做动画、Tailwind 写样式……本文用一个真实项目的选型讲清楚它们各管什么。",
+            "tags": [
+              "前端生态",
+              "工程化"
+            ],
+            "date": "2026-08-07",
+            "createdAt": "2026-08-07T13:56:09.000Z",
+            "updatedAt": "2026-08-07T13:58:51.000Z",
+            "likes": 0,
+            "favorites": 0,
+            "likedByMe": false,
+            "favoritedByMe": false
+          }
+        ],
+        "total": 3,
+        "page": 1,
+        "pageSize": 10
+      }
+    }
+  }
+}
