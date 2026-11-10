@@ -3,18 +3,9 @@
 import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
 
-import ArticleAiAssistant from '@/components/ai/ArticleAiAssistant';
-import SelectionAiPopover from '@/components/ai/SelectionAiPopover';
-import AuthModal from '@/components/auth/AuthModal';
-import CommentSection from '@/components/comment/CommentSection';
 import { BgOrbs, MdxContent, Reveal, SafeImg, Tag } from '@/components/common';
-import {
-  useArticleDetailQuery,
-  useArticleLikeMutation,
-  useDeleteArticleMutation,
-} from '@/hooks/queries';
+import { useArticleDetailQuery, useDeleteArticleMutation } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { fadeUp, springHero } from '@/lib/motion';
 import type { ArticleDetail } from '@/types/api';
@@ -26,7 +17,7 @@ import type { ArticleDetail } from '@/types/api';
  * 无 initialArticle（构建期后端不可用等降级场景）时由 useArticleDetailQuery
  * 客户端加载，含加载 / 失败（404）状态。
  * 正文通过 MdxContent 运行时渲染，支持 Markdown / 图片 / 表格等。
- * 管理员登录后显示「编辑 / 删除」按钮。
+ * 标签区展示唯一主标签与自由子标签；管理员登录后显示「编辑 / 删除」按钮。
  */
 export default function BlogDetail({
   initialArticle = null,
@@ -36,14 +27,10 @@ export default function BlogDetail({
   const params = useParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const router = useRouter();
-  const { user, isAdmin } = useAuth();
-  const [authOpen, setAuthOpen] = useState(false);
-  /** 正文容器 ref（划词 AI 只对正文内划选生效） */
-  const contentRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = useAuth();
 
   const { data: article, isLoading: loading, error } = useArticleDetailQuery(id, initialArticle);
   const deleteArticle = useDeleteArticleMutation();
-  const likeArticle = useArticleLikeMutation(id);
   const errorMessage = error?.message ?? deleteArticle.error?.message;
 
   /** 删除文章（管理员，确认后返回列表） */
@@ -56,13 +43,6 @@ export default function BlogDetail({
     } catch {
       /* 错误已通过 errorMessage 展示 */
     }
-  }
-
-  /** 未登录时打开登录弹窗 */
-  function requireLogin(): boolean {
-    if (user) return true;
-    setAuthOpen(true);
-    return false;
   }
 
   return (
@@ -138,26 +118,13 @@ export default function BlogDetail({
                     {article.excerpt}
                   </motion.p>
                 )}
-                <div className="mb-8 flex flex-wrap gap-1.5">
-                  {article.tags.map((t) => (
-                    <Tag key={t}>{t}</Tag>
+                <div className="mb-8 flex flex-wrap items-center gap-1.5">
+                  <Tag variant="accent">{article.primaryTag.name}</Tag>
+                  {article.subTags.map((t) => (
+                    <Tag key={t} variant="outline">
+                      {t}
+                    </Tag>
                   ))}
-                </div>
-
-                {/* 点赞 / 收藏（登录后可操作） */}
-                <div className="mb-8 flex flex-wrap items-center gap-2 text-sm">
-                  <button
-                    type="button"
-                    disabled={likeArticle.isPending}
-                    onClick={() => { if (requireLogin()) likeArticle.mutate(); }}
-                    className={`cursor-pointer rounded-full border px-3.5 py-1.5 transition-colors disabled:opacity-50 ${
-                      article.likedByMe
-                        ? 'border-red-400/60 bg-red-500/10 text-red-500'
-                        : 'border-[var(--color-border)] text-text-muted hover:border-red-400 hover:text-red-500'
-                    }`}
-                  >
-                    <i className={`iconfont2 icon-dianzan ${article.likedByMe ? '' : 'opacity-60'}`} /> 点赞 {String(article.likes)}
-                  </button>
                 </div>
 
                 {article.cover && (
@@ -167,38 +134,12 @@ export default function BlogDetail({
                     className="mb-8 aspect-video w-full rounded-lg border border-[var(--color-border-light)]"
                   />
                 )}
-                <div ref={contentRef}>
-                  <MdxContent html={article.contentHtml} />
-                </div>
+                <MdxContent html={article.contentHtml} />
               </article>
-
-              {/* 智能助手（AI 一键总结 + 追问） */}
-              <ArticleAiAssistant
-                title={article.title}
-                excerpt={article.excerpt}
-                content={article.content}
-                onRequireLogin={() => { setAuthOpen(true); }}
-              />
-
-              {/* 划词 AI（划选正文段落 / 术语 / 代码进行解释） */}
-              {article.contentHtml && (
-                <SelectionAiPopover
-                  containerRef={contentRef}
-                  title={article.title}
-                  excerpt={article.excerpt}
-                  onRequireLogin={() => { setAuthOpen(true); }}
-                />
-              )}
-
-              {/* 评论区 */}
-              <CommentSection articleId={article.id} />
             </Reveal>
           )}
         </div>
       </section>
-
-      {/* 登录弹窗（点赞/收藏需登录） */}
-      <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
     </main>
   );
 }

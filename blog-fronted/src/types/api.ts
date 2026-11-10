@@ -9,25 +9,26 @@ export interface ApiEnvelope<T> {
   data: T;
 }
 
+/** 主标签（文章唯一的分类标签） */
+export interface PrimaryTag {
+  id: string;
+  name: string;
+}
+
 /** 文章列表项（不含正文） */
 export interface ArticleListItem {
   id: string;
   title: string;
   excerpt: string;
-  tags: string[];
+  /** 主标签：每篇文章必须且只能有一个 */
+  primaryTag: PrimaryTag;
+  /** 子标签：文章内自由维护的字符串，仅用于展示与检索 */
+  subTags: string[];
   cover?: string;
   /** 发布日期 YYYY-MM-DD */
   date: string;
   createdAt: string;
   updatedAt: string;
-  /** 点赞数 */
-  likes: number;
-  /** 收藏数 */
-  favorites: number;
-  /** 当前登录用户是否已点赞（未登录恒为 false） */
-  likedByMe: boolean;
-  /** 当前登录用户是否已收藏（未登录恒为 false） */
-  favoritedByMe: boolean;
 }
 
 /** 文章详情（含正文） */
@@ -46,28 +47,18 @@ export interface PaginatedResult<T> {
   pageSize: number;
 }
 
-/** 标签及文章数（博客页筛选栏用） */
-export interface TagCount {
-  name: string;
-  count: number;
-}
-
-/** 标签库标签项 */
+/** 标签库标签项（主标签 + 使用该标签的文章数） */
 export interface TagItem {
   id: string;
   name: string;
-  /** 使用该标签的文章数 */
   count: number;
 }
 
-/** 身份角色 */
-export type UserRole = 'user' | 'admin';
-
-/** 登录用户信息 */
+/** 登录用户信息（仅管理员） */
 export interface AuthUser {
   id: string;
   username: string;
-  role: UserRole;
+  role: 'admin';
 }
 
 /** 登录响应 */
@@ -76,31 +67,15 @@ export interface LoginResult {
   user: AuthUser;
 }
 
-/** 评论项（含点赞状态） */
-export interface CommentItem {
-  id: string;
-  articleId: string;
-  /** 父评论 id；一级评论为 null */
-  parentId: string | null;
-  authorName: string;
-  authorType: UserRole;
-  /** 被回复者名字（一级评论为 null），用于「谁回复谁」展示 */
-  replyToName: string | null;
-  content: string;
-  likes: number;
-  /** 当前登录用户是否已点赞 */
-  likedByMe: boolean;
-  /** 当前登录用户是否为作者本人 */
-  mine: boolean;
-  createdAt: string;
-}
-
 /** 创建/更新文章请求体 */
 export interface ArticleInput {
   title: string;
   excerpt: string;
   content: string;
-  tags: string[];
+  /** 主标签 id（必填） */
+  primaryTagId: string;
+  /** 子标签（可空，后端会 trim/去重） */
+  subTags: string[];
   cover?: string;
 }
 
@@ -110,47 +85,6 @@ export interface UploadResult {
   filename: string;
   size: number;
   mimetype: string;
-}
-
-/** 通知类型：评论文章 / 回复评论 / 点赞文章 / 收藏文章 / 新文章发布 */
-export type NotificationType = 'comment' | 'reply' | 'like' | 'favorite' | 'article';
-
-/** 通知项 */
-export interface NotificationItem {
-  id: string;
-  type: NotificationType;
-  /** 触发者 */
-  actorName: string;
-  actorType: UserRole;
-  /** 关联文章 */
-  articleId?: string;
-  articleTitle?: string;
-  /** 评论/回复内容（comment/reply 类型） */
-  commentContent?: string;
-  read: boolean;
-  createdAt: string;
-}
-
-/** 用户管理项（管理员后台列表） */
-export interface UserManageItem {
-  id: string;
-  username: string;
-  createdAt: string;
-  /** 评论数（含回复） */
-  commentCount: number;
-}
-
-/** AI 配置（管理后台；apiKey 不回传明文，仅 hasKey 表示是否已配置） */
-export interface AiSettings {
-  baseURL: string;
-  model: string;
-  hasKey: boolean;
-}
-
-/** AI 对话消息（OpenAI 兼容） */
-export interface AiChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
 }
 
 /** 站点内容 key：简历页 4 块 + 首页精选项目 + 规划页路线图 */

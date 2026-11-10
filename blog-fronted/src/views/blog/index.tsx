@@ -7,12 +7,12 @@ import { useEffect, useState } from 'react';
 import { BgOrbs, CursorGlow, Reveal, SafeImg, Tag } from '@/components/common';
 import {
   useArticleListInfiniteQuery,
-  useArticleTagsQuery,
   useDeleteArticleMutation,
+  useTagsQuery,
 } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { fadeUp, springHero } from '@/lib/motion';
-import type { ArticleListItem, PaginatedResult, TagCount } from '@/types/api';
+import type { ArticleListItem, PaginatedResult, TagItem } from '@/types/api';
 
 /**
  * 博客列表页
@@ -30,7 +30,7 @@ export default function Blog({
   initialTags,
 }: {
   initialArticles?: PaginatedResult<ArticleListItem> | null;
-  initialTags?: TagCount[] | null;
+  initialTags?: TagItem[] | null;
 }) {
   const { isAdmin } = useAuth();
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export default function Blog({
     search,
     !activeTag && !search ? initialArticles : null,
   );
-  const { data: tags = [] } = useArticleTagsQuery(initialTags);
+  const { data: tags = [] } = useTagsQuery(initialTags);
   const deleteArticle = useDeleteArticleMutation();
 
   // 无限分页：合并所有已加载页；每页 10 篇
@@ -254,9 +254,12 @@ export default function Blog({
                 <p className="mb-2 text-[0.8125rem] leading-[1.5] text-text-muted">
                   {post.excerpt}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {post.tags.map((t) => (
-                    <Tag key={t} hoverY={-1}>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Tag variant="accent" hoverY={-1}>
+                    {post.primaryTag.name}
+                  </Tag>
+                  {post.subTags.map((t) => (
+                    <Tag key={t} variant="outline" hoverY={-1}>
                       {t}
                     </Tag>
                   ))}

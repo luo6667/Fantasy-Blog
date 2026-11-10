@@ -28,7 +28,8 @@
 
 - `tags`（JSON 数组）→ 拆分为 `primaryTagId` + `subTags` 后删除。
 - `likedBy`、`favoritedBy`、`likes`、`favorites` → 点赞/收藏功能移除。
-- 保留：`id`、`title`、`excerpt`、`content`、`contentHtml`、`cover`、`authorType`、`authorId`、`authorName`、`createdAt`、`updatedAt`（作者的改动最小化，历史文章仍保留作者信息）。
+- `authorType`、`authorId`、`authorName` 一并删除（只保留管理员发布，文章不再记录作者）。
+- 保留：`id`、`title`、`excerpt`、`content`、`contentHtml`、`cover`、`createdAt`、`updatedAt`。
 
 ### 2.3 后端路由（移除后应 404）
 
@@ -51,7 +52,7 @@
 ### 2.5 前端代码（随后续任务删除）
 
 - 组件目录：`components/ai/`、`components/comment/`、`components/notification/`、`components/auth/`（改为管理员登录后整体移除）
-- 视图：`views/admin/{AiSettings,UserManager,UserPanel,LoginForm}.tsx`
+- 视图：`views/admin/{AiSettings,UserManager,UserPanel}.tsx`（`LoginForm` 保留并重写为管理员登录）
 - hooks：`useAiStream.ts`、`useCommentQueries`、`useSocialQueries`、通知相关查询
 - API 客户端：`auth.register`、`auth.login(role,…)`、`comments.*`、`notifications.*`、`users.*`、`ai.*`、`articles.like`
 - 类型：`CommentItem`、`NotificationItem`、`UserManageItem`、`AiSettings`、`AiChatMessage` 等
@@ -89,3 +90,17 @@
 2. 全量备份并验证恢复（同第 1 节流程）。
 3. 维护窗口内执行迁移；出现管理员无法登录或文章不可访问时从备份恢复。
 4. 禁止 `AutoMigrate`、手工直接删生产表或跳过核对表。
+
+## 5. 本地执行记录（2026-11-10）
+
+- 执行方式：`migrations/0001_blog_redesign.sql` 经 `bin/server.exe migrate` 应用。
+- 触发说明：在准备冒烟脚本时，脚本里的环境变量换行被 CRLF 破坏，导致 `MYSQL_DATABASE`
+  未生效、迁移实际落在了本地 `jianli`（而非临时库）。该库当时已有
+  `backups/2026-11-10-pre-redesign.sql` 全量备份，且迁移结果符合本核对表，故保留。
+- 执行结果：`articles` 12 行、`primaryTagId` 悬空 0 条；主标签分布
+  前端 4 / HTTP 3 / 后端 2 / 数据库 2 / 工程化 1（`CI/CD`、`AIAgent` 计数 0，保留）；
+  剩余表：`admins`、`articles`、`schema_migrations`、`site_contents`、`tags`；
+  `site_contents` 6 个 key（含 `plan`）。
+- 管理员账号未改动（迁移不触碰 `admins`），原密码仍可登录。
+- 回滚：`mysql jianli < backups/2026-11-10-pre-redesign.sql` 可将数据恢复到迁移前状态
+  （会同时恢复 comments/users/notifications/ai_configs 与旧 `tags` 列）。

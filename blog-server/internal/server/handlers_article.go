@@ -62,7 +62,7 @@ func validateArticle(req *articleRequest, partial bool) (*service.CreateArticleI
 	}
 	if req.PrimaryTagID == nil {
 		if !partial {
-			issues = append(issues, httpx.Issue{Path: "primaryTagId", Message: "Required"})
+			issues = append(issues, httpx.Issue{Path: "primaryTagId", Message: "请选择主标签"})
 		}
 	} else if id, issue := requiredString(req.PrimaryTagID, "primaryTagId", "请选择主标签", 24, "主标签不合法"); issue != nil {
 		issues = append(issues, *issue)
@@ -71,25 +71,30 @@ func validateArticle(req *articleRequest, partial bool) (*service.CreateArticleI
 		upd.PrimaryTagID = &id
 	}
 	if req.SubTags != nil {
-		subs := *req.SubTags
-		if len(subs) > 20 {
+		// 子标签是自由字符串：先 trim、去空、去重，再校验数量与长度。
+		normalized := make([]string, 0, len(*req.SubTags))
+		seen := make(map[string]struct{}, len(*req.SubTags))
+		for _, t := range *req.SubTags {
+			v := strings.TrimSpace(t)
+			if v == "" {
+				continue
+			}
+			if _, ok := seen[v]; ok {
+				continue
+			}
+			seen[v] = struct{}{}
+			normalized = append(normalized, v)
+		}
+		if len(normalized) > 20 {
 			issues = append(issues, httpx.Issue{Path: "subTags", Message: "子标签最多 20 个"})
 		} else {
-			normalized := make([]string, 0, len(subs))
 			bad := false
-			for _, t := range subs {
-				v := strings.TrimSpace(t)
-				if v == "" {
-					issues = append(issues, httpx.Issue{Path: "subTags", Message: "子标签不能为空"})
-					bad = true
-					continue
-				}
+			for _, v := range normalized {
 				if jsLen(v) > 32 {
 					issues = append(issues, httpx.Issue{Path: "subTags", Message: "单个子标签最多 32 个字符"})
 					bad = true
-					continue
+					break
 				}
-				normalized = append(normalized, v)
 			}
 			if !bad {
 				out.SubTags = normalized

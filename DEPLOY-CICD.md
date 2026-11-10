@@ -3,7 +3,9 @@
 > 面向本仓库的**自动化部署**：`push main` 即上线，支持一键回滚，失败自动退回上一版。
 > 架构沿用现有线上形态（Nginx → Next.js `next start` :3000 → Express :4000 → MySQL），**不引入 Docker、不改 Nginx 结构**。
 >
-> ⚠️ 后端已迁移为 Go（提交 `87def6e`），下文 Express 构建/启动步骤待更新。
+> ⚠️ 后端已迁移为 Go（提交 `87def6e`），且博客已改为管理员专用（评论/通知/AI 已移除）。
+> 下文 Express + PM2 的构建/启动步骤**尚未更新**（属后续任务）；Go 版的 systemd 示例与
+> 发布/回滚清单见 [`blog-server/deploy/`](./blog-server/deploy/)。
 > 手工部署流程见 [DEPLOYMENT.md](./DEPLOYMENT.md)；本文只讲「有了这套流水线之后怎么用」。
 
 ---

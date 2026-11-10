@@ -8,7 +8,7 @@ import {
 
 import { articleApi } from '@/lib/api';
 import { articleKeys, tagKeys } from '@/lib/queryKeys';
-import type { ArticleDetail, ArticleInput, ArticleListItem, PaginatedResult, TagCount } from '@/types/api';
+import type { ArticleDetail, ArticleInput, ArticleListItem, PaginatedResult } from '@/types/api';
 
 /**
  * 📘 hooks/queries/useArticleQueries.ts —— 文章查询/变更 Hooks（技术栈：TanStack Query）
@@ -16,14 +16,12 @@ import type { ArticleDetail, ArticleInput, ArticleListItem, PaginatedResult, Tag
  * 博客列表页、详情页、管理页、编辑器共用的数据层：
  * - 列表查询 key 统一，管理页与博客页共享 pageSize=50 的同一份缓存；
  * - 详情 key 统一，详情页与编辑器（编辑模式）共享缓存；
- * - SSG 预渲染：列表/详情/标签的初始数据由 page.tsx 服务端取数后经 props 注入，
- *   用 placeholderData 预填——首屏直出、不发请求，且不触发 TanStack Query 的
- *   data/isLoading 类型收窄（避免 loading/空列表分支被判定为死代码）；
- * - 增删改走 useMutation，成功后 invalidateQueries 相关 key，页面自动刷新，
- *   无需手动 refetch。
+ * - SSG 预渲染：列表/详情的初始数据由 page.tsx 服务端取数后经 props 注入，
+ *   用 placeholderData 预填——首屏直出、不发请求；
+ * - 增删改走 useMutation，成功后 invalidateQueries 相关 key，页面自动刷新。
  */
 
-/** 文章分页列表（支持标签筛选与关键字搜索；切换时保留上一份数据避免闪烁） */
+/** 文章分页列表（支持主标签筛选与关键字搜索；切换时保留上一份数据避免闪烁） */
 export function useArticleListQuery(tag: string | null = null, search = '') {
   return useQuery({
     queryKey: [...articleKeys.list(tag), 'search', search],
@@ -61,23 +59,12 @@ export function useArticleListInfiniteQuery(
   });
 }
 
-/** 标签计数（博客页筛选栏；initialData 为 SSG 预渲染的标签） */
-export function useArticleTagsQuery(initialData?: TagCount[] | null) {
-  return useQuery({
-    queryKey: articleKeys.tags,
-    queryFn: articleApi.tags,
-    placeholderData: initialData ?? undefined,
-  });
-}
-
 /** 文章详情（id 为空时禁用请求；initialData 为 SSG 预渲染的正文，命中后首屏直出） */
 export function useArticleDetailQuery(id: string | undefined, initialData?: ArticleDetail | null) {
   return useQuery({
     queryKey: articleKeys.detail(id ?? ''),
     queryFn: () => articleApi.detail(id as string),
     enabled: Boolean(id),
-    // placeholderData 而非 initialData：首屏直出不发请求，且不触发 data/isLoading 类型收窄；
-    // staleTime 5 分钟内不重复请求，过期后静默 refetch 刷新点赞数等
     placeholderData: initialData ?? undefined,
     staleTime: 300_000,
   });
@@ -90,7 +77,6 @@ export function useCreateArticleMutation() {
     mutationFn: (input: ArticleInput) => articleApi.create(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: articleKeys.all });
-      void queryClient.invalidateQueries({ queryKey: articleKeys.tags });
       void queryClient.invalidateQueries({ queryKey: tagKeys.all });
     },
   });
@@ -105,13 +91,12 @@ export function useUpdateArticleMutation() {
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: articleKeys.all });
       void queryClient.invalidateQueries({ queryKey: articleKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: articleKeys.tags });
       void queryClient.invalidateQueries({ queryKey: tagKeys.all });
     },
   });
 }
 
-/** 删除文章（列表、详情与标签计数都会变化） */
+/** 删除文章（列表、详情与主标签计数都会变化） */
 export function useDeleteArticleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -119,7 +104,6 @@ export function useDeleteArticleMutation() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: articleKeys.all });
       void queryClient.invalidateQueries({ queryKey: ['article'] });
-      void queryClient.invalidateQueries({ queryKey: articleKeys.tags });
       void queryClient.invalidateQueries({ queryKey: tagKeys.all });
     },
   });
