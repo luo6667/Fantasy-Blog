@@ -4,6 +4,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
@@ -27,8 +28,12 @@ func Open(cfg *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	// 连接池：保留空闲连接避免每个请求都重新握手；限制生命周期防止被 MySQL 单方面断开。
+	// 之前 MaxIdleConns(0) 会在并发下不断新建 TCP 连接，压测时直接耗尽本机临时端口。
 	sqlDB.SetMaxOpenConns(10)
-	sqlDB.SetMaxIdleConns(0)
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 	if err := sqlDB.Ping(); err != nil {
 		return nil, err
 	}
