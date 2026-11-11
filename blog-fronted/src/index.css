@@ -5,8 +5,8 @@
    CSS Custom Properties (设计令牌)
    ========================================== */
 :root {
-  --color-accent: #d9774a;
-  --color-accent-soft: rgba(217, 119, 74, 0.1);
+  --color-accent: #1646b8;
+  --color-accent-soft: rgba(22, 70, 184, 0.1);
   --color-bg: #faf9f7;
   --color-bg-alt: #f5f2ee;
   --color-surface: #ffffff;
@@ -28,8 +28,8 @@
 }
 
 [data-theme="dark"] {
-  --color-accent: #d9895e;
-  --color-accent-soft: rgba(217, 137, 94, 0.12);
+  --color-accent: #8fa9ff;
+  --color-accent-soft: rgba(143, 169, 255, 0.14);
   --color-bg: #1d1b19;
   --color-bg-alt: #252320;
   --color-surface: #2a2825;
@@ -116,19 +116,6 @@
 /* ==========================================
    打印样式
    ========================================== */
-/* ==========================================
-   首页壁纸海报（移动端换小图，降低首屏 LCP 体积）
-   ========================================== */
-.hero-wallpaper {
-  background-image: url('/media/hero-poster.jpg');
-}
-
-@media (max-width: 860px) {
-  .hero-wallpaper {
-    background-image: url('/media/hero-poster-sm.jpg');
-  }
-}
-
 @media print {
   .nav, .site-footer { display: none !important; }
   body { font-size: 11pt; color: #000; background: #fff; }

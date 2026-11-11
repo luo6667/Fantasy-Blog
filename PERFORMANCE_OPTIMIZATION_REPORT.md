@@ -34,7 +34,7 @@
 | --- | --- |
 | `blog-fronted/src/components/common/BgOrbs/index.tsx` | 去掉 3 个光晕的 `blur-[120px]`，改为静态径向渐变（`radial-gradient` + `color-mix`）；动画只保留 transform，不再让浏览器每帧重算大模糊层 |
 | `blog-fronted/src/components/common/CursorGlow/index.tsx` | 不再用 `useMotionTemplate` 每帧生成 `radial-gradient` 背景；改为固定尺寸光斑用 spring 的 `x/y` transform 跟随鼠标 |
-| `blog-fronted/src/app/(site)/layout.tsx` | 首页壁纸视频本地化；首屏只展示 CSS 海报（`hero-poster-sm.jpg` 17.9 KB），视频在用户首次 `pointermove/scroll/wheel/touchstart` 后再挂载 |
+| `blog-fronted/src/app/(site)/layout.tsx` | 首页壁纸视频已移除（2026-11 杂志版首页改为纯排版，无视频/海报请求）；布局只保留 Nav + 内容 + Footer |
 | `blog-fronted/src/lib/motion.ts` | `fadeUp` 由「opacity + blur(6px) + y」改为只动 `y`：首屏文字在 HTML 里立即可见，不再把 LCP 拖到 hydration 之后，也去掉大字号模糊动画 |
 | `blog-fronted/src/app/(site)/layout.tsx` | 删除整页路由切换的 `opacity: 0 → 1` 包裹 |
 | `blog-fronted/src/views/blog/index.tsx` | 列表项去掉 `Reveal` + `opacity/x` 入场，只保留 hover 位移；首屏列表立即可见、DOM 动画层更少 |
@@ -43,8 +43,7 @@
 
 | 文件 | 改动 |
 | --- | --- |
-| `public/media/hero-loop.mp4` | 远程 5,001,221 B（1920×1080/30fps/4 Mbps）→ 本地 607 KB（1280×720/24fps/x264 CRF31/无音轨/faststart） |
-| `public/media/hero-poster.jpg` / `hero-poster-sm.jpg` | 66 KB 桌面海报 / 17.9 KB 移动海报；`index.css` 的 `.hero-wallpaper` 在 ≤860px 时换小图 |
+| `public/media/hero-*` | 已随杂志版首页删除（历史优化曾把 5,001,221 B 远程视频转成 607 KB 本地循环视频，现不再请求视频） |
 | `views/admin/ArticleEditor.tsx` | `MdxPreview` 改为 `next/dynamic({ ssr: false })`，unified/remark/rehype（44.5 KB gzip）只在点开预览时加载 |
 | `views/blog/index.tsx`、`views/blog-detail/index.tsx`、`views/admin/ArticleEditor.tsx` | `SafeImg` 补 `sizes`；详情封面加 `priority` |
 
