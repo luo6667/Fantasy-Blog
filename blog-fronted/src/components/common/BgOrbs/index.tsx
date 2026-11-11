@@ -48,11 +48,15 @@ const dots = [
   { delay: 5, size: 4, left: '10%', top: '55%', z: -45 },
 ];
 
+/** 大光晕的柔边渐变：用径向渐变换掉 120px 高斯模糊，避免大图层反复栅格化 */
+const orbGradient =
+  'radial-gradient(circle at 50% 50%, var(--color-accent) 0%, color-mix(in srgb, var(--color-accent) 45%, transparent) 38%, transparent 70%)';
+
 /**
  * 背景 3D 装饰组件
  *
- * 大光晕带 3D 旋转 + 小光点漂浮在不同深度，
- * 极低透明度 + GPU 合成，不影响内容阅读。
+ * 大光晕用渐变模拟柔光 + 3D 旋转，小光点漂浮在不同深度；
+ * 只动 transform / opacity，全部交给合成层，不触发重绘。
  */
 export default function BgOrbs() {
   return (
@@ -64,8 +68,14 @@ export default function BgOrbs() {
       {orbs.map((o, i) => (
         <motion.div
           key={`orb-${String(i)}`}
-          className="absolute rounded-full bg-accent opacity-[0.07] blur-[120px] will-change-transform"
-          style={{ width: o.size, height: o.size, left: o.x, top: o.y }}
+          className="absolute rounded-full opacity-[0.09] will-change-transform"
+          style={{
+            width: o.size,
+            height: o.size,
+            left: o.x,
+            top: o.y,
+            background: orbGradient,
+          }}
           animate={{
             x: [0, 30, -20, 15, 0],
             y: [0, -25, 20, -15, 0],

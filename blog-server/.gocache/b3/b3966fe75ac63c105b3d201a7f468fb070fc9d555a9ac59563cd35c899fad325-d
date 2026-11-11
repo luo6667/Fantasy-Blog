@@ -1,9 +1,0 @@
-./handlers_ai.go
-./handlers_article.go
-./handlers_auth.go
-./handlers_comment.go
-./handlers_misc.go
-./handlers_sitecontent.go
-./handlers_upload.go
-./server.go
-./validate.go

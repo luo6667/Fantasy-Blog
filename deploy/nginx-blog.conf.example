@@ -1,11 +1,18 @@
 # blog 站点 Nginx 参考配置（宝塔用户：把「网站 → 配置文件」里自动生成的
-# location / 段整段替换成本文件里的 location / 段；证书路径用宝塔申请的即可）
+# location / 段整段替换成本文件里的 upstream + location 段；证书路径用宝塔申请的即可）
 #
 # 要点：
 #   1. 整站反代到 Next.js 的 3000 端口即可 —— /api 与 /uploads 由 next.config.ts
 #      的 rewrites 内部转发到 4000，Nginx 不需要按路径分发；
-#   2. proxy_buffering off：AI 对话是 SSE 流式输出，被缓冲会变成「一次性吐完」或卡住；
-#   3. 4000 端口不要对外开放，只允许 127.0.0.1。
+#   2. upstream 开 keepalive：避免每个请求都重新和 Node 建连；
+#   3. /_next/static 与 /uploads 内容寻址/文件名唯一，缓存一年 immutable；
+#      HTML 与 /api 不缓存（ISR 的缓存由 Next 自己 + 后端 on-demand revalidate 控制）；
+#   4. 4000 端口不要对外开放，只允许 127.0.0.1。
+
+upstream blog_next {
+    server 127.0.0.1:3000;
+    keepalive 32;
+}
 
 server {
     listen 80;
@@ -34,27 +41,57 @@ server {
     access_log /www/wwwlogs/jasonluoblog.online.log;
     error_log  /www/wwwlogs/jasonluoblog.online.error.log;
 
+    # 文本资源统一 gzip；若装了 brotli 模块，可再加 `brotli on; brotli_types ...;`
+    gzip on;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types text/plain text/css application/javascript application/json
+               application/manifest+json image/svg+xml text/xml application/xml;
+
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://blog_next;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # SSE（AI 流式对话）不能被缓冲
-        proxy_buffering off;
-        proxy_read_timeout 120s;
-
-        # 保持到上游的长连接；注意不要写 $connection_upgrade（需要额外 map，宝塔里容易漏）
+        # 复用 upstream keepalive 连接
         proxy_set_header Connection "";
+        proxy_read_timeout 30s;
     }
 
-    # 静态资源长缓存：Next 产物带内容哈希，可安全缓存一年
+    # Next 产物带内容哈希：缓存一年
     location /_next/static/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://blog_next;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
+        proxy_set_header Connection "";
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }
+
+    # 上传图片文件名唯一（时间戳 + UUID）：缓存一年，并禁止 MIME 嗅探
+    location /uploads/ {
+        proxy_pass http://blog_next;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff";
+    }
+
+    # 管理端接口与写操作：不缓存
+    location /api/ {
+        proxy_pass http://blog_next;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+        add_header Cache-Control "no-store";
     }
 }

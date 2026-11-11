@@ -11,7 +11,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "analyze": "cross-env ANALYZE=true next build --webpack"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.0",
@@ -33,11 +34,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@next/bundle-analyzer": "^16.4.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "babel-plugin-react-compiler": "^1.0.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.2",
     "eslint-config-prettier": "^10.1.8",
@@ -46,6 +49,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "globals": "^17.11.0",
+    "lighthouse": "^13.6.0",
     "prettier": "^3.9.6",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",

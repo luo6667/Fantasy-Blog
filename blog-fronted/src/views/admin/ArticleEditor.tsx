@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { type ChangeEvent, type SyntheticEvent, useEffect, useRef, useState } from 'react';
@@ -13,7 +14,11 @@ import {
 } from '@/hooks/queries';
 import { uploadApi } from '@/lib/api';
 
-import MdxPreview from './MdxPreview';
+/** Markdown 预览链（unified/remark/rehype）只在切到预览时加载，不拖累编辑器首屏 */
+const MdxPreview = dynamic(() => import('./MdxPreview'), {
+  ssr: false,
+  loading: () => <p className="py-8 text-center text-text-muted">预览组件加载中…</p>,
+});
 
 const inputClass =
   'w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 outline-none transition-colors focus:border-accent';
@@ -307,7 +312,12 @@ export default function ArticleEditor() {
                 />
                 {cover && (
                   <span className="flex items-center gap-2 text-xs text-text-muted">
-                    <SafeImg src={cover} alt="封面预览" className="h-12 w-20 rounded" />
+                    <SafeImg
+                      src={cover}
+                      alt="封面预览"
+                      sizes="80px"
+                      className="h-12 w-20 rounded"
+                    />
                     <button
                       type="button"
                       onClick={() => { setCover(''); }}

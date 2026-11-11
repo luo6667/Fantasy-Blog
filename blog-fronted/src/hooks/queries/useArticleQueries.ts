@@ -56,6 +56,8 @@ export function useArticleListInfiniteQuery(
       last.list.length > 0 && allPages.length * 10 < last.total ? allPages.length + 1 : undefined,
     // placeholderData 而非 initialData：首屏直出不发请求，且不触发 data/isLoading 类型收窄
     placeholderData: initialData ? { pages: [initialData], pageParams: [1] } : undefined,
+    // 首屏数据来自 SSG 页面（ISR 一小时），挂载后立即重取只会造成重复请求
+    staleTime: 5 * 60_000,
   });
 }
 

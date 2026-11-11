@@ -1,8 +1,7 @@
 'use client';
 
-import { motion } from 'motion/react';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import ScrollProgress from '@/components/common/ScrollProgress';
 import Footer from '@/components/layout/Footer';
@@ -23,11 +22,25 @@ import { useTheme } from '@/hooks/useTheme';
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
+  const [videoReady, setVideoReady] = useState(false);
 
   // 路由切换时滚动到顶部（替代原 ScrollToTop 组件）
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  // 壁纸视频延后到用户首次交互（滚动/触摸/点击）后再挂载：
+  // - 首屏不下载、不解码视频，<video> 不会成为 LCP 候选，移动端也能更快出内容；
+  // - 用户开始浏览后视频自然接上，观感与「一直播放」几乎无差别。
+  useEffect(() => {
+    if (pathname !== '/home' || videoReady) return;
+    const startVideo = () => { setVideoReady(true); };
+    const events = ['pointerdown', 'pointermove', 'scroll', 'wheel', 'touchstart'] as const;
+    for (const e of events) window.addEventListener(e, startVideo, { once: true, passive: true });
+    return () => {
+      for (const e of events) window.removeEventListener(e, startVideo);
+    };
+  }, [pathname, videoReady]);
 
   return (
     <>
@@ -37,14 +50,27 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         {/* 动态壁纸视频 — 仅主页，覆盖内容区，底部渐变消失衔接 Footer */}
         {pathname === '/home' && (
           <>
-            <video
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.25]"
-              src="https://duoduowallpaper.fp.ps.netease.com/file/69bb8a28de0dcc60eb2d8269RP1ihqEK07"
-              autoPlay
-              loop
-              muted
-              playsInline
+            {/* 首屏先出静态海报（CSS 背景不参与 LCP 判定），空闲后再挂载视频 */}
+            <div
+              aria-hidden
+              className="hero-wallpaper pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.25]"
             />
+            {videoReady && (
+              <video
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.25]"
+                src="/media/hero-loop.mp4"
+                poster="/media/hero-poster.jpg"
+                preload="none"
+                autoPlay
+                loop
+                muted
+                playsInline
+                disablePictureInPicture
+                disableRemotePlayback
+                aria-hidden
+                tabIndex={-1}
+              />
+            )}
             {/* 渐变遮罩：顶部微遮保证可读 → 中段通透 → 底部渐隐衔接 Footer */}
             <div
               className="pointer-events-none absolute inset-0"
@@ -56,14 +82,8 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
             />
           </>
         )}
-        <motion.div
-          key={pathname}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2, ease: 'easeInOut' }}
-        >
-          {children}
-        </motion.div>
+        {/* 不做整页透明度入场：首屏内容要立刻可见，避免把 LCP 推迟到 hydration 之后 */}
+        <div key={pathname}>{children}</div>
       </div>
       <Footer />
     </>

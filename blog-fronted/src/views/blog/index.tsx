@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { BgOrbs, CursorGlow, Reveal, SafeImg, Tag } from '@/components/common';
+import { BgOrbs, CursorGlow, SafeImg, Tag } from '@/components/common';
 import {
   useArticleListInfiniteQuery,
   useDeleteArticleMutation,
@@ -199,15 +199,12 @@ export default function Blog({
 
           {/* 文章列表 */}
           {articles.map((post) => (
-            <Reveal key={post.id}>
-              <motion.article
-                className="group border-b border-[var(--color-border-light)] py-5 last:border-b-0"
-                initial={{ opacity: 0, x: -40 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ type: 'spring', stiffness: 80, damping: 22, mass: 0.5 }}
-                whileHover={{ x: 6, transition: { type: 'spring', stiffness: 400, damping: 18 } }}
-              >
+            <motion.article
+              key={post.id}
+              className="group border-b border-[var(--color-border-light)] py-5 last:border-b-0"
+              initial={false}
+              whileHover={{ x: 6, transition: { type: 'spring', stiffness: 400, damping: 18 } }}
+            >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <time className="mb-1 block text-xs text-text-muted">{post.date}</time>
@@ -227,6 +224,7 @@ export default function Blog({
                           <SafeImg
                             src={post.cover}
                             alt={post.title}
+                            sizes="80px"
                             className="h-14 w-20 rounded-lg border border-[var(--color-border-light)] transition-transform duration-300 group-hover:scale-105"
                           />
                         </Link>
@@ -265,7 +263,6 @@ export default function Blog({
                   ))}
                 </div>
               </motion.article>
-            </Reveal>
           ))}
 
           {/* 加载更多（还有下一页时显示） */}

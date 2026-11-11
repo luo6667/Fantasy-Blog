@@ -116,6 +116,19 @@
 /* ==========================================
    打印样式
    ========================================== */
+/* ==========================================
+   首页壁纸海报（移动端换小图，降低首屏 LCP 体积）
+   ========================================== */
+.hero-wallpaper {
+  background-image: url('/media/hero-poster.jpg');
+}
+
+@media (max-width: 860px) {
+  .hero-wallpaper {
+    background-image: url('/media/hero-poster-sm.jpg');
+  }
+}
+
 @media print {
   .nav, .site-footer { display: none !important; }
   body { font-size: 11pt; color: #000; background: #fff; }

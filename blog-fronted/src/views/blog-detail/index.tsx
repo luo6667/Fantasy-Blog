@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 
-import { BgOrbs, MdxContent, Reveal, SafeImg, Tag } from '@/components/common';
+import { BgOrbs, MdxContent, SafeImg, Tag } from '@/components/common';
 import { useArticleDetailQuery, useDeleteArticleMutation } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { fadeUp, springHero } from '@/lib/motion';
@@ -70,7 +70,7 @@ export default function BlogDetail({
 
           {/* 正文 */}
           {!loading && !errorMessage && article && (
-            <Reveal>
+            <div>
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <Link
                   href="/blog"
@@ -131,12 +131,14 @@ export default function BlogDetail({
                   <SafeImg
                     src={article.cover}
                     alt={article.title}
+                    priority
+                    sizes="(max-width: 860px) 100vw, 860px"
                     className="mb-8 aspect-video w-full rounded-lg border border-[var(--color-border-light)]"
                   />
                 )}
                 <MdxContent html={article.contentHtml} />
               </article>
-            </Reveal>
+            </div>
           )}
         </div>
       </section>

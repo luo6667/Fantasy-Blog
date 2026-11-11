@@ -16,6 +16,8 @@ export function useTagsQuery(initialData?: TagItem[] | null) {
     queryKey: tagKeys.all,
     queryFn: tagApi.list,
     initialData: initialData ?? undefined,
+    // 与页面 ISR 同量级：避免带着 SSG 数据挂载后立刻重复请求，改动由 mutation 精确失效
+    staleTime: 5 * 60_000,
   });
 }
 

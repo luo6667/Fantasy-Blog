@@ -5,10 +5,15 @@
  */
 import type { Transition, Variants } from 'motion/react';
 
-/** 入场动画：淡入 + 上移 + 轻微模糊（Hero 区、首屏元素通用） */
+/**
+ * 入场动画：上移回位（Hero 区、首屏元素通用）
+ *
+ * 只动 transform、不动 opacity/filter：首屏文字在 HTML 里立即可见，
+ * 不会把 LCP 推迟到 hydration 之后；位移本身仍在合成层完成，成本很低。
+ */
 export const fadeUp: Variants = {
-  initial: { opacity: 0, y: 28, filter: 'blur(6px)' },
-  animate: { opacity: 1, y: 0, filter: 'blur(0px)' },
+  initial: { y: 28 },
+  animate: { y: 0 },
 };
 
 /** Hero 区入场弹簧（stiffness 100） */
