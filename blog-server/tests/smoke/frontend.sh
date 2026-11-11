@@ -111,6 +111,7 @@ check_page() {
 }
 
 check_page "/" "Fantasy"
+check_page "/home" "精选作品"
 check_page "/blog" "博客"
 check_page "/plan" "个阶段"
 check_page "/resume" "简历"

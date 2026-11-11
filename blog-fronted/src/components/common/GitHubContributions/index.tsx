@@ -35,7 +35,13 @@ interface Cell {
  * 52 周 × 7 天的绿色方块网格：颜色深浅由 level(0-4) 决定（CSS 变量 --gh-0..4，
  * 随主题亮暗切换），悬停显示日期与贡献数。无数据时渲染 null。
  */
-export default function GitHubContributions({ data }: { data: GitHubContributionsData | null }) {
+export default function GitHubContributions({
+  data,
+  className = 'mb-10',
+}: {
+  data: GitHubContributionsData | null;
+  className?: string;
+}) {
   if (!data || data.days.length === 0) return null;
 
   // —— 预处理：按周分组（列），格子定位到 weekday(0=周日 .. 6=周六) ——
@@ -69,7 +75,7 @@ export default function GitHubContributions({ data }: { data: GitHubContribution
   };
 
   return (
-    <div className="mb-10 rounded-lg border border-[var(--color-border-light)] bg-surface/60 p-4 sm:p-5">
+    <div className={`rounded-lg border border-[var(--color-border-light)] bg-surface/60 p-4 sm:p-5 ${className}`}>
       {/* 标题行 */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <Link
@@ -84,7 +90,7 @@ export default function GitHubContributions({ data }: { data: GitHubContribution
         <span className="text-xs text-text-muted">今年共 {data.total} 次贡献</span>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="min-w-0 overflow-x-auto">
         {/* 月份标签行（左端缩进与周几标签列对齐） */}
         <div className="mb-[3px] flex gap-[3px] pl-[31px]">
           {cols.map((col, i) => (

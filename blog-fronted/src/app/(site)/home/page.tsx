@@ -1,42 +1,50 @@
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 
-import { siteContentApi } from '@/lib/api';
+import { articleApi, siteContentApi } from '@/lib/api';
 import { getGitHubContributions } from '@/lib/github';
 import { siteContentKeys } from '@/lib/queryKeys';
 import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
+import type { ArticleListItem } from '@/types/api';
 import HomeView from '@/views/home';
 
 /**
  * 📘 app/(site)/home/page.tsx —— 首页（Server Component + 服务端取数 + ISR）
  *
- * 这是「服务端取数」的示范页：
- * - GitHub 贡献：fetch 带 next.revalidate=3600，按小时缓存；
- * - homeProjects 站点内容：服务端 prefetch 后经 HydrationBoundary 注入，
- *   客户端 HomeView 的 useSiteContentQuery 同 key 命中缓存，首屏无 loading；
- * - export const revalidate = 3600：整页静态化，每小时按需重新生成；
- *   后台改完首页项目后，后端调用 /api/revalidate 立即重建本页（on-demand）；
- * - 取数失败时降级：贡献传 null（视图内自动隐藏贡献区块）、站点内容回退默认常量，
- *   而不是报错。
+ * - GitHub 贡献与最近 3 篇文章在服务端取好，首屏直出、不发额外请求；
+ * - homeProjects / plan 走站点内容接口，prefetch 后经 HydrationBoundary 注入，
+ *   客户端 useSiteContentQuery 同 key 命中缓存；
+ * - 失败降级：贡献为 null（视图隐藏热力图）、文章为空数组、站点内容写默认常量，
+ *   避免服务端与客户端首屏不一致；
+ * - export const revalidate = 3600：整页静态化，后台保存后由后端按 key 触发重建。
  */
 export const revalidate = 3600;
 
 export default async function HomePage() {
   const contributions = await getGitHubContributions();
 
+  const recentPosts = await articleApi
+    .list({ page: 1, pageSize: 3 })
+    .then((res) => res.list)
+    .catch(() => [] as ArticleListItem[]);
+
   const qc = new QueryClient();
-  await qc
-    .query({
-      queryKey: siteContentKeys.byKey('homeProjects'),
-      queryFn: () => siteContentApi.get('homeProjects'),
-    })
-    .catch(() => {
-      // 后端未启动 / 查询失败：写入默认值，避免服务端与客户端首屏不一致
-      qc.setQueryData(siteContentKeys.byKey('homeProjects'), SITE_CONTENT_FALLBACKS.homeProjects);
-    });
+
+  await Promise.all(
+    (['homeProjects', 'plan'] as const).map((key) =>
+      qc
+        .query({
+          queryKey: siteContentKeys.byKey(key),
+          queryFn: () => siteContentApi.get(key),
+        })
+        .catch(() => {
+          qc.setQueryData(siteContentKeys.byKey(key), SITE_CONTENT_FALLBACKS[key]);
+        }),
+    ),
+  );
 
   return (
     <HydrationBoundary state={dehydrate(qc)}>
-      <HomeView contributions={contributions} />
+      <HomeView contributions={contributions} recentPosts={recentPosts} />
     </HydrationBoundary>
   );
 }

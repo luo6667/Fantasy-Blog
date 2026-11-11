@@ -114,10 +114,27 @@ export interface ResumeProjectItem {
 /** 首页精选项目项 */
 export interface HomeProjectItem {
   name: string;
-  desc: string;
+  /** 首页一两句价值说明 */
+  summary: string;
+  /** 旧字段：历史数据只有 desc，读取时回退到 summary */
+  desc?: string;
+  /** 分类，如「产品实验」「内容系统」 */
+  category: string;
+  /** 年份，如「2026」 */
+  year: string;
+  /** 封面图 URL；为空时首页渲染生成的抽象封面 */
+  cover: string;
+  /** 封面图 alt 文本 */
+  coverAlt: string;
   tags: string[];
-  /** 可选：项目仓库链接，为空则不显示跳转链接 */
+  /** 可选：项目仓库或线上预览链接 */
   link?: string;
+  /** 可选：外链文案，如「查看项目」 */
+  linkLabel?: string;
+  /** 是否进入首页精选 */
+  featured: boolean;
+  /** 排序，越小越靠前 */
+  order: number;
 }
 
 /** 规划条目状态：未开始 / 进行中 / 已完成 */

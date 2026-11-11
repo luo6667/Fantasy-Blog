@@ -28,10 +28,18 @@ type resumeProjectItem struct {
 }
 
 type homeProjectItem struct {
-	Name string   `json:"name"`
-	Desc string   `json:"desc"`
-	Tags []string `json:"tags"`
-	Link *string  `json:"link,omitempty"`
+	Name      string   `json:"name"`
+	Summary   string   `json:"summary,omitempty"`
+	Desc      string   `json:"desc,omitempty"`
+	Category  string   `json:"category,omitempty"`
+	Year      string   `json:"year,omitempty"`
+	Cover     string   `json:"cover,omitempty"`
+	CoverAlt  string   `json:"coverAlt,omitempty"`
+	Tags      []string `json:"tags"`
+	Link      *string  `json:"link,omitempty"`
+	LinkLabel string   `json:"linkLabel,omitempty"`
+	Featured  bool     `json:"featured,omitempty"`
+	Order     int      `json:"order,omitempty"`
 }
 
 type planGoal struct {
@@ -158,19 +166,56 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 		if err := json.Unmarshal(raw, &items); err != nil {
 			return nil, httpx.BadRequest("Invalid input")
 		}
+		featured := 0
 		for i := range items {
 			it := &items[i]
 			it.Name = strings.TrimSpace(it.Name)
+			it.Summary = strings.TrimSpace(it.Summary)
 			it.Desc = strings.TrimSpace(it.Desc)
+			it.Category = strings.TrimSpace(it.Category)
+			it.Year = strings.TrimSpace(it.Year)
+			it.Cover = strings.TrimSpace(it.Cover)
+			it.CoverAlt = strings.TrimSpace(it.CoverAlt)
+			it.LinkLabel = strings.TrimSpace(it.LinkLabel)
+
 			if it.Name == "" {
 				add(i, "项目名不能为空")
 			} else if zlen(it.Name) > 128 {
 				add(i, fmt.Sprintf(defaultTooLong, 128))
 			}
-			if it.Desc == "" {
-				add(i, "描述不能为空")
-			} else if zlen(it.Desc) > 500 {
-				add(i, "描述最多 500 字")
+			// 旧数据只有 desc：读取时回退为 summary，前端无需感知历史结构。
+			if it.Summary == "" && it.Desc != "" {
+				it.Summary = it.Desc
+			}
+			if it.Summary == "" {
+				add(i, "项目简介不能为空")
+			} else if zlen(it.Summary) > 500 {
+				add(i, "项目简介最多 500 字")
+			}
+			if zlen(it.Category) > 64 {
+				add(i, "分类最多 64 字")
+			}
+			if zlen(it.Year) > 16 {
+				add(i, "年份最多 16 字")
+			}
+			if zlen(it.Cover) > 500 {
+				add(i, "封面链接最长 500 字")
+			} else if it.Cover != "" && !hasURLPrefix(it.Cover) && !strings.HasPrefix(it.Cover, "/uploads/") {
+				add(i, "封面需为 http(s):// 或 /uploads/ 路径")
+			}
+			if zlen(it.CoverAlt) > 200 {
+				add(i, "封面描述最多 200 字")
+			}
+			if zlen(it.LinkLabel) > 32 {
+				add(i, "链接文案最多 32 字")
+			}
+			if it.Order < 0 {
+				it.Order = 0
+			} else if it.Order > 9999 {
+				add(i, "排序值不能超过 9999")
+			}
+			if it.Featured {
+				featured++
 			}
 			if len(it.Tags) > 20 {
 				add(i, "最多 20 个标签")
@@ -192,6 +237,9 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 				}
 				it.Link = &link
 			}
+		}
+		if featured > 4 {
+			return nil, httpx.BadRequest("精选项目最多 4 个")
 		}
 		out = items
 	case "plan":
