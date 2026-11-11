@@ -27,3 +27,6 @@ perf-baseline/
 .npm-cache/
 blog-fronted/.npm-cache/
 .idea/
+
+# 数据库备份（含明文数据，只放仓库外受控位置）
+blog-server/backups/
