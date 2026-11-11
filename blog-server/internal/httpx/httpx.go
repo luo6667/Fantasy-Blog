@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -119,16 +120,30 @@ func Date(t time.Time) string { return t.UTC().Format("2006-01-02") }
 
 // DecodeJSON 解析 JSON 请求体。
 //
-// 与 body-parser 对齐：空 body 视为 {}，语法错误统一返回「请求体格式错误」。
+// 与 body-parser 对齐：空 body 视为 {}；未知字段一律 400，避免客户端字段拼错被静默忽略。
 func DecodeJSON(c *gin.Context, dst any) error {
 	dec := json.NewDecoder(c.Request.Body)
+	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		if errors.Is(err, io.EOF) {
 			return nil
 		}
+		if field, ok := unknownJSONField(err); ok {
+			return NewError(400, "请求体包含未知字段："+field)
+		}
 		return NewError(400, "请求体格式错误")
 	}
 	return nil
+}
+
+// unknownJSONField 从 encoding/json 的未知字段错误中取出字段名。
+func unknownJSONField(err error) (string, bool) {
+	const prefix = `json: unknown field "`
+	msg := err.Error()
+	if !strings.HasPrefix(msg, prefix) || !strings.HasSuffix(msg, `"`) {
+		return "", false
+	}
+	return msg[len(prefix) : len(msg)-1], true
 }
 
 // WriteError 把错误转换为统一失败响应。

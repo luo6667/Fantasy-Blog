@@ -164,7 +164,7 @@ export const authApi = {
   login: (username: string, password: string) =>
     request<LoginResult>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password, role: 'admin' }),
+      body: JSON.stringify({ username, password }),
     }),
   me: () => request<AuthUser>('/auth/me'),
 };

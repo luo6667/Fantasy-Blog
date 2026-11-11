@@ -214,14 +214,27 @@ func TestAdminLoginOnly(t *testing.T) {
 		t.Fatalf("wrong password msg=%q", env.Msg)
 	}
 
-	// 伪造 role=user 不会降级：登录只查 admins 表，结果仍是 admin。
+	// 旧的 role 字段已不属于登录契约：严格解码应直接拒绝，而不是静默忽略。
 	status, env = c.do(http.MethodPost, "/api/auth/login", "", map[string]string{
 		"username": testAdmin,
 		"password": testPass,
 		"role":     "user",
 	})
-	if status != http.StatusOK || env.Code != 0 {
-		t.Fatalf("spoofed role: status=%d body=%+v，期望按管理员登录成功", status, env)
+	if status != http.StatusBadRequest {
+		t.Fatalf("unknown role field: status=%d body=%+v，期望 400", status, env)
+	}
+	if !strings.Contains(env.Msg, "未知字段") || !strings.Contains(env.Msg, "role") {
+		t.Fatalf("unknown role field msg=%q", env.Msg)
+	}
+
+	// 任意未知字段都拒绝。
+	status, env = c.do(http.MethodPost, "/api/auth/login", "", map[string]string{
+		"username": testAdmin,
+		"password": testPass,
+		"remember": "1",
+	})
+	if status != http.StatusBadRequest || !strings.Contains(env.Msg, "remember") {
+		t.Fatalf("unknown field: status=%d msg=%q", status, env.Msg)
 	}
 
 	token := c.login()
@@ -232,6 +245,31 @@ func TestAdminLoginOnly(t *testing.T) {
 	var me service.AuthUser
 	if err := json.Unmarshal(env.Data, &me); err != nil || me.Role != "admin" {
 		t.Fatalf("me payload: %s", string(env.Data))
+	}
+}
+
+func TestUnknownFieldsRejected(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+	token := c.login()
+
+	// 写接口同样严格：未知字段不能被静默丢弃。
+	status, env := c.do(http.MethodPost, "/api/tags", token, map[string]string{
+		"name":  "严格解码标签",
+		"color": "red",
+	})
+	if status != http.StatusBadRequest || !strings.Contains(env.Msg, "color") {
+		t.Fatalf("tag unknown field: status=%d msg=%q", status, env.Msg)
+	}
+
+	// 已删除的注册路由仍然 404，不受严格解码影响。
+	status, env = c.do(http.MethodPost, "/api/auth/register", "", map[string]string{
+		"username": "someone",
+		"password": "whatever",
+	})
+	if status != http.StatusNotFound {
+		t.Fatalf("register: status=%d body=%+v，期望 404", status, env)
 	}
 }
 
