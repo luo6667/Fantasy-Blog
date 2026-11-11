@@ -4,7 +4,7 @@ import { BgOrbs } from '@/components/common';
 import LoginForm from '@/views/admin/LoginForm';
 
 export const metadata: Metadata = {
-  title: '管理员登录 · JasonLuo',
+  title: '管理员登录 · Fantasy',
   robots: { index: false, follow: false },
 };
 

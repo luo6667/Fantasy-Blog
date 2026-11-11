@@ -33,7 +33,7 @@ export default function Resume() {
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{ type: 'spring', stiffness: 100, damping: 20, mass: 0.5, delay: 0.08 }}
             >
-              <span className="text-accent">JasonLuo</span>
+              <span className="text-accent">Fantasy</span>
             </motion.h1>
             <motion.p
               className="mb-1 text-base text-text-secondary"

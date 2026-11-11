@@ -2,24 +2,24 @@ import type { Education, SkillGroup } from '@/types';
 
 export const ABOUT_CORE_SKILLS: SkillGroup[] = [
   {
-    label: '语言基础',
-    tags: ['HTML5', 'CSS3', 'JavaScript (ES6+)', 'TypeScript'],
+    label: '前端',
+    tags: ['Vue', 'React', 'Nextjs', 'Nuxtjs'],
   },
   {
-    label: '前端框架',
-    tags: ['Vue 3', 'React 19','Next.js'],
+    label: '后端',
+    tags: ['Golang', 'Gin', 'Gorm', 'Node.js', 'Express'],
   },
   {
-    label: '前端工程化',
-    tags: ['Vite', 'Webpack', 'ESLint'],
+    label: '数据库',
+    tags: ['MySQL', 'Redis', 'MongoDB'],
   },
   {
     label: '网络与协议',
-    tags: ['HTTP 协议', 'WebSocket'],
+    tags: ['HTTP 协议', 'WebSocket', 'SSE'],
   },
   {
-    label: '后端与数据库',
-    tags: ['Node.js', 'Express', 'MongoDB', 'MySQL'],
+    label: '工程化',
+    tags: ['Vite', 'Webpack', 'CI CD', 'Docker'],
   },
 ];
 

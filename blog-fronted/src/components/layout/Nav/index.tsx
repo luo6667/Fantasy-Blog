@@ -59,7 +59,7 @@ export default function Nav({ theme, onToggle }: NavProps) {
         href="/home"
         className="whitespace-nowrap text-base font-bold tracking-[-0.02em] text-accent"
       >
-        JasonLuo
+        Fantasy
       </Link>
 
       {/* 右侧：主题切换 */}

@@ -33,7 +33,7 @@ export async function getGitHubContributions(): Promise<GitHubContributionsData 
   try {
     const res = await fetch(API_URL, {
       next: { revalidate: 3600 },
-      headers: { 'User-Agent': 'jasonluo-blog' },
+      headers: { 'User-Agent': 'Fantasy-blog' },
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {

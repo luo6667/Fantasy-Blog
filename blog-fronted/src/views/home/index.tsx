@@ -71,7 +71,7 @@ export default function Home({
             animate="animate"
             transition={{ ...springHero, duration: 0.6, delay: 0.13 }}
           >
-            JasonLuo
+            Fantasy
           </motion.p>
 
           <motion.p

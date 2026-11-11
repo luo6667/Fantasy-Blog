@@ -112,7 +112,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         <div className="mb-6 flex items-center justify-between gap-2 px-1">
           {!collapsed && (
             <Link href="/home" className="truncate text-sm font-bold text-accent">
-              JasonLuo · 管理
+              Fantasy · 管理
             </Link>
           )}
           <button
@@ -166,7 +166,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             >
               <div className="mb-6 flex items-center justify-between">
                 <Link href="/home" className="text-sm font-bold text-accent">
-                  JasonLuo · 管理
+                  Fantasy · 管理
                 </Link>
                 <button
                   type="button"

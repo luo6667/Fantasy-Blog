@@ -68,7 +68,7 @@ export default function Footer() {
       </div>
 
       <p className="mt-8 border-t border-[var(--color-border-light)] pt-4 text-center text-xs">
-        &copy; {year} JasonLuo. All rights reserved.
+        &copy; {year} Fantasy. All rights reserved.
       </p>
     </footer>
   );

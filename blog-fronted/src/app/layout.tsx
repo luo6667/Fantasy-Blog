@@ -24,14 +24,14 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.jasonluoblog.online'),
-  title: 'JasonLuo · 个人简历',
-  description: 'JasonLuo - 前端工程师个人简历与博客',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.Fantasyblog.online'),
+  title: 'Fantasy · 个人简历',
+  description: 'Fantasy - 前端工程师个人简历与博客',
   icons: { icon: '/head.jpg' },
   openGraph: {
-    siteName: 'JasonLuo',
-    title: 'JasonLuo · 个人简历',
-    description: 'JasonLuo - 前端工程师个人简历与博客',
+    siteName: 'Fantasy',
+    title: 'Fantasy · 个人简历',
+    description: 'Fantasy - 前端工程师个人简历与博客',
     images: ['/head.jpg'],
   },
 };

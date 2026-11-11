@@ -17,8 +17,8 @@ import BlogView from '@/views/blog';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: '博客 · JasonLuo',
-  description: 'JasonLuo 的技术博客 - 前端与全栈开发文章',
+  title: '博客 · Fantasy',
+  description: 'Fantasy 的技术博客 - 前端与全栈开发文章',
 };
 
 export default async function BlogPage() {

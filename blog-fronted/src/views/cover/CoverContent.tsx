@@ -36,7 +36,7 @@ export default function CoverContent() {
         />
         <SafeImg
           src="/head.jpg"
-          alt="JasonLuo"
+          alt="Fantasy"
           priority
           sizes="160px"
           className="h-40 w-40 rounded-full border-[3px] border-white/30 shadow-2xl shadow-black/30"
@@ -60,7 +60,7 @@ export default function CoverContent() {
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ ...springSlow, delay: 0.25 }}
       >
-        JasonLuo 的个人主页
+        Fantasy 的个人主页
       </motion.h1>
 
       {/* 副标题 */}

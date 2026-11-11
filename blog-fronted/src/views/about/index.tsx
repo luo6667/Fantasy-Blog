@@ -30,7 +30,7 @@ export default function About() {
               >
                 <SafeImg
                   src="/head.jpg"
-                  alt="JasonLuo"
+                  alt="Fantasy"
                   priority
                   sizes="112px"
                   className="h-full w-full"
@@ -51,7 +51,7 @@ export default function About() {
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.18 }}
                 >
-                  <span className="text-accent">JasonLuo</span>
+                  <span className="text-accent">Fantasy</span>
                 </motion.h1>
                 <motion.p
                   className="text-[0.9375rem] text-text-muted"

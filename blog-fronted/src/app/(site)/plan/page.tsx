@@ -7,7 +7,7 @@ import Plan from '@/views/plan';
 
 /** 规划页 SEO（服务端渲染） */
 export const metadata: Metadata = {
-  title: '规划 · JasonLuo',
+  title: '规划 · Fantasy',
   description: '个人成长与学习路线图：阶段目标、当前进展与长期方向',
 };
 

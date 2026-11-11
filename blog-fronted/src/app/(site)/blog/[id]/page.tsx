@@ -41,9 +41,9 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
   const { id } = await params;
   try {
     const article = await articleApi.detail(id);
-    return { title: `${article.title} · JasonLuo`, description: article.excerpt };
+    return { title: `${article.title} · Fantasy`, description: article.excerpt };
   } catch {
-    return { title: '博客 · JasonLuo' };
+    return { title: '博客 · Fantasy' };
   }
 }
 
