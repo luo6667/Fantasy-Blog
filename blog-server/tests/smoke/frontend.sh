@@ -20,6 +20,18 @@ WEB_DIR="${WEB_DIR:-$(pwd)/../blog-fronted}"
 API_BASE="http://127.0.0.1:${API_PORT}"
 WEB_BASE="http://127.0.0.1:${WEB_PORT}"
 UPLOAD_DIR="${UPLOAD_DIR:-$(cygpath -m "$(pwd)/testdata/uploads")}"
+
+# 若前端目录已有 next dev 在跑（.next/dev 锁），Next 会拒绝第二个实例；
+# 此时把源码复制到工作目录并用 junction 复用 node_modules，独立起一个 dev。
+if [ -d "$WEB_DIR/.next/dev" ] && curl -fsS -m 2 "http://localhost:3000/" >/dev/null 2>&1; then
+  echo "==> 检测到 $WEB_DIR 已有 next dev，改用临时副本"
+  TMP_WEB="$(pwd)/testdata/smoke/webapp-$$"
+  rm -rf "$TMP_WEB"
+  mkdir -p "$TMP_WEB"
+  ( cd "$WEB_DIR" && tar -cf - --exclude=node_modules --exclude=.next . ) | ( cd "$TMP_WEB" && tar -xf - )
+  powershell -NoProfile -Command "New-Item -ItemType Junction -Path '$(cygpath -w "$TMP_WEB/node_modules")' -Target '$(cygpath -w "$WEB_DIR/node_modules")' | Out-Null"
+  WEB_DIR="$TMP_WEB"
+fi
 WORK_DIR="$(pwd)/testdata/smoke"
 mkdir -p "$WORK_DIR"
 
@@ -27,6 +39,10 @@ cleanup() {
   for pid in "${WEB_PID:-}" "${API_PID:-}"; do
     if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
   done
+  if [ -n "${TMP_WEB:-}" ]; then
+    rm -f "$TMP_WEB/node_modules"
+    rm -rf "$TMP_WEB"
+  fi
 }
 trap cleanup EXIT
 
@@ -36,6 +52,14 @@ go build -o bin/server.exe ./cmd/server
 echo "==> 重建副本库 ${DB_NAME}（旧版快照 + 0001 迁移）"
 "$MYSQL_BIN" -u"$DB_USER" -p"$DB_PASS" -e "DROP DATABASE IF EXISTS \`$DB_NAME\`; CREATE DATABASE \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 "$MYSQL_BIN" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < tests/fixtures/legacy-pre-redesign.sql
+
+echo "==> 生成并审批标签映射（0001 门禁）"
+env MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" \
+  MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
+  ./bin/server.exe migrate-tags export --out testdata/smoke/tagmap.json
+env MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" \
+  MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
+  ./bin/server.exe migrate-tags apply --file testdata/smoke/tagmap.json --approve-by smoke-fixture
 env MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" \
   MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
   ./bin/server.exe migrate
@@ -86,7 +110,7 @@ check_page() {
   echo "✔ GET $path → 200，包含「$marker」"
 }
 
-check_page "/" "JasonLuo"
+check_page "/" "Fantasy"
 check_page "/blog" "博客"
 check_page "/plan" "个阶段"
 check_page "/resume" "简历"

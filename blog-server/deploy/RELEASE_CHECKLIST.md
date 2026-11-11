@@ -8,7 +8,8 @@
 - [ ] 目标提交在 `feat/blog-redesign`（或已合并的 main），CI/本地 `bash scripts/check.sh` 通过。
 - [ ] 生产库全量备份并验证恢复：
       `mysqldump --single-transaction --routines --triggers --add-drop-table <db> > backup-$(date +%s).sql`
-- [ ] 在生产**副本**上执行 `./bin/server migrate`，导出迁移后的标签/文章核对表并确认。
+- [ ] 在生产**副本**上执行 `migrate-tags export` → 人工核对并填写 `approvedBy/approvedAt` → `migrate-tags verify` → `migrate-tags apply`，再执行 `./bin/server migrate`。
+- [ ] 导出迁移后的标签/文章核对表并确认。
 - [ ] 确认 `shared/backend.env`：`MYSQL_*`、`JWT_SECRET`、`UPLOAD_DIR`、`NEXT_REVALIDATE_URL`、`REVALIDATE_SECRET`。
 - [ ] 维护窗口内暂停写入；记录当前版本目录（用于回滚）。
 
@@ -23,7 +24,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin
 
 ## 2. 切换
 
-- [ ] 备份并迁移生产库（仅在核对表确认后执行，禁止 AutoMigrate）。
+- [ ] 备份并迁移生产库（仅在核对表确认后执行）：`migrate-tags apply --file tagmap.json` → `./bin/server migrate`；禁止 AutoMigrate。
 - [ ] 切换 `current` 软链到新 release。
 - [ ] `systemctl restart blog-server`（首次：`systemctl enable --now blog-server`）。
 - [ ] `curl -fsS http://127.0.0.1:4000/api/health` 返回 `status: up`。

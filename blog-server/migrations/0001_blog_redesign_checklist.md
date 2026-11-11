@@ -104,3 +104,25 @@
 - 管理员账号未改动（迁移不触碰 `admins`），原密码仍可登录。
 - 回滚：`mysql jianli < backups/2026-11-10-pre-redesign.sql` 可将数据恢复到迁移前状态
   （会同时恢复 comments/users/notifications/ai_configs 与旧 `tags` 列）。
+
+## 6. 标签映射审批（0001 门禁）与 0002 补救
+
+`0001_blog_redesign.sql` 需要先写入审批记录，否则 `migrate` 会拒绝执行（防止未经核对的标签拆分直接落库）：
+
+```bash
+# 1) 从旧 tags 列导出逐篇映射（0600 权限），含 sourceDigest
+./bin/server migrate-tags export --out tagmap.json
+
+# 2) 人工核对每篇 primaryName / subTags，并填写 approvedBy、approvedAt（RFC3339）
+#    可用 migrate-tags verify --file tagmap.json 检查覆盖与一致性
+
+# 3) 写入审批记录（也可用 --approve-by 在 apply 时补记审批人）
+./bin/server migrate-tags apply --file tagmap.json --approve-by <审批人>
+
+# 4) 执行结构迁移
+./bin/server migrate
+```
+
+审批信息记录在 `migration_approvals`（version、approvedBy、approvedAt、sourceDigest、checksum）。`sourceDigest` 必须与当前库一致，数据在导出后被改动会导致校验失败。
+
+已执行过 0001 的库：`0002_normalize_subtags.sql` 会幂等归一化历史子标签（trim/去空/去重/保持首次出现顺序），不需要重新执行 0001。

@@ -3,11 +3,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -55,6 +59,12 @@ func main() {
 		}
 		logger.Info("migrate done", "applied", applied)
 		return
+	case "migrate-tags":
+		if err := runMigrateTags(logger, db, os.Args[2:]); err != nil {
+			logger.Error("migrate-tags failed", "error", err)
+			os.Exit(1)
+		}
+		return
 	case "seed-admin":
 		if len(cfg.AdminInitialPassword) < 8 {
 			logger.Error("ADMIN_INITIAL_PASSWORD is required (at least 8 characters)")
@@ -71,6 +81,81 @@ func main() {
 	}
 
 	serve(logger, cfg, db)
+}
+
+// runMigrateTags 执行标签映射的导出 / 校验 / 审批写入。
+//
+// 流程：export 导出 → 人工修改并填写 approvedBy/approvedAt → verify → apply → migrate。
+func runMigrateTags(logger *slog.Logger, db *gorm.DB, args []string) error {
+	if len(args) == 0 {
+		return errors.New("用法：migrate-tags export --out <file> | verify --file <file> | apply --file <file>")
+	}
+	action := args[0]
+	fs := flag.NewFlagSet(action, flag.ContinueOnError)
+	out := fs.String("out", "", "export 的输出路径")
+	file := fs.String("file", "", "映射文件路径")
+	approveBy := fs.String("approve-by", "", "apply 时写入审批人（映射文件未填写时）")
+	if err := fs.Parse(args[1:]); err != nil {
+		return err
+	}
+
+	switch action {
+	case "export":
+		if *out == "" {
+			return errors.New("export 需要 --out <file>")
+		}
+		f, err := migrate.ExportTagMap(db)
+		if err != nil {
+			return err
+		}
+		raw, err := json.MarshalIndent(f, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(*out, append(raw, '\n'), 0o600); err != nil {
+			return err
+		}
+		logger.Info("tag map exported", "file", *out, "articles", len(f.Articles), "sourceDigest", f.SourceDigest)
+		logger.Info("下一步：人工核对 primaryName/subTags，填写 approvedBy 与 approvedAt，再执行 migrate-tags verify")
+		return nil
+	case "verify":
+		if *file == "" {
+			return errors.New("verify 需要 --file <file>")
+		}
+		f, err := migrate.LoadTagMap(*file)
+		if err != nil {
+			return err
+		}
+		problems := migrate.ValidateTagMap(db, f)
+		if len(problems) > 0 {
+			return fmt.Errorf("校验未通过：\n- %s", strings.Join(problems, "\n- "))
+		}
+		logger.Info("tag map verified", "file", *file, "articles", len(f.Articles),
+			"approvedBy", f.ApprovedBy, "checksum", migrate.TagMapChecksum(f))
+		return nil
+	case "apply":
+		if *file == "" {
+			return errors.New("apply 需要 --file <file>")
+		}
+		f, err := migrate.LoadTagMap(*file)
+		if err != nil {
+			return err
+		}
+		if f.ApprovedBy == "" && *approveBy != "" {
+			f.ApprovedBy = *approveBy
+			f.ApprovedAt = time.Now().UTC().Format(time.RFC3339)
+			logger.Info("approval recorded", "approvedBy", f.ApprovedBy, "approvedAt", f.ApprovedAt)
+		}
+		if err := migrate.ApplyTagMap(db, f); err != nil {
+			return err
+		}
+		logger.Info("tag map applied", "file", *file, "articles", len(f.Articles),
+			"checksum", migrate.TagMapChecksum(f))
+		logger.Info("下一步：执行 migrate 应用结构迁移")
+		return nil
+	default:
+		return fmt.Errorf("未知子命令 %q（可用：export / verify / apply）", action)
+	}
 }
 
 // command 返回子命令（默认空字符串表示启动 HTTP 服务）。

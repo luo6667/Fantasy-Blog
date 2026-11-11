@@ -32,6 +32,9 @@ func Apply(db *gorm.DB) ([]string, error) {
 	if err := db.Exec(createSchemaTable).Error; err != nil {
 		return nil, fmt.Errorf("create schema_migrations: %w", err)
 	}
+	if err := db.Exec(createApprovalsTable).Error; err != nil {
+		return nil, fmt.Errorf("create migration_approvals: %w", err)
+	}
 	names, err := migrationFiles()
 	if err != nil {
 		return nil, err
@@ -53,6 +56,11 @@ func Apply(db *gorm.DB) ([]string, error) {
 			}
 			applied = append(applied, version)
 			continue
+		}
+		if version == TagMapVersion {
+			if err := requireTagApproval(db); err != nil {
+				return applied, err
+			}
 		}
 		body, err := migrations.FS.ReadFile(name)
 		if err != nil {

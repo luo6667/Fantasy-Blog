@@ -11,14 +11,15 @@ ALTER TABLE `articles`
 
 -- 2. 记录每篇文章的「主标签名」与「子标签数组」：
 --    旧 tags 首项 → 主标签；其余项 → 子标签；空数组归入「未分类」。
-CREATE TABLE `tmp_tag_map` (
+--    若已执行过 migrate-tags apply，tmp_tag_map 中的人工审批结果优先（INSERT IGNORE）。
+CREATE TABLE IF NOT EXISTS `tmp_tag_map` (
   `articleId` VARCHAR(24) COLLATE utf8mb4_unicode_ci NOT NULL,
   `primaryName` VARCHAR(64) COLLATE utf8mb4_unicode_ci NOT NULL,
   `subTags` JSON NOT NULL,
   PRIMARY KEY (`articleId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `tmp_tag_map` (`articleId`, `primaryName`, `subTags`)
+INSERT IGNORE INTO `tmp_tag_map` (`articleId`, `primaryName`, `subTags`)
 SELECT
   `id`,
   CASE
@@ -30,6 +31,8 @@ SELECT
     ELSE JSON_REMOVE(`tags`, '$[0]')
   END
 FROM `articles`;
+
+SET SESSION group_concat_max_len = 32768;
 
 -- 3. 旧标签库中不存在的主标签自动补建（同名唯一，不会产生重复主标签）。
 INSERT INTO `tags` (`id`, `name`, `createdAt`, `updatedAt`)
@@ -44,14 +47,15 @@ JOIN `tmp_tag_map` m ON m.`articleId` = a.`id`
 JOIN `tags` t ON t.`name` = m.`primaryName`
 SET
   a.`primaryTagId` = t.`id`,
-  a.`subTags` = (
-    SELECT COALESCE(JSON_ARRAYAGG(d.`tag`), JSON_ARRAY())
+  a.`subTags` = CAST(CONCAT('[', COALESCE((
+    SELECT GROUP_CONCAT(JSON_QUOTE(d.`tag`) ORDER BY d.`firstOrd` SEPARATOR ',')
     FROM (
-      SELECT TRIM(jt.`tag`) AS `tag`
-      FROM JSON_TABLE(m.`subTags`, '$[*]' COLUMNS (`tag` VARCHAR(64) PATH '$')) jt
+      SELECT TRIM(jt.`tag`) AS `tag`, MIN(jt.`ord`) AS `firstOrd`
+      FROM JSON_TABLE(m.`subTags`, '$[*]' COLUMNS (`ord` FOR ORDINALITY, `tag` VARCHAR(64) PATH '$')) jt
       WHERE TRIM(jt.`tag`) <> ''
+      GROUP BY TRIM(jt.`tag`)
     ) d
-  );
+  ), ''), ']') AS JSON);
 
 -- 5. 每篇文章必须且只能有一个主标签。
 ALTER TABLE `articles`
