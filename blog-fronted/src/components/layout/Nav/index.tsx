@@ -37,24 +37,26 @@ export default function Nav({ theme, onToggle }: NavProps) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 24, mass: 0.8 }}
     >
-      <div className="mx-auto flex h-[3.25rem] w-full max-w-page items-center gap-3 px-6 md:gap-6">
-        {/* 头像入口：管理员 → 后台；访客 → 管理员登录页 */}
-        <MotionLink
-          href={isAdmin ? '/admin/articles' : '/admin/login'}
-          aria-label={isAdmin ? '进入管理后台' : '管理员登录'}
-          className="shrink-0 rounded-full"
-          whileTap={{ scale: 0.92 }}
-          transition={springBtn}
-        >
-          <SafeImg src="/head.jpg" alt="" priority sizes="32px" className="h-8 w-8 rounded-full" />
-        </MotionLink>
+      <div className="mx-auto flex h-[3.25rem] w-full max-w-[1000px] items-center gap-3 px-6 md:gap-6">
+        <div className="flex shrink-0 items-center gap-2">
+          {/* 头像入口：管理员 → 后台；访客 → 管理员登录页 */}
+          <MotionLink
+            href={isAdmin ? '/admin/articles' : '/admin/login'}
+            aria-label={isAdmin ? '进入管理后台' : '管理员登录'}
+            className="shrink-0 rounded-full"
+            whileTap={{ scale: 0.92 }}
+            transition={springBtn}
+          >
+            <SafeImg src="/head.jpg" alt="" priority sizes="32px" className="h-8 w-8 rounded-full" />
+          </MotionLink>
 
-        <Link
-          href="/home"
-          className="whitespace-nowrap text-lg font-bold tracking-[-0.02em] text-accent"
-        >
-          Fantasy
-        </Link>
+          <Link
+            href="/home"
+            className="whitespace-nowrap text-lg font-bold tracking-[-0.02em] text-accent"
+          >
+            Fantasy
+          </Link>
+        </div>
 
         {/* 右侧：主题切换 */}
         <div className="ml-auto flex shrink-0 items-center gap-2">
