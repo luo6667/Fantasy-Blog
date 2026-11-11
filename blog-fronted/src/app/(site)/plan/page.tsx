@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { siteContentApi } from '@/lib/api';
 import { siteContentKeys } from '@/lib/queryKeys';
+import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
 import Plan from '@/views/plan';
 
 /** 规划页 SEO（服务端渲染） */
@@ -29,7 +30,8 @@ export default async function PlanPage() {
       queryFn: () => siteContentApi.get('plan'),
     })
     .catch(() => {
-      // 后端未启动 / 查询失败：吞掉错误，客户端 Plan 的 useQuery 会自行加载并回退默认常量
+      // 后端未启动 / 查询失败：写入默认值，避免服务端与客户端首屏不一致
+      qc.setQueryData(siteContentKeys.byKey('plan'), SITE_CONTENT_FALLBACKS.plan);
     });
 
   return (

@@ -3,6 +3,7 @@ import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query
 import { siteContentApi } from '@/lib/api';
 import { getGitHubContributions } from '@/lib/github';
 import { siteContentKeys } from '@/lib/queryKeys';
+import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
 import HomeView from '@/views/home';
 
 /**
@@ -29,7 +30,8 @@ export default async function HomePage() {
       queryFn: () => siteContentApi.get('homeProjects'),
     })
     .catch(() => {
-      // 后端未启动 / 查询失败：吞掉错误，客户端 useSiteContentQuery 自行加载并回退默认常量
+      // 后端未启动 / 查询失败：写入默认值，避免服务端与客户端首屏不一致
+      qc.setQueryData(siteContentKeys.byKey('homeProjects'), SITE_CONTENT_FALLBACKS.homeProjects);
     });
 
   return (

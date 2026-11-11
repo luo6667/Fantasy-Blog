@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { siteContentApi } from '@/lib/api';
 import { siteContentKeys } from '@/lib/queryKeys';
+import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
 import Resume from '@/views/resume';
 
 /** 简历页 SEO（服务端渲染，替代原 useSeo） */
@@ -31,7 +32,8 @@ export default async function ResumePage() {
         queryKey: siteContentKeys.byKey(key),
         queryFn: () => siteContentApi.get(key),
       }).catch(() => {
-        // 后端未启动 / 查询失败：吞掉错误，客户端 Resume 的 useQuery 会自行加载并回退默认常量
+        // 后端未启动 / 查询失败：写入默认值，保证服务端 HTML 与客户端首屏一致
+        qc.setQueryData(siteContentKeys.byKey(key), SITE_CONTENT_FALLBACKS[key]);
       }),
     ),
   );
