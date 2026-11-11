@@ -1,0 +1,2 @@
+# shell 脚本必须是 LF：CRLF 会让行尾反斜杠续行失效（Windows 上易被 autocrlf 转回）
+*.sh text eol=lf

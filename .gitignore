@@ -21,3 +21,9 @@ blog-server/.env
 
 # 用户上传的图片（运行时文件，不入库）
 blog-server/uploads/
+# 性能测量与一次性工具（本地产物，不入库）
+.tools/
+perf-baseline/
+.npm-cache/
+blog-fronted/.npm-cache/
+.idea/

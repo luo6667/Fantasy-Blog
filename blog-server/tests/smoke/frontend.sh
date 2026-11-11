@@ -36,18 +36,20 @@ go build -o bin/server.exe ./cmd/server
 echo "==> 重建副本库 ${DB_NAME}（旧版快照 + 0001 迁移）"
 "$MYSQL_BIN" -u"$DB_USER" -p"$DB_PASS" -e "DROP DATABASE IF EXISTS \`$DB_NAME\`; CREATE DATABASE \`$DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 "$MYSQL_BIN" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < tests/fixtures/legacy-pre-redesign.sql
-MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" MYSQL_PASSWORD="$DB_PASS" \
-  MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
+env MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" \
+  MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
   ./bin/server.exe migrate
 
 echo "==> 种入管理员 admin"
-MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" MYSQL_PASSWORD="$DB_PASS" \
-  MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" ADMIN_INITIAL_PASSWORD='Admin@12345' \
-  ./bin/server.exe seed-admin
+env MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" \
+  MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
+  ADMIN_INITIAL_PASSWORD='Admin@12345' ./bin/server.exe seed-admin
 
 echo "==> 启动 Go 后端 :${API_PORT}"
-GIN_MODE=release PORT="$API_PORT" MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" MYSQL_USER="$DB_USER" MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" JWT_SECRET="smoke-jwt-secret-0123456789" \
-  UPLOAD_DIR="$UPLOAD_DIR" ./bin/server.exe > testdata/smoke/api.log 2>&1 &
+env GIN_MODE=release PORT="$API_PORT" MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}" MYSQL_PORT="${MYSQL_PORT:-3306}" \
+  MYSQL_USER="$DB_USER" MYSQL_PASSWORD="$DB_PASS" MYSQL_DATABASE="$DB_NAME" \
+  JWT_SECRET="smoke-jwt-secret-0123456789" UPLOAD_DIR="$UPLOAD_DIR" \
+  ./bin/server.exe > testdata/smoke/api.log 2>&1 &
 API_PID=$!
 for _ in $(seq 1 100); do
   if curl -fsS "$API_BASE/api/health" >/dev/null 2>&1; then break; fi
