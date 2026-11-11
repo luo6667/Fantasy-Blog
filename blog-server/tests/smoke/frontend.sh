@@ -153,6 +153,23 @@ case "$PLAN" in
   *) echo "✘ /api/site-content/plan 异常：$(echo "$PLAN" | head -c 200)"; fail=1 ;;
 esac
 
+# 站点内容保存 → 公开页渲染（覆盖 revalidate 路径映射）
+ORIG="$(curl -fsS "$WEB_BASE/api/site-content/evaluation" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.stringify(JSON.parse(s).data.value)))")"
+MARK="冒烟内容校验-$(date +%s)"
+SAVED="$(curl -fsS -X PUT "$WEB_BASE/api/site-content/evaluation" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d "{\"value\":\"$MARK\"}")"
+case "$SAVED" in
+  *'Content updated'*) echo "✔ 站点内容保存成功" ;;
+  *) echo "✘ 站点内容保存异常：$(echo "$SAVED" | head -c 200)"; fail=1 ;;
+esac
+if curl -fsS "$WEB_BASE/resume" | grep -q "$MARK"; then
+  echo "✔ 保存后公开页 /resume 已渲染新内容"
+else
+  echo "✘ 保存后 /resume 未出现新内容"; fail=1
+fi
+curl -fsS -X PUT "$WEB_BASE/api/site-content/evaluation" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d "{\"value\":$ORIG}" >/dev/null || echo "⚠ 恢复 evaluation 原值失败"
+
 GONE="$(curl -sS -o /dev/null -w '%{http_code}' "$WEB_BASE/api/notifications")"
 if [ "$GONE" = "404" ]; then echo "✔ 已删除的通知接口返回 404"; else echo "✘ /api/notifications 期望 404，实际 $GONE"; fail=1; fi
 
