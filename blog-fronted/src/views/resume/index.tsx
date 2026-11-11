@@ -166,7 +166,7 @@ export default function Resume() {
                 href="https://github.com/luo6667"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2.5 rounded-lg border-accent bg-accent-soft px-8 py-[0.875rem] text-base text-accent hover:-translate-y-0.5 hover:bg-accent hover:text-white"
+                className="inline-flex items-center gap-2.5 rounded-lg border-accent bg-accent-soft px-8 py-[0.875rem] text-base text-accent hover:-translate-y-0.5 hover:bg-accent hover:text-[var(--color-on-accent)]"
                 whileHover={{ scale: 1.04, y: -2 }}
                 whileTap={{ scale: 0.94 }}
                 transition={springBtn}

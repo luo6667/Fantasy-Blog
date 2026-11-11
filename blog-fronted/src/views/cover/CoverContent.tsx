@@ -6,7 +6,7 @@ import { MotionLink, SafeImg } from '@/components/common';
 import { springBtn, springSlow } from '@/lib/motion';
 
 const btnCover =
-  'inline-flex items-center gap-1.5 rounded-md border-[1.5px] border-accent/50 bg-transparent px-[1.125rem] py-2.5 font-[inherit] text-sm font-semibold text-white/80 backdrop-blur-sm transition-[border-color,color,background,box-shadow] duration-[250ms] hover:border-accent hover:bg-accent hover:text-white hover:shadow-lg hover:shadow-accent/30';
+  'inline-flex items-center gap-1.5 rounded-md border-[1.5px] border-accent/50 bg-transparent px-[1.125rem] py-2.5 font-[inherit] text-sm font-semibold text-white/80 backdrop-blur-sm transition-[border-color,color,background,box-shadow] duration-[250ms] hover:border-accent hover:bg-accent hover:text-[var(--color-on-accent)] hover:shadow-lg hover:shadow-accent/30';
 
 /**
  * 封面页内容（client 子组件）
@@ -60,7 +60,7 @@ export default function CoverContent() {
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ ...springSlow, delay: 0.25 }}
       >
-        Fantasy 的个人主页
+        Fantasy 的个人博客
       </motion.h1>
 
       {/* 副标题 */}
@@ -70,7 +70,7 @@ export default function CoverContent() {
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ ...springSlow, delay: 0.4 }}
       >
-        构建高性能 Web 体验的前端工程师
+        一个前端努力转AI全栈的开发者
       </motion.p>
 
       {/* 按钮组 */}

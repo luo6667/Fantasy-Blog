@@ -74,7 +74,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-accent px-4 py-2 font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {submitting ? '登录中…' : '登录'}
         </button>

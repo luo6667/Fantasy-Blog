@@ -113,7 +113,7 @@ export function SaveBar({
         type="button"
         disabled={!dirty || saving}
         onClick={onSave}
-        className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {saving ? '保存中…' : '保存'}
       </button>

@@ -27,7 +27,7 @@ const toolBtn =
   'cursor-pointer rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent';
 
 const toolBtnActive =
-  'cursor-pointer rounded-md bg-accent px-2.5 py-1 text-xs font-semibold text-white transition-opacity hover:opacity-90';
+  'cursor-pointer rounded-md bg-accent px-2.5 py-1 text-xs font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90';
 
 /**
  * 文章编辑器页面（/admin/new 新建、/admin/edit/:id 编辑）
@@ -397,7 +397,7 @@ export default function ArticleEditor() {
               <button
                 type="submit"
                 disabled={submitting || saving}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? '保存中…' : isEdit ? '保存修改' : '发布文章'}
               </button>

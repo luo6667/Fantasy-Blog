@@ -57,7 +57,7 @@ export default function Hero() {
           >
             <MotionLink
               href="#work"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-text)]"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
               whileTap={reduce ? undefined : { scale: 0.98 }}
               transition={springBtn}

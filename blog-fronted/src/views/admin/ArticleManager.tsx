@@ -40,7 +40,7 @@ export default function ArticleManager() {
         </div>
         <Link
           href="/admin/new"
-          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
         >
           + 新建文章
         </Link>

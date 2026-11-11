@@ -74,7 +74,7 @@ export default function Blog({
     'rounded-full border px-3 py-1 text-[0.8125rem] transition-colors';
   const pillIdle =
     'border-[var(--color-border)] text-text-muted hover:border-accent hover:text-accent';
-  const pillActive = 'border-transparent bg-accent font-semibold text-white';
+  const pillActive = 'border-transparent bg-accent font-semibold text-[var(--color-on-accent)]';
 
   return (
     <main>
@@ -172,7 +172,7 @@ export default function Blog({
             {isAdmin && (
               <Link
                 href="/admin/new"
-                className="shrink-0 rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                className="shrink-0 rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
               >
                 + 写文章
               </Link>

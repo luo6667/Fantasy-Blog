@@ -19,7 +19,7 @@ export default function ErrorPage({ error, reset }: { error: Error; reset: () =>
       <button
         type="button"
         onClick={() => { reset(); }}
-        className="cursor-pointer rounded-md bg-accent px-5 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        className="cursor-pointer rounded-md bg-accent px-5 py-2 text-sm font-semibold text-[var(--color-on-accent)] transition-opacity hover:opacity-90"
       >
         重试
       </button>

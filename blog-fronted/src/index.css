@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ==========================================
@@ -6,6 +6,7 @@
    ========================================== */
 :root {
   --color-accent: #1646b8;
+  --color-on-accent: #ffffff;
   --color-accent-soft: rgba(22, 70, 184, 0.1);
   --color-bg: #faf9f7;
   --color-bg-alt: #f5f2ee;
@@ -27,8 +28,9 @@
   --gh-4: #216e39;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-accent: #8fa9ff;
+  --color-on-accent: #14120f;
   --color-accent-soft: rgba(143, 169, 255, 0.14);
   --color-bg: #1d1b19;
   --color-bg-alt: #252320;
@@ -56,6 +58,7 @@
 @theme {
   /* 颜色令牌引用运行时 CSS 变量，支持深浅主题切换 */
   --color-accent: var(--color-accent);
+  --color-on-accent: var(--color-on-accent);
   --color-accent-soft: var(--color-accent-soft);
   --color-surface: var(--color-surface);
   --color-bg-alt: var(--color-bg-alt);
@@ -83,17 +86,36 @@
   }
 
   body {
-    font-family: var(--font-outfit), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family:
+      var(--font-outfit),
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
     color: var(--color-text);
     background: var(--color-bg);
     line-height: 1.65;
     font-size: 0.9375rem;
-    transition: background 0.3s, color 0.3s;
+    transition:
+      background 0.3s,
+      color 0.3s;
   }
 
-  a { color: inherit; text-decoration: none; }
-  ul, ol { list-style: none; }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  ul,
+  ol {
+    list-style: none;
+  }
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 @layer components {
@@ -117,7 +139,16 @@
    打印样式
    ========================================== */
 @media print {
-  .nav, .site-footer { display: none !important; }
-  body { font-size: 11pt; color: #000; background: #fff; }
-  .section { padding: 1rem 0; }
+  .nav,
+  .site-footer {
+    display: none !important;
+  }
+  body {
+    font-size: 11pt;
+    color: #000;
+    background: #fff;
+  }
+  .section {
+    padding: 1rem 0;
+  }
 }
