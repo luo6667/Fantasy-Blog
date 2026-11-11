@@ -37,7 +37,7 @@ export default function Nav({ theme, onToggle }: NavProps) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 24, mass: 0.8 }}
     >
-      <div className="mx-auto flex h-[3.25rem] w-full max-w-[1000px] items-center gap-3 px-6 md:gap-6">
+      <div className="mx-auto flex h-16 w-full max-w-[1040px] items-center gap-3 px-6 md:gap-6">
         <div className="flex shrink-0 items-center gap-2">
           {/* 头像入口：管理员 → 后台；访客 → 管理员登录页 */}
           <MotionLink
@@ -95,7 +95,7 @@ export default function Nav({ theme, onToggle }: NavProps) {
         <AnimatePresence>
           {menuOpen && (
             <motion.nav
-              className="absolute inset-x-0 top-[3.25rem] flex flex-col gap-1 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 py-3 md:hidden"
+              className="absolute inset-x-0 top-16 flex flex-col gap-1 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-6 py-3 md:hidden"
               initial={{ opacity: 0, height: 0, y: -8 }}
               animate={{ opacity: 1, height: 'auto', y: 0 }}
               exit={{ opacity: 0, height: 0, y: -8 }}
