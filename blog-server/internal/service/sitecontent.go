@@ -135,6 +135,22 @@ func GetSiteContent(db *gorm.DB, key string) (*SiteContentItem, error) {
 	return &item, nil
 }
 
+// SiteContentRevalidatePaths 返回某个 key 更新后需要重建的公开页面。
+//
+// 一个 key 对应哪一页由页面实际消费的内容决定；未知 key 返回 nil（不触发重建）。
+func SiteContentRevalidatePaths(key string) []string {
+	switch key {
+	case "plan":
+		return []string{"/plan"}
+	case "education", "skills", "resumeProjects", "evaluation":
+		return []string{"/resume"}
+	case "homeProjects":
+		return []string{"/home"}
+	default:
+		return nil
+	}
+}
+
 // UpdateSiteContent 整体替换某 key 的 value 并触发静态页重建。
 func UpdateSiteContent(db *gorm.DB, key string, value json.RawMessage) (*SiteContentItem, error) {
 	var doc model.SiteContent
@@ -155,5 +171,7 @@ func UpdateSiteContent(db *gorm.DB, key string, value json.RawMessage) (*SiteCon
 		}
 	}
 	item := siteContentItem(&doc)
+	// 写入成功后异步重建对应静态页；失败仅告警，不回滚已提交的数据库变更。
+	triggerRevalidate(SiteContentRevalidatePaths(key))
 	return &item, nil
 }
