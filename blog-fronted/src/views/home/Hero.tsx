@@ -13,7 +13,7 @@ import { springBtn, springHero } from '@/lib/motion';
  */
 export default function Hero() {
   const reduce = useReducedMotion();
-  const initial = reduce ? false : { opacity: 0, y: 18 };
+  const initial = reduce ? false : { y: 16 };
   const animate = { opacity: 1, y: 0 };
 
   return (
