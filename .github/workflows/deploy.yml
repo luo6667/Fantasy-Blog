@@ -9,8 +9,8 @@
 #   Secrets: SSH_HOST / SSH_USER / SSH_PRIVATE_KEY（必填）、SSH_PORT / SSH_KNOWN_HOSTS（可选）
 #   Variables: APP_ROOT（可选，默认 /www/wwwroot/personal-blog）
 #
-# 发布过程：rsync 代码 → 服务器上构建（后端先起、前端后构建）→ 切 current 软链
-#           → 重启 PM2 → 健康检查 → 失败自动回滚到上一个发布
+# 发布过程：rsync 代码 → 服务器上构建（Go 后端 + Next 前端）→ 切 current 软链
+#           → systemd 重启 Go 后端、PM2 reload 前端 → 健康检查 → 失败自动回滚
 # ─────────────────────────────────────────────────────────────────────────────
 name: Deploy
 
@@ -45,9 +45,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: |
-            blog-fronted/package-lock.json
-            blog-server/package-lock.json
+          cache-dependency-path: blog-fronted/package-lock.json
 
       - name: 安装前端依赖
         working-directory: blog-fronted
@@ -61,13 +59,24 @@ jobs:
         working-directory: blog-fronted
         run: npm run lint
 
-      - name: 安装后端依赖
-        working-directory: blog-server
-        run: npm ci --no-audit --no-fund
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: blog-server/go.mod
+          cache-dependency-path: blog-server/go.sum
 
-      - name: 后端类型检查
+      - name: 后端静态检查
         working-directory: blog-server
-        run: npm run typecheck
+        run: |
+          test -z "$(gofmt -l cmd internal migrations)"
+          go vet ./...
+
+      - name: 后端测试
+        working-directory: blog-server
+        run: go test ./...
+
+      - name: 后端构建
+        working-directory: blog-server
+        run: CGO_ENABLED=0 go build ./cmd/server
 
   deploy:
     name: 发布到 ECS
@@ -130,7 +139,8 @@ jobs:
             --exclude '.github' \
             --exclude 'node_modules' \
             --exclude '.next' \
-            --exclude 'dist' \
+            --exclude 'dist'
+            --exclude 'bin' \
             --exclude 'uploads' \
             --exclude '.env' \
             --exclude '.env.local' \

@@ -6,7 +6,12 @@
 #   bash deploy.sh bootstrap                 首次初始化（目录、环境变量模板、工具检查）
 #   bash deploy.sh deploy <发布目录>          构建并切换到指定发布目录（CI 的主路径）
 #   bash deploy.sh rollback [发布目录]        回滚到上一个（或指定）发布目录，不重新构建
-#   bash deploy.sh status                    查看当前发布、PM2 进程、健康接口
+#   bash deploy.sh status                    查看当前发布、进程状态、健康接口
+#
+# ── 进程管理边界 ────────────────────────────────────────────────────────────
+#   Go 后端  → systemd 单元 blog-server.service（不经 PM2；unit 见
+#              blog-server/deploy/systemd/blog-server.service）
+#   Next 前端 → PM2 应用 blog-web（deploy/ecosystem.config.cjs 只保留这一个）
 #
 # ── 目录约定 ────────────────────────────────────────────────────────────────
 #   /www/wwwroot/personal-blog/
@@ -40,6 +45,7 @@ fi
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 API_PORT="${API_PORT:-4000}"
 WEB_PORT="${WEB_PORT:-3000}"
+SYSTEMD_UNIT="${SYSTEMD_UNIT:-blog-server}"
 
 SHARED_DIR="${APP_ROOT}/shared"
 RELEASES_DIR="${APP_ROOT}/releases"
@@ -81,13 +87,20 @@ ensure_dirs() {
 
 check_tools() {
   local missing=0 cmd
-  for cmd in node npm pm2 curl; do
+  # 后端是 Go：systemd 托管；前端仍需要 node/npm/pm2。
+  for cmd in node npm pm2 curl systemctl; do
     command -v "$cmd" >/dev/null 2>&1 || { err "未找到命令：$cmd"; missing=1; }
   done
   [ "$missing" -eq 0 ] || {
-    err "请先安装缺失的工具：Node 22（nvm 或 apt）、pm2（npm i -g pm2）、curl"
+    err "请先安装缺失的工具：Node 22（nvm 或 apt）、pm2（npm i -g pm2）、curl、systemd"
     exit 1
   }
+
+  if command -v go >/dev/null 2>&1; then
+    ok "Go 工具链：$(go version | awk '{print $3}')"
+  else
+    warn "服务器未安装 Go：将要求发布目录中已有 CI 预编译的 blog-server/bin/server"
+  fi
 
   local major
   major="$(node -p 'process.versions.node.split(".")[0]')"
@@ -182,14 +195,33 @@ link_shared() {
 # ── 构建 ────────────────────────────────────────────────────────────────────
 build_backend() {
   local rel="$1"
-  log "构建后端（npm ci + tsc）"
-  (
-    cd "$rel/blog-server"
-    npm ci --no-audit --no-fund
-    npm run build
-  )
-  [ -f "$rel/blog-server/dist/index.js" ] || { err "后端构建产物缺失：dist/index.js"; exit 1; }
+  if command -v go >/dev/null 2>&1; then
+    log "构建后端（go build）"
+    (
+      cd "$rel/blog-server"
+      CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/server ./cmd/server
+    )
+  else
+    log "跳过后端编译（使用发布目录内的预编译产物）"
+  fi
+  [ -x "$rel/blog-server/bin/server" ] || {
+    err "后端可执行文件缺失：blog-server/bin/server（请安装 Go 或由 CI 预编译后随代码上传）"
+    exit 1
+  }
   ok "后端构建完成"
+}
+
+# 后端由 systemd 托管：切换软链后 restart，失败只回滚软链与重启。
+restart_backend() {
+  systemctl restart "$SYSTEMD_UNIT" 2>&1 | sed 's/^/    /' || return 1
+  return 0
+}
+
+# PM2 只负责 Next 前端。
+pm2_start_or_reload_web() {
+  pm2 startOrReload "$PM2_FILE" --only blog-web --update-env 2>&1 | sed 's/^/    /'
+  pm2 save >/dev/null 2>&1 || true
+  pm2 describe blog-web >/dev/null 2>&1
 }
 
 build_frontend() {
@@ -255,7 +287,7 @@ previous_release() {
   cur="$(current_release)"
   while IFS= read -r d; do
     [ "$(readlink -f "$d")" = "$cur" ] && continue
-    [ -f "$d/blog-server/dist/index.js" ] || continue
+    [ -x "$d/blog-server/bin/server" ] || continue
     [ -f "$d/blog-fronted/.next/BUILD_ID" ] || continue
     printf '%s\n' "$d"
     return 0
@@ -296,13 +328,19 @@ cmd_bootstrap() {
   1) 编辑服务器上的环境变量（两处 REVALIDATE_SECRET 必须同值）：
        ${BACKEND_ENV}
        ${FRONTEND_ENV}
-  2) 让 pm2 开机自启（当前用户执行一次，按提示复制 sudo 命令）：
+  2) 安装并启用后端 systemd 单元（首次，需 root）：
+       sudo cp "${CURRENT_LINK}/blog-server/deploy/systemd/blog-server.service" /etc/systemd/system/
+       # APP_ROOT 不是 /www/wwwroot/personal-blog 时，先改 unit 里的 WorkingDirectory / EnvironmentFile / ExecStart / ReadWritePaths
+       sudo systemctl daemon-reload
+       sudo systemctl enable blog-server
+     （后端只由 systemd 管理，不要再用 pm2 启动它）
+  3) 让 PM2 开机自启（只托管前端 blog-web；当前用户执行一次，按提示复制 sudo 命令）：
        pm2 startup
        pm2 save
-  3) Nginx 把整站反代到 127.0.0.1:${WEB_PORT}
+  4) Nginx 把整站反代到 127.0.0.1:${WEB_PORT}
      （参考仓库 deploy/nginx-blog.conf.example，宝塔里替换自动生成的 location / 段）
-  4) 阿里云安全组只放行 22 / 80 / 443；${API_PORT}、${WEB_PORT} 不要对外开放
-  5) 填好 .env 后回到 GitHub 触发一次 Deploy（action=deploy）即可上线
+  5) 阿里云安全组只放行 22 / 80 / 443；${API_PORT}、${WEB_PORT} 不要对外开放
+  6) 填好 .env 后回到 GitHub 触发一次 Deploy（action=deploy）即可上线
 
 EOF
 }
@@ -328,11 +366,11 @@ cmd_deploy() {
   log "切换版本并重启进程"
   switch_current "$rel"
 
-  if ! pm2_start_or_reload blog-server || ! wait_http "$API_HEALTH_URL" "blog-server" 30; then
+  if ! restart_backend || ! wait_http "$API_HEALTH_URL" "blog-server" 30; then
     err "后端启动失败，自动回滚"
     if [ -n "$prev" ]; then
       switch_current "$prev"
-      pm2_start_or_reload blog-server || true
+      restart_backend || true
       wait_http "$API_HEALTH_URL" "blog-server(回滚后)" 20 || true
     else
       warn "没有可回滚的历史发布，请检查 shared/backend.env 与数据库"
@@ -340,12 +378,12 @@ cmd_deploy() {
     exit 1
   fi
 
-  if ! pm2_start_or_reload blog-web || ! wait_http "$WEB_HEALTH_URL" "blog-web" 40; then
+  if ! pm2_start_or_reload_web || ! wait_http "$WEB_HEALTH_URL" "blog-web" 40; then
     err "前端启动失败，自动回滚"
     if [ -n "$prev" ]; then
       switch_current "$prev"
-      pm2_start_or_reload blog-server || true
-      pm2_start_or_reload blog-web || true
+      restart_backend || true
+      pm2_start_or_reload_web || true
       wait_http "$WEB_HEALTH_URL" "blog-web(回滚后)" 30 || true
     fi
     exit 1
@@ -371,9 +409,9 @@ cmd_rollback() {
   warn "回滚到：$(basename "$target")（不重新构建）"
   switch_current "$target"
 
-  pm2_start_or_reload blog-server || { err "后端重启失败"; exit 1; }
+  restart_backend || { err "后端重启失败"; exit 1; }
   wait_http "$API_HEALTH_URL" "blog-server" 30 || exit 1
-  pm2_start_or_reload blog-web || { err "前端重启失败"; exit 1; }
+  pm2_start_or_reload_web || { err "前端重启失败"; exit 1; }
   wait_http "$WEB_HEALTH_URL" "blog-web" 40 || exit 1
 
   ok "回滚完成"
@@ -396,6 +434,7 @@ cmd_status() {
   du -sh "$UPLOADS_DIR" 2>/dev/null | sed 's/^/  uploads:  /' || true
   echo
   echo "── 进程 ──"
+  echo "  systemd ${SYSTEMD_UNIT}: $(systemctl is-active "$SYSTEMD_UNIT" 2>/dev/null || echo unknown)"
   pm2 ls 2>/dev/null || warn "pm2 未就绪"
   echo
   echo "── 健康检查 ──"

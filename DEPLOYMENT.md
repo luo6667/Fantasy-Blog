@@ -3,8 +3,9 @@
 > 本文档面向 **宝塔面板（Linux）** 部署。
 > 架构：前端 `blog-fronted`（Next.js 16 App Router）＋后端 `blog-server`（Go 1.27 + Gin + GORM + MySQL 8）。
 >
-> ⚠️ 后端已从 Node/Express 迁移到 Go（提交 `87def6e`）。下文仍保留旧 Node + PM2 的部署步骤，
-> **尚未更新**；Go 版发布方式（systemd 托管）待迁移任务 11 完成后补齐。
+> 进程管理边界：**Go 后端由 systemd 单元 `blog-server.service` 托管**（unit 示例见
+> [`blog-server/deploy/systemd/blog-server.service`](./blog-server/deploy/systemd/blog-server.service)）；
+> **Next 前端由 PM2 的 `blog-web` 托管**。旧的 `pm2 start dist/index.js` 方式已废弃。
 
 > 📌 **现在走自动化部署了**：`git push origin main` 即上线，支持一键回滚、失败自动退回上一版。
 > 流水线用法见 **[DEPLOY-CICD.md](./DEPLOY-CICD.md)**（目录结构、GitHub Secrets、bootstrap、回滚、老服务器数据迁移都在那里）。
@@ -106,7 +107,7 @@ REVALIDATE_SECRET=<与后端 .env 里相同的值>
 
 ## 二、宝塔实操步骤
 
-> 前置：一台有公网 IP 的服务器；宝塔已装 **Nginx**、**MySQL 8**；在宝塔「软件商店」装好 **Node.js 版本管理器**（装 ≥20 的 LTS）与 **PM2 管理器**。
+> 前置：一台有公网 IP 的服务器；宝塔已装 **Nginx**、**MySQL 8**；前端需要 **Node ≥20** 与 **PM2 管理器**；后端是 Go，需要 **Go 1.27+**（或由 CI 交叉编译好 `bin/server` 后上传）。
 
 ### 1. MySQL 建库建号（最小权限账号）
 
@@ -133,34 +134,42 @@ cd /www/wwwroot/personal-blog/blog-server
 # 3.1 写 .env（按上文第一节模板；JWT_SECRET / REVALIDATE_SECRET 先生成好）
 #     openssl rand -hex 32  ← 生成随机串
 
-# 3.2 安装依赖 + 构建 + 建管理员
-npm ci
-npm run build          # 产出 dist/
+# 3.2 编译（服务器装有 Go 时；否则由 CI 预编译 bin/server 后上传）
+mkdir -p bin
+CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/server ./cmd/server
+
+# 3.3 应用版本化迁移（生产禁止 AutoMigrate；先在副本库演练）
+./bin/server migrate
 ```
 
 ### 4. 建管理员账号（先做，只在首次部署做）
 
 ```bash
-# 4.1 临时把初始强密码写进 .env：
-#     ADMIN_INITIAL_PASSWORD=<至少8位的强密码>
+# 4.1 用环境变量传入初始密码（不写进文件；至少 8 位）
+ADMIN_INITIAL_PASSWORD='<强密码>' ./bin/server seed-admin
 
-# 4.2 执行 seed（tsx 是 devDependency，上一步 npm ci 已包含）
-npm run seed           # admin 不存在则创建；已存在不会重置
-
-# 4.3 立刻把 .env 里的 ADMIN_INITIAL_PASSWORD 清空！
+# 4.2 admin 已存在时该命令会重置密码；命令成功后环境变量即失效，
+#     不要把密码留在 shell 历史或 .env 里。
 ```
 
-> 警告：只要 `.env` 里还留着 `ADMIN_INITIAL_PASSWORD`，**每次**跑 `npm run seed` 都会把 admin 密码重置成它。用完清空是硬要求。
+> 警告：`seed-admin` 每次执行都会把该管理员密码重置为传入值；只在需要重置时执行，不要把它写进脚本或 CI。
 
-### 5. 用 PM2 托管后端（崩溃自动重启 + 开机自启）
+### 5. 用 systemd 托管后端（崩溃自动重启 + 开机自启）
 
 ```bash
-# 宝塔 PM2 管理器：添加项目 → 启动文件 dist/index.js，或用命令行：
-pm2 start dist/index.js --name blog-server
-pm2 save && pm2 startup   # 设置开机自启（按提示执行输出命令）
+# 5.1 安装 unit（按实际路径修改 WorkingDirectory / EnvironmentFile / ExecStart / ReadWritePaths）
+sudo cp blog-server/deploy/systemd/blog-server.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now blog-server
+
+# 5.2 查看状态与日志
+systemctl status blog-server
+journalctl -u blog-server -f
 ```
 
 验证：`curl http://127.0.0.1:4000/api/health` 应返回存活信息。此时不要对公网开放 4000 端口（见步骤 8）。
+
+> 前端仍由 PM2 托管（见 6.3）；**不要**再用 PM2 启动 Go 后端，避免两个进程抢同一端口。
 
 ### 6. 前端：构建 → 起服务（**先确保后端已启动**）
 
@@ -228,7 +237,7 @@ client_max_body_size 10m;
 - [ ] 普通用户注册 → 评论 → 管理员收到通知；上传一张 >1MB 的图片到文章里能正常显示
 - [ ] 登录后 30 秒刷新页面仍保持登录（JWT 正常）；把系统时间往前调验证过期（可选）
 - [ ] `ADMIN_INITIAL_PASSWORD` 已清空；admin 密码不是 `123456`
-- [ ] `pm2 ls` 两个进程都在线且状态 `online`；`pm2 save` 已执行
+- [ ] `systemctl is-active blog-server` 为 `active`；`pm2 ls` 中 `blog-web` 在线且 `pm2 save` 已执行
 - [ ] 数据库做了备份（cron + mysqldump 或宝塔「计划任务」每日备份 `jianli` 库 + `blog-server/uploads/` 目录）
 
 ## 四、常见坑（FAQ）
