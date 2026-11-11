@@ -2,22 +2,24 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { tagApi } from '@/lib/api';
 import { articleKeys, tagKeys } from '@/lib/queryKeys';
+import type { TagItem } from '@/types/api';
 
 /**
- * 标签库查询 / 变更 hooks
+ * 主标签库查询 / 变更 hooks
  *
- * 标签库列表（/tags）在管理页、用户面板、编辑器中复用同一份缓存。
+ * 主标签库（/tags）在博客筛选栏、管理页、编辑器中复用同一份缓存。
  */
 
-/** 标签库列表（含文章数） */
-export function useTagsQuery() {
+/** 主标签列表（含文章数）；initialData 用于 SSG 首屏预填 */
+export function useTagsQuery(initialData?: TagItem[] | null) {
   return useQuery({
     queryKey: tagKeys.all,
     queryFn: tagApi.list,
+    initialData: initialData ?? undefined,
   });
 }
 
-/** 创建标签（只影响标签库本身） */
+/** 创建主标签 */
 export function useCreateTagMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -28,15 +30,27 @@ export function useCreateTagMutation() {
   });
 }
 
-/** 删除标签（会从所有文章移除，需同时刷新文章列表与标签计数） */
-export function useDeleteTagMutation() {
+/** 重命名主标签（文章列表里的标签名会同步变化） */
+export function useRenameTagMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (name: string) => tagApi.remove(name),
+    mutationFn: ({ id, name }: { id: string; name: string }) => tagApi.rename(id, name),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: tagKeys.all });
       void queryClient.invalidateQueries({ queryKey: articleKeys.all });
-      void queryClient.invalidateQueries({ queryKey: articleKeys.tags });
+      void queryClient.invalidateQueries({ queryKey: ['article'] });
+    },
+  });
+}
+
+/** 删除主标签（后端在被文章引用时会拒绝） */
+export function useDeleteTagMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => tagApi.remove(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: tagKeys.all });
+      void queryClient.invalidateQueries({ queryKey: articleKeys.all });
       void queryClient.invalidateQueries({ queryKey: ['article'] });
     },
   });

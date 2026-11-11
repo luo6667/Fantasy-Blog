@@ -7,16 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"blog-server/internal/httpx"
-	"blog-server/internal/middleware"
 	"blog-server/internal/service"
 )
 
 type articleRequest struct {
-	Title   *string   `json:"title"`
-	Excerpt *string   `json:"excerpt"`
-	Content *string   `json:"content"`
-	Tags    *[]string `json:"tags"`
-	Cover   *string   `json:"cover"`
+	Title        *string   `json:"title"`
+	Excerpt      *string   `json:"excerpt"`
+	Content      *string   `json:"content"`
+	PrimaryTagID *string   `json:"primaryTagId"`
+	SubTags      *[]string `json:"subTags"`
+	Cover        *string   `json:"cover"`
 }
 
 // validateArticle 校验创建/更新请求体；partial 为 true 时只校验出现的字段。
@@ -60,36 +60,45 @@ func validateArticle(req *articleRequest, partial bool) (*service.CreateArticleI
 			upd.Content = &content
 		}
 	}
-	if req.Tags == nil {
+	if req.PrimaryTagID == nil {
 		if !partial {
-			issues = append(issues, httpx.Issue{Path: "tags", Message: "Required"})
+			issues = append(issues, httpx.Issue{Path: "primaryTagId", Message: "请选择主标签"})
 		}
+	} else if id, issue := requiredString(req.PrimaryTagID, "primaryTagId", "请选择主标签", 24, "主标签不合法"); issue != nil {
+		issues = append(issues, *issue)
 	} else {
-		tags := *req.Tags
-		if len(tags) == 0 {
-			issues = append(issues, httpx.Issue{Path: "tags", Message: "至少选择一个分类标签"})
-		} else if len(tags) > 20 {
-			issues = append(issues, httpx.Issue{Path: "tags", Message: "标签最多 20 个"})
+		out.PrimaryTagID = id
+		upd.PrimaryTagID = &id
+	}
+	if req.SubTags != nil {
+		// 子标签是自由字符串：先 trim、去空、去重，再校验数量与长度。
+		normalized := make([]string, 0, len(*req.SubTags))
+		seen := make(map[string]struct{}, len(*req.SubTags))
+		for _, t := range *req.SubTags {
+			v := strings.TrimSpace(t)
+			if v == "" {
+				continue
+			}
+			if _, ok := seen[v]; ok {
+				continue
+			}
+			seen[v] = struct{}{}
+			normalized = append(normalized, v)
+		}
+		if len(normalized) > 20 {
+			issues = append(issues, httpx.Issue{Path: "subTags", Message: "子标签最多 20 个"})
 		} else {
-			normalized := make([]string, 0, len(tags))
 			bad := false
-			for _, t := range tags {
-				v := strings.TrimSpace(t)
-				if v == "" {
-					issues = append(issues, httpx.Issue{Path: "tags", Message: "标签不能为空"})
-					bad = true
-					continue
-				}
+			for _, v := range normalized {
 				if jsLen(v) > 32 {
-					issues = append(issues, httpx.Issue{Path: "tags", Message: "单个标签最多 32 个字符"})
+					issues = append(issues, httpx.Issue{Path: "subTags", Message: "单个子标签最多 32 个字符"})
 					bad = true
-					continue
+					break
 				}
-				normalized = append(normalized, v)
 			}
 			if !bad {
-				out.Tags = normalized
-				upd.Tags = &normalized
+				out.SubTags = normalized
+				upd.SubTags = &normalized
 			}
 		}
 	}
@@ -122,7 +131,7 @@ func (a *App) listArticles(c *gin.Context) error {
 		Tag:      c.Query("tag"),
 		Search:   strings.TrimSpace(c.Query("search")),
 	}
-	result, err := service.ListArticles(a.DB, q, currentKey(c))
+	result, err := service.ListArticles(a.DB, q)
 	if err != nil {
 		return err
 	}
@@ -130,19 +139,9 @@ func (a *App) listArticles(c *gin.Context) error {
 	return nil
 }
 
-// articleTags 标签聚合。
-func (a *App) articleTags(c *gin.Context) error {
-	tags, err := service.ListArticleTags(a.DB)
-	if err != nil {
-		return err
-	}
-	httpx.Success(c, tags)
-	return nil
-}
-
 // articleDetail 文章详情。
 func (a *App) articleDetail(c *gin.Context) error {
-	detail, err := service.GetArticle(a.DB, c.Param("id"), currentKey(c))
+	detail, err := service.GetArticle(a.DB, c.Param("id"))
 	if err != nil {
 		return err
 	}
@@ -160,11 +159,7 @@ func (a *App) createArticle(c *gin.Context) error {
 	if err != nil {
 		return err
 	}
-	actor := middleware.ActorFrom(c)
-	if actor == nil {
-		return httpx.Unauthorized("请先登录")
-	}
-	detail, err := service.CreateArticle(a.DB, *in, service.Actor{ID: actor.ID, Username: actor.Username, Role: actor.Role})
+	detail, err := service.CreateArticle(a.DB, *in)
 	if err != nil {
 		return err
 	}
@@ -200,48 +195,23 @@ func (a *App) deleteArticle(c *gin.Context) error {
 	return nil
 }
 
-// likeArticle 点赞/取消点赞。
-func (a *App) likeArticle(c *gin.Context) error {
-	actor := middleware.ActorFrom(c)
-	if actor == nil {
-		return httpx.Unauthorized("请先登录")
+func clamp(v, lo, hi int) int {
+	if v < lo {
+		return lo
 	}
-	data, err := service.ToggleArticleLike(a.DB, c.Param("id"), service.Actor{ID: actor.ID, Username: actor.Username, Role: actor.Role})
-	if err != nil {
-		return err
+	if v > hi {
+		return hi
 	}
-	httpx.Success(c, data)
-	return nil
+	return v
 }
 
-// currentKey 返回可选登录主体的 "role:id"。
-func currentKey(c *gin.Context) string {
-	actor := middleware.ActorFrom(c)
-	if actor == nil {
-		return ""
-	}
-	return service.LikeKey(actor.Role, actor.ID)
-}
-
-// atoiDefault 解析整数，失败时返回默认值（对齐 Number(x) || d）。
-func atoiDefault(raw string, fallback int) int {
+func atoiDefault(raw string, def int) int {
 	if raw == "" {
-		return fallback
+		return def
 	}
 	n, err := strconv.Atoi(raw)
 	if err != nil {
-		return fallback
+		return def
 	}
 	return n
-}
-
-// clamp 限制范围。
-func clamp(v, min, max int) int {
-	if v < min {
-		return min
-	}
-	if v > max {
-		return max
-	}
-	return v
 }

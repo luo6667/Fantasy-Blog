@@ -1,0 +1,29 @@
+# /etc/systemd/system/blog-server.service
+# 替换 User / 路径后：systemctl daemon-reload && systemctl enable --now blog-server
+[Unit]
+Description=JasonLuo blog backend (Go)
+After=network-online.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/personal-blog/current/blog-server
+EnvironmentFile=/www/wwwroot/personal-blog/shared/backend.env
+Environment=GIN_MODE=release
+ExecStart=/www/wwwroot/personal-blog/current/blog-server/bin/server
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+
+# 基础加固：只读系统、可写上传目录
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/www/wwwroot/personal-blog/shared/uploads
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

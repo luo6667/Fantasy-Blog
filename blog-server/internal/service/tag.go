@@ -7,40 +7,32 @@ import (
 	"blog-server/internal/model"
 )
 
-// TagItem 是标签库条目（含文章数）。
+// TagItem 是主标签库条目（含引用该标签的文章数）。
 type TagItem struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Count int64  `json:"count"`
 }
 
-// ListTagLibrary 返回标签库全部标签及文章数。
-func ListTagLibrary(db *gorm.DB) ([]TagItem, error) {
-	var tags []model.Tag
-	if err := db.Order("createdAt ASC").Find(&tags).Error; err != nil {
-		return nil, err
-	}
-
-	var rows []TagCount
-	err := db.Raw(`SELECT jt.tag AS name, COUNT(*) AS count
-		FROM articles, JSON_TABLE(articles.tags, '$[*]' COLUMNS (tag VARCHAR(64) PATH '$')) AS jt
-		GROUP BY jt.tag`).Scan(&rows).Error
+// ListTags 返回主标签库全部标签及文章数，按创建时间升序。
+func ListTags(db *gorm.DB) ([]TagItem, error) {
+	var rows []TagItem
+	err := db.Table("tags").
+		Select("tags.id, tags.name, COUNT(articles.id) AS count").
+		Joins("LEFT JOIN articles ON articles.primaryTagId = tags.id").
+		Group("tags.id, tags.name, tags.createdAt").
+		Order("tags.createdAt ASC").
+		Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
-	counts := make(map[string]int64, len(rows))
-	for _, r := range rows {
-		counts[r.Name] = r.Count
+	if rows == nil {
+		rows = []TagItem{}
 	}
-
-	out := make([]TagItem, 0, len(tags))
-	for _, t := range tags {
-		out = append(out, TagItem{ID: t.ID, Name: t.Name, Count: counts[t.Name]})
-	}
-	return out, nil
+	return rows, nil
 }
 
-// CreateTag 新增标签（重名返回 409）。
+// CreateTag 新增主标签（重名返回 409）。
 func CreateTag(db *gorm.DB, name string) (*TagItem, error) {
 	doc := model.Tag{ID: NewID(), Name: name}
 	if err := db.Create(&doc).Error; err != nil {
@@ -52,34 +44,60 @@ func CreateTag(db *gorm.DB, name string) (*TagItem, error) {
 	return &TagItem{ID: doc.ID, Name: doc.Name, Count: 0}, nil
 }
 
-// DeleteTag 删除标签并从所有文章中移除该标签。
-func DeleteTag(db *gorm.DB, name string) (map[string]string, error) {
-	res := db.Where("name = ?", name).Delete(&model.Tag{})
-	if res.Error != nil {
-		return nil, res.Error
-	}
-	if res.RowsAffected == 0 {
-		return nil, httpx.NotFound("标签「" + name + "」不存在")
-	}
-
-	var articles []model.Article
-	if err := db.Where("JSON_CONTAINS(tags, JSON_QUOTE(?))", name).Find(&articles).Error; err != nil {
+// RenameTag 修改主标签名称（重名返回 409）。
+func RenameTag(db *gorm.DB, id, name string) (*TagItem, error) {
+	var doc model.Tag
+	if err := db.Where("id = ?", id).Take(&doc).Error; err != nil {
+		if isRecordNotFound(err) {
+			return nil, httpx.NotFound("标签不存在")
+		}
 		return nil, err
 	}
-	for i := range articles {
-		a := &articles[i]
-		kept := make(model.StringList, 0, len(a.Tags))
-		for _, t := range a.Tags {
-			if t != name {
-				kept = append(kept, t)
+	if doc.Name != name {
+		if err := db.Model(&doc).Update("name", name).Error; err != nil {
+			if IsDuplicateKey(err) {
+				return nil, httpx.Conflict("标签「" + name + "」已存在")
 			}
-		}
-		a.Tags = kept
-		if err := db.Save(a).Error; err != nil {
 			return nil, err
 		}
 	}
-
 	triggerRevalidate([]string{"/blog", "/blog/[id]"})
-	return map[string]string{"name": name}, nil
+	return tagWithCount(db, id)
+}
+
+// DeleteTag 删除未被引用的主标签；仍有文章引用时返回 409。
+func DeleteTag(db *gorm.DB, id string) (map[string]string, error) {
+	var doc model.Tag
+	if err := db.Where("id = ?", id).Take(&doc).Error; err != nil {
+		if isRecordNotFound(err) {
+			return nil, httpx.NotFound("标签不存在")
+		}
+		return nil, err
+	}
+	var count int64
+	if err := db.Model(&model.Article{}).Where("primaryTagId = ?", id).Count(&count).Error; err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		return nil, httpx.Conflict("该主标签下仍有文章，请先调整文章分类")
+	}
+	if err := db.Where("id = ?", id).Delete(&model.Tag{}).Error; err != nil {
+		return nil, err
+	}
+	triggerRevalidate([]string{"/blog", "/blog/[id]"})
+	return map[string]string{"id": id, "name": doc.Name}, nil
+}
+
+func tagWithCount(db *gorm.DB, id string) (*TagItem, error) {
+	var item TagItem
+	err := db.Table("tags").
+		Select("tags.id, tags.name, COUNT(articles.id) AS count").
+		Joins("LEFT JOIN articles ON articles.primaryTagId = tags.id").
+		Where("tags.id = ?", id).
+		Group("tags.id, tags.name").
+		Take(&item).Error
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
 }

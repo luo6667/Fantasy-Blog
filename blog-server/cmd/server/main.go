@@ -55,19 +55,6 @@ func main() {
 		}
 		logger.Info("migrate done", "applied", applied)
 		return
-	case "migrate-ai-keys":
-		encKey, err := service.DecodeEncKey(cfg.AIConfigEncKey)
-		if err != nil {
-			logger.Error("invalid AI_CONFIG_ENC_KEY", "error", err)
-			os.Exit(1)
-		}
-		count, err := service.MigrateAIKeys(db, encKey)
-		if err != nil {
-			logger.Error("migrate ai keys failed", "error", err)
-			os.Exit(1)
-		}
-		logger.Info("migrate ai keys done", "migrated", count)
-		return
 	case "seed-admin":
 		if len(cfg.AdminInitialPassword) < 8 {
 			logger.Error("ADMIN_INITIAL_PASSWORD is required (at least 8 characters)")

@@ -1,5 +1,9 @@
 # JasonLuo 个人主页 & 博客 — 项目学习指南
 
+> ⚠️ 历史文档：本文记录的是改造前的 Node/Express 实现（含评论、通知、AI、普通用户），
+> 仅作学习参考。当前后端为 Go（Gin + GORM），只保留管理员登录与主/子标签文章模型，
+> 详见 [`blog-server/README.md`](./blog-server/README.md)。
+
 > 目标:按顺序读完本文,配合代码注释,即可吃透整个项目(前端 Next.js + 后端 Go)。
 > 建议边读边在 `blog-fronted` 和 `blog-server` 里打开对应文件对照。
 >

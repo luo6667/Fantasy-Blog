@@ -8,49 +8,12 @@ import (
 	"blog-server/internal/service"
 )
 
-type registerRequest struct {
-	Username *string `json:"username"`
-	Password *string `json:"password"`
-}
-
 type loginRequest struct {
 	Username *string `json:"username"`
 	Password *string `json:"password"`
-	Role     *string `json:"role"`
 }
 
-// register 注册普通用户。
-func (a *App) register(c *gin.Context) error {
-	var req registerRequest
-	if err := httpx.DecodeJSON(c, &req); err != nil {
-		return err
-	}
-	var issues []httpx.Issue
-	username, issue := requiredString(req.Username, "username", "用户名至少 2 个字符", 32, "用户名最多 32 个字符")
-	if issue != nil {
-		issues = append(issues, *issue)
-	} else if jsLen(username) < 2 {
-		issues = append(issues, httpx.Issue{Path: "username", Message: "用户名至少 2 个字符"})
-	}
-	password, issue := plainString(req.Password, "password", "密码至少 8 个字符", 72, "密码最多 72 个字符")
-	if issue != nil {
-		issues = append(issues, *issue)
-	} else if jsLen(password) < 8 {
-		issues = append(issues, httpx.Issue{Path: "password", Message: "密码至少 8 个字符"})
-	}
-	if err := issuesError(issues); err != nil {
-		return err
-	}
-
-	user, err := service.Register(a.DB, username, password)
-	if err != nil {
-		return err
-	}
-	httpx.SuccessMsg(c, 201, "注册成功", user)
-	return nil
-}
-
-// login 登录（body.role 决定普通用户或管理员）。
+// login 管理员登录（系统只保留管理员账号）。
 func (a *App) login(c *gin.Context) error {
 	var req loginRequest
 	if err := httpx.DecodeJSON(c, &req); err != nil {
@@ -65,30 +28,11 @@ func (a *App) login(c *gin.Context) error {
 	if issue != nil {
 		issues = append(issues, *issue)
 	}
-	role := "user"
-	if req.Role != nil {
-		if *req.Role != "user" && *req.Role != "admin" {
-			issues = append(issues, httpx.Issue{
-				Path:    "role",
-				Message: "Invalid enum value. Expected 'user' | 'admin', received '" + *req.Role + "'",
-			})
-		} else {
-			role = *req.Role
-		}
-	}
 	if err := issuesError(issues); err != nil {
 		return err
 	}
 
-	var (
-		user *service.AuthUser
-		err  error
-	)
-	if role == "admin" {
-		user, err = service.LoginAdmin(a.DB, username, password)
-	} else {
-		user, err = service.LoginUser(a.DB, username, password)
-	}
+	user, err := service.LoginAdmin(a.DB, username, password)
 	if err != nil {
 		return err
 	}

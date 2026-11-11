@@ -8,18 +8,20 @@
 ├── blog-fronted/          # 前端 — Next.js 16 (App Router) + React 19 + Tailwind CSS v4
 │   └── src/
 │       ├── app/           # App Router 页面与布局 (route groups: (site)/)
-│       ├── components/    # 通用组件 (common/、layout/、ai/、comment/、auth/、notification/、providers/)
+│       ├── components/    # 通用组件 (common/、layout/、providers/)
 │       ├── views/         # 页面视图 (home、about、resume、plan、blog、blog-detail、admin、cover、not-found)
+│       │                  # 后台：/admin/articles|plan|resume + /admin/login（共享 AdminShell）
 │       ├── hooks/         # 自定义 hooks (queries/ 为 React Query 封装)
 │       ├── stores/        # zustand 状态 (authStore、themeStore)
 │       ├── lib/           # 基础设施 (api 客户端、queryClient、queryKeys、motion、utils)
 │       ├── constants/     # 静态数据
 │       └── types/         # 与后端对应的类型定义
 └── blog-server/           # 后端 — Go 1.27 + Gin + GORM + MySQL 8
-    ├── cmd/server/        # 入口与子命令 (migrate、seed-admin、migrate-ai-keys)
+    ├── cmd/server/        # 入口与子命令 (migrate、seed-admin)
     ├── internal/          # config、model、service、handler、middleware、migrate
-    ├── migrations/        # 版本化 SQL 迁移
-    └── tests/             # 契约回放 (contract/) 与冒烟脚本 (smoke/)
+    ├── migrations/        # 版本化 SQL 迁移与核对表
+    ├── deploy/            # systemd 示例与发布/回滚清单
+    └── tests/             # 旧版快照 (fixtures/) 与冒烟脚本 (smoke/)
 ```
 
 ## 技术栈
@@ -28,7 +30,8 @@
 |---|---|
 | 前端 | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · React Query · zustand · motion · zod |
 | 后端 | Go 1.27 · Gin · GORM · MySQL 8 · JWT · bcrypt · goldmark |
-| 其他 | SSE (AI 流式对话) · 按需刷新 (Next.js revalidate) · Markdown 渲染 |
+| 内容模型 | 管理员专用认证 · 文章（1 主标签 + 自由子标签）· 站点内容 JSON · 图片上传 |
+| 其他 | 按需刷新 (Next.js revalidate) · Markdown 渲染与净化 |
 
 ## 环境要求
 
@@ -87,9 +90,8 @@ go run ./cmd/server seed-admin   # 创建或重置管理员，密码读 ADMIN_IN
 | `scripts/dev.sh` | 编译到 `bin/` 后启动 |
 | `scripts/dev.sh migrate` | 执行版本化 SQL 迁移 |
 | `go run ./cmd/server seed-admin` | 创建/重置管理员账号 |
-| `go run ./cmd/server migrate-ai-keys` | 把 AI Key 明文加密迁移 |
 | `scripts/check.sh` | gofmt / vet / test / build 一键检查 |
-| `bash tests/contract/replay.sh` | 101 个契约用例回放比对 |
+| `go test ./...` | 单元测试 + MySQL 集成测试 |
 | `bash tests/smoke/frontend.sh` | 前端 + 后端联调冒烟 |
 
 ## 部署

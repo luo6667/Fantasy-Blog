@@ -1,49 +1,56 @@
 # blog-server
 
-博客后端（B 端）的 Go 实现，作为 `blog-server/`（Express 5 + Sequelize）的等价替代。
+个人博客后端：**Go 1.27 + Gin + GORM + MySQL 8**。
 
-目标是**对外行为完全兼容**：API 路径、请求/响应 JSON、状态码、错误文案、分页、
-鉴权（含旧 JWT）、上传地址与 AI SSE 都与旧实现一致，前端零改动即可切换。
+当前形态是「管理员专用的内容后端」：只保留管理员登录，文章按
+**1 个主标签 + 多个自由子标签**归类，主标签集中管理；评论、点赞、通知、
+普通用户与 AI 对话已在改造中移除（旧 Node 版可在 git 历史中查看）。
 
-## 技术栈
+## 功能范围
 
-- Go 1.27 + [Gin](https://github.com/gin-gonic/gin) + [GORM](https://gorm.io/) + MySQL 8
-- `golang-jwt/jwt/v5`（HS256，与旧 Node 同密钥可直接复用 token）
-- `golang.org/x/crypto/bcrypt`（cost 10，兼容 `$2b$` 哈希）
-- `goldmark` + `bluemonday`（Markdown → 净化 HTML）
-- AES-256-GCM 加密 AI Key
+| 模块 | 说明 |
+| --- | --- |
+| 认证 | `POST /api/auth/login` 仅查 `admins` 表；`GET /api/auth/me`；JWT HS256，7 天 |
+| 文章 | 列表（分页 / 主标签筛选 / 搜索）、详情、创建、更新、删除（管理员） |
+| 主标签 | 列表（含文章数）、创建、改名、删除（仍被文章引用时 409） |
+| 子标签 | 文章内的自由字符串数组：自动 trim、去空、去重，不建表、不单独管理 |
+| 站点内容 | `site-content/{key}` 六块 JSON：education/skills/resumeProjects/evaluation/homeProjects/plan |
+| 上传 | 单图 ≤5MB，JPEG/PNG/WebP/GIF 魔数校验，落盘 `UPLOAD_DIR`，URL `/uploads/<file>` |
+| 按需刷新 | 文章 / 标签 / 站点内容变更后请求 Next.js `/api/revalidate`（失败只记日志） |
+
+已删除、且**不应重新出现**的接口（均返回 404）：`auth/register`、`articles/:id/like`、
+`articles/:id/comments`、`comments/*`、`notifications/*`、`users/*`、`ai/*`。
 
 ## 目录
 
 ```
-cmd/server/           入口（HTTP / migrate / migrate-ai-keys）
+cmd/server/           入口（HTTP / migrate / seed-admin）
 internal/
-  config/             环境变量加载与校验（与 env.ts 同名同默认值）
+  config/             环境变量、.env 加载与校验
   database/           GORM 连接与建库
-  model/              8 张表的显式映射（表名、列名、索引、JSON 列）
-  httpx/              响应信封、错误类型、时间格式
-  auth/               JWT 签发/解析
-  middleware/         鉴权、限流、CORS、JSON body 校验、panic 恢复
-  service/            业务逻辑（文章/评论/标签/通知/用户/站点内容/AI/加密）
+  model/              显式映射：admins / articles / tags / site_contents
+  httpx/              响应信封 {code,msg,data}、错误类型、ISO 时间
+  auth/               JWT 签发与解析
+  middleware/         鉴权（仅 admin）、限流、CORS、JSON body 校验、panic 恢复
+  service/            业务逻辑（auth/article/tag/sitecontent/markdown/revalidate）
   server/             路由装配与 handler
   migrate/            版本化 SQL 迁移执行器
-migrations/           嵌入式 SQL（0000_legacy_schema 为旧库基线）
-tests/contract/       Node 基线 golden + 回放比对
-tests/smoke/          前端联调冒烟
+migrations/           嵌入式 SQL：0000 旧库基线、0001 博客改造 + 核对表
+tests/fixtures/       旧版数据快照（迁移演练 / 冒烟用）
+tests/smoke/          前端联调冒烟脚本
+deploy/               systemd unit 示例与发布清单
 ```
 
 ## 环境变量
 
-与旧 Node 服务**同名、同默认值、同 fail-fast 行为**：
-
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `NODE_ENV` | `development` | 日志模式 |
+| `NODE_ENV` | `development` | 运行环境标识 |
 | `PORT` | `4000` | HTTP 端口 |
 | `MYSQL_HOST` / `MYSQL_PORT` | `127.0.0.1` / `3306` | 数据库地址 |
-| `MYSQL_USER` / `MYSQL_PASSWORD` | `root` / 空 | 数据库账号（密码缺省时为空串） |
+| `MYSQL_USER` / `MYSQL_PASSWORD` | `root` / `1234` | 数据库账号 |
 | `MYSQL_DATABASE` | `jianli` | 库名 |
-| `JWT_SECRET` | 必填，≥16 字符 | 与旧服务一致才能复用登录态 |
+| `JWT_SECRET` | 必填，≥16 字符 | 签发密钥；改动会使旧登录态失效 |
 | `JWT_EXPIRES_IN` | `7d` | 支持 `7d` / `12h` / `30m` |
 | `CORS_ORIGIN` | `http://localhost:3000` | 逗号分割白名单 |
 | `UPLOAD_DIR` | `uploads` | 上传落盘目录 |
@@ -51,100 +58,63 @@ tests/smoke/          前端联调冒烟
 | `ADMIN_INITIAL_PASSWORD` | 空 | `seed-admin` 子命令使用的管理员密码（≥8 位） |
 | `NEXT_REVALIDATE_URL` | 空 | Next 站点地址；缺省则跳过按需刷新 |
 | `REVALIDATE_SECRET` | 空 | 与 Next 共享的刷新密钥 |
-| `AI_CONFIG_ENC_KEY` | 空 | base64 的 32 字节主密钥；设置后 AI Key 以密文存取 |
 
-## 启动与 `.env`
+`.env` 查找顺序：`ENV_FILE` → 当前目录 `.env` → 可执行文件所在模块根目录 `.env`。
+真实环境变量优先，不会被 `.env` 覆盖。
 
-Go 版本内置了与旧服务一致的 dotenv 加载（不依赖第三方库），查找顺序：
-
-1. `ENV_FILE` 指定的文件（显式指定，缺失即报错）；
-2. 当前工作目录的 `.env`；
-3. 可执行文件所在模块根的 `.env`（`bin/server.exe` → 模块根）；
-4. 开发期兄弟目录 `../blog-server/.env`（与旧 Node 服务共用一份配置）。
-
-已存在的真实环境变量优先，`.env` 不会覆盖它们；生产建议用 systemd `EnvironmentFile` 注入。
+## 启动
 
 ```bash
-# 方式一：开发脚本（自动加载 .env，参数透传）
-bash scripts/dev.sh            # 启动 HTTP 服务
-bash scripts/dev.sh migrate    # 执行迁移
-
-# 方式二：手动
-cp .env.example .env
-go build -o bin/server.exe ./cmd/server
-./bin/server.exe
+cp .env.example .env      # 填写数据库与 JWT_SECRET
+./scripts/dev.sh          # 编译到 bin/ 后启动，参数透传
+# 或
+go run ./cmd/server
 ```
 
-## 常用命令
+子命令：
 
 ```bash
-# 构建 / 运行
-go build -o bin/server.exe ./cmd/server
-./bin/server.exe
+./bin/server.exe migrate     # 应用 migrations/*.sql
+./bin/server.exe seed-admin  # 创建/重置管理员，用户名取 ADMIN_USERNAME（默认 admin）
+```
 
-# 版本化迁移（空库建 8 张表；既有库只登记基线，不重建数据）
-./bin/server.exe migrate
+## 数据库迁移
 
-# 把库里明文 AI Key 加密（需 AI_CONFIG_ENC_KEY）
-./bin/server.exe migrate-ai-keys
+- `0000_legacy_schema.sql`：旧库基线；在已有库上只登记、不执行，避免误 DROP。
+- `0001_blog_redesign.sql`：新增 `primaryTagId` / `subTags`，旧 `tags[0]` 迁为主标签、
+  余项迁为子标签（自动补建同名主标签，空标签归「未分类」），删除旧列与
+  `users/comments/notifications/ai_configs`。
+- 执行前先备份并核对 `migrations/0001_blog_redesign_checklist.md`；生产禁止 AutoMigrate。
+- 回滚：`mysql <db> < backups/<timestamp>-pre-redesign.sql`（备份已在 `.gitignore`）。
 
-# 创建/重置管理员密码（需 ADMIN_INITIAL_PASSWORD，用户名默认 admin，可用 ADMIN_USERNAME 覆盖）
-ADMIN_INITIAL_PASSWORD='Admin@12345' ./bin/server.exe seed-admin
+## 测试
 
-# 一键门禁：gofmt + go vet + go test + build
+```bash
+# 单元测试 + 集成测试（集成测试会重建 blog_redesign_test，需要本机 MySQL）
+go test ./...
+
+# gofmt / vet / test / build 一键检查
 bash scripts/check.sh
 
-# 契约回放：重置副本库 → 用 golden 采集 → 归一化比对
-bash tests/contract/replay.sh
-
-# 前端联调冒烟：起 Go 与 Next dev，校验页面与代理接口
+# 前端联调冒烟（需要 MySQL 与 Next dev；沙箱下 Next dev 需完整权限）
 bash tests/smoke/frontend.sh
 ```
 
-> 本机沙箱下需先 `source goenv.sh`（GOPATH / GOMODCACHE / GOCACHE 落在仓库内）。
+集成测试覆盖：管理员登录、已删除路由 404、主标签 CRUD 与引用保护、
+文章单主标签校验、子标签去重、按主标签筛选、站点内容读取。
+`tests/smoke/frontend.sh` 用旧版快照重建临时库、跑 `0001` 迁移，再验证
+首页 / 博客 / 规划 / 简历 / 关于 / 管理员登录页与代理接口。
 
-## 数据库与迁移
+## 部署
 
-- 表名、列名、索引、JSON 列与旧 Sequelize 定义完全一致（见 `internal/model/model.go`）。
-- **生产禁止 AutoMigrate**：结构变更只走 `migrations/*.sql`，由 `migrate` 子命令按文件名顺序执行，
-  成功后写入 `schema_migrations`。
-- `0000_legacy_schema.sql` 是旧库基线：目标库已有业务表时只登记版本、不执行建表，
-  因此对线上库执行 `migrate` 是安全的。
-- 时间语义沿用旧服务：DSN `parseTime=true&loc=Asia/Shanghai`，写入与读取都按 +08 处理，
-  输出统一为 UTC ISO（`...Z`）。
+系统要求：Linux + MySQL 8 + systemd。示例 unit 见
+[`deploy/systemd/blog-server.service`](./deploy/systemd/blog-server.service)，
+发布与回滚步骤见 [`deploy/RELEASE_CHECKLIST.md`](./deploy/RELEASE_CHECKLIST.md)。
+构建：
 
-## AI 密钥加密
+```bash
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/server ./cmd/server
+```
 
-- 格式：`enc:v1:<base64(nonce||ciphertext)>`（AES-256-GCM）。
-- 主密钥只从环境变量 `AI_CONFIG_ENC_KEY` 读取，不落库、不进日志。
-- 读取时遇到明文会自动加密回写；`migrate-ai-keys` 用于一次性批量迁移。
-- 未配置主密钥时保持旧行为（明文存取）并在日志中告警。
-- 回滚：恢复数据库备份即可恢复明文配置。
-
-## 契约回放
-
-`tests/contract/golden/` 保存了 101 个旧 Node 服务的真实响应；`replay.sh` 在重置后的副本库
-`blog_golden` 上用同一份请求脚本回放 Go 实现，并由 `compare.mjs` 归一化（ID/JWT/时间/文件名/限流头）
-后逐用例比较。当前结果：**101 个用例全部一致**。
-
-已知书写豁免（非缺陷，理由见 `tests/contract/README.md`）：
-
-- `ai_settings_empty` / `ai_chat_unconfigured`：golden 录制时库中已有生产 AI 配置，无法在空配置库确定性复现；
-- 通知/评论同一秒内创建时的并列顺序：比较前做组内排序，跨秒的真实顺序差异仍会被发现。
-
-## 前端联调
-
-`tests/smoke/frontend.sh` 以 `API_TARGET` 指向 Go 服务启动 Next dev，验证：
-
-- 页面：`/`、`/blog`、`/plan`、`/resume`、`/about` 均 200 且含关键内容；
-- 经 Next rewrites 的接口：管理员登录、`/api/auth/me`、文章列表、站点内容 `plan`。
-
-## 尚未包含
-
-- 任务 11/12 的 systemd 发布与生产切换脚本（按当前决定暂缓，切换时再补）；
-- 旧 Node 源码归档（待 Go 版本验收后执行）。
-
-## 与旧实现的关系
-
-`blog-server/` 仍保留原 Node 实现，可随时回退或对照。两者共用同一 MySQL 库结构、
-同一 `uploads/` 目录与同一套 env 变量，可在维护窗口内直接替换进程。
+生产环境变量放在 `shared/backend.env`，由 systemd `EnvironmentFile` 注入；
+上传目录指向 `shared/uploads`，由 Nginx/Next 继续以 `/uploads` 提供。

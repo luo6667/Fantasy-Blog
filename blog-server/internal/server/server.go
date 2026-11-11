@@ -36,15 +36,6 @@ func New(cfg *config.Config, db *gorm.DB) *App {
 	}
 }
 
-// encKey 返回解码后的 AI 主密钥；未配置时返回 nil（写入端会降级并告警）。
-func (a *App) encKey() []byte {
-	key, err := service.DecodeEncKey(a.Cfg.AIConfigEncKey)
-	if err != nil {
-		return nil
-	}
-	return key
-}
-
 // Router 组装全部中间件与路由。
 func (a *App) Router() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
@@ -56,7 +47,6 @@ func (a *App) Router() *gin.Engine {
 	})
 
 	authLimiter := middleware.NewRateLimiter(20, 15*time.Minute, "尝试过于频繁，请 15 分钟后再试", "20-in-15min; q=20; w=900")
-	writeLimiter := middleware.NewRateLimiter(30, time.Minute, "操作过于频繁，请稍后再试", "30-in-1min; q=30; w=60")
 
 	api := r.Group("/api")
 	api.Use(middleware.JSONBodyGuard())
@@ -64,45 +54,25 @@ func (a *App) Router() *gin.Engine {
 		httpx.Success(c, gin.H{"status": "up", "timestamp": httpx.ISO(time.Now())})
 	})
 
-	api.POST("/auth/register", authLimiter.Handler(), wrap(a.register))
 	api.POST("/auth/login", authLimiter.Handler(), wrap(a.login))
 	api.GET("/auth/me", a.Auth.RequireAuth(), wrap(a.me))
 
-	optional := a.Auth.OptionalAuth()
-	api.GET("/articles", optional, wrap(a.listArticles))
-	api.GET("/articles/tags", wrap(a.articleTags))
-	api.GET("/articles/:id", optional, wrap(a.articleDetail))
-	api.GET("/articles/:id/comments", optional, wrap(a.listComments))
-	api.POST("/articles/:id/comments", writeLimiter.Handler(), a.Auth.RequireAuth(), wrap(a.createComment))
-	api.POST("/articles/:id/like", writeLimiter.Handler(), a.Auth.RequireAuth(), wrap(a.likeArticle))
+	api.GET("/articles", wrap(a.listArticles))
+	api.GET("/articles/:id", wrap(a.articleDetail))
 	api.POST("/articles", a.Auth.RequireAdmin(), wrap(a.createArticle))
 	api.PUT("/articles/:id", a.Auth.RequireAdmin(), wrap(a.updateArticle))
 	api.DELETE("/articles/:id", a.Auth.RequireAdmin(), wrap(a.deleteArticle))
 
-	api.POST("/comments/:id/replies", writeLimiter.Handler(), a.Auth.RequireAuth(), wrap(a.createReply))
-	api.POST("/comments/:id/like", writeLimiter.Handler(), a.Auth.RequireAuth(), wrap(a.likeComment))
-	api.DELETE("/comments/:id", a.Auth.RequireAuth(), wrap(a.deleteComment))
-
 	api.GET("/tags", wrap(a.listTags))
 	api.POST("/tags", a.Auth.RequireAdmin(), wrap(a.createTag))
-	api.DELETE("/tags/:name", a.Auth.RequireAdmin(), wrap(a.deleteTag))
-
-	api.GET("/notifications", a.Auth.RequireAuth(), wrap(a.listNotifications))
-	api.GET("/notifications/unread-count", a.Auth.RequireAuth(), wrap(a.unreadCount))
-	api.POST("/notifications/read", a.Auth.RequireAuth(), wrap(a.markRead))
-
-	api.GET("/users/manage", a.Auth.RequireAdmin(), wrap(a.listUsers))
-	api.DELETE("/users/:id", a.Auth.RequireAdmin(), wrap(a.deleteUser))
+	api.PUT("/tags/:id", a.Auth.RequireAdmin(), wrap(a.updateTag))
+	api.DELETE("/tags/:id", a.Auth.RequireAdmin(), wrap(a.deleteTag))
 
 	api.POST("/upload", a.Auth.RequireAdmin(), wrap(a.uploadImage))
 
 	api.GET("/site-content", a.Auth.RequireAdmin(), wrap(a.listSiteContents))
 	api.GET("/site-content/:key", wrap(a.getSiteContent))
 	api.PUT("/site-content/:key", a.Auth.RequireAdmin(), wrap(a.updateSiteContent))
-
-	api.GET("/ai/settings", a.Auth.RequireAdmin(), wrap(a.getAISettings))
-	api.PUT("/ai/settings", a.Auth.RequireAdmin(), wrap(a.saveAISettings))
-	api.POST("/ai/chat", a.Auth.RequireAuth(), wrap(a.aiChat))
 
 	a.uploads(r)
 	return r
