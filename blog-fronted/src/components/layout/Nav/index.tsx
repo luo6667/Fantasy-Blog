@@ -58,22 +58,8 @@ export default function Nav({ theme, onToggle }: NavProps) {
           </Link>
         </div>
 
-        {/* 右侧：主题切换 */}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <motion.button
-            className="flex cursor-pointer items-center rounded-md border-none bg-transparent p-1.5 text-text-muted transition-[background,color] duration-200 hover:bg-bg-alt hover:text-[var(--color-text)] [&_.iconfont]:text-lg"
-            onClick={onToggle}
-            aria-label="切换主题"
-            whileHover={{ scale: 1.12, rotate: 20 }}
-            whileTap={{ scale: 0.85 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 12 }}
-          >
-            <i className={`iconfont ${theme === 'light' ? 'icon-yueliang' : 'icon-taiyang'}`} />
-          </motion.button>
-        </div>
-
         {/* 桌面端导航（移动端隐藏） */}
-        <nav className="hidden gap-0.5 md:flex">
+        <nav className="ml-auto hidden gap-0.5 md:flex">
           {NAV_TABS.map((t) => {
             const isActive = pathname === t.to;
             return (
@@ -90,6 +76,20 @@ export default function Nav({ theme, onToggle }: NavProps) {
             );
           })}
         </nav>
+
+        {/* 右侧：主题切换 */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-0">
+          <motion.button
+            className="flex cursor-pointer items-center rounded-md border-none bg-transparent p-1.5 text-text-muted transition-[background,color] duration-200 hover:bg-bg-alt hover:text-[var(--color-text)] [&_.iconfont]:text-lg"
+            onClick={onToggle}
+            aria-label="切换主题"
+            whileHover={{ scale: 1.12, rotate: 20 }}
+            whileTap={{ scale: 0.85 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+          >
+            <i className={`iconfont ${theme === 'light' ? 'icon-yueliang' : 'icon-taiyang'}`} />
+          </motion.button>
+        </div>
 
         {/* 移动端导航 — AnimatePresence 驱动进出场 */}
         <AnimatePresence>
