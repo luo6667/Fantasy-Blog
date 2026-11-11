@@ -1,18 +1,13 @@
 import { AnimatePresence, motion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { lazy, Suspense, useState } from 'react';
+import { useState } from 'react';
 
 import { MotionLink, SafeImg } from '@/components/common';
 import { NAV_TABS } from '@/constants';
-import { useNotificationsUnreadQuery } from '@/hooks/queries';
 import { useAuth } from '@/hooks/useAuth';
 import { springBtn } from '@/lib/motion';
 import type { ThemeMode } from '@/types';
-
-// 弹窗 / 面板按需懒加载，避免打进首屏包（Nav 是 Layout 常驻组件）
-const AuthModal = lazy(() => import('@/components/auth/AuthModal'));
-const NotificationPanel = lazy(() => import('@/components/notification/NotificationPanel'));
 
 interface NavProps {
   theme: ThemeMode;
@@ -25,29 +20,15 @@ const linkBase =
 /**
  * 顶部导航栏组件
  *
- * - 品牌 Logo 右侧：管理员登录后显示「管理」入口
- * - 右侧：未登录显示「请登录」（打开登录/注册弹窗），已登录显示用户名与退出
- * - 主题切换按钮、桌面/移动端导航菜单
+ * - 左上角圆形头像：已登录管理员进入后台，未登录进入管理员登录页
+ * - 品牌文字点击回首页
+ * - 右侧：主题切换按钮、桌面/移动端导航菜单
+ * - 访客页不再显示「请登录」，登录入口只保留在头像
  */
 export default function Nav({ theme, onToggle }: NavProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const { user, isAdmin, checking, logout } = useAuth();
-
-  // 通知未读数（REST 查询，登录后拉取）
-  const { data: unreadData } = useNotificationsUnreadQuery(Boolean(user));
-  const unreadNotifications = unreadData?.count ?? 0;
-
-  /** 打开通知面板（已读由面板内的单条/全部已读按钮处理，避免一打开就全部标记） */
-  function openNotifications() {
-    setNotifOpen(true);
-  }
-
-  function closeNotifications() {
-    setNotifOpen(false);
-  }
+  const { isAdmin } = useAuth();
 
   return (
     <motion.header
@@ -56,89 +37,30 @@ export default function Nav({ theme, onToggle }: NavProps) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 24, mass: 0.8 }}
     >
-      <Link
-        href="/home"
-        className="flex items-center gap-2 whitespace-nowrap text-base font-bold tracking-[-0.02em] text-accent"
+      {/* 头像入口：管理员 → 后台；访客 → 管理员登录页 */}
+      <MotionLink
+        href={isAdmin ? '/admin/articles' : '/admin/login'}
+        aria-label={isAdmin ? '进入管理后台' : '管理员登录'}
+        className="shrink-0 rounded-full ring-1 ring-[var(--color-border-light)] transition-shadow hover:ring-accent"
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        transition={springBtn}
       >
         <SafeImg
           src="/head.jpg"
           alt=""
           priority
           sizes="24px"
-          className="h-6 w-6 rounded-full ring-1 ring-[var(--color-border-light)]"
+          className="h-6 w-6 rounded-full"
         />
+      </MotionLink>
+
+      <Link
+        href="/home"
+        className="whitespace-nowrap text-base font-bold tracking-[-0.02em] text-accent"
+      >
         JasonLuo
       </Link>
-
-      {/* 管理入口 — 仅管理员登录后显示 */}
-      {isAdmin && (
-        <MotionLink
-          href="/admin"
-          className="cursor-pointer whitespace-nowrap rounded-full border border-[var(--color-border)] px-2.5 py-0.5 text-xs font-medium text-text-secondary transition-colors hover:border-accent hover:text-accent"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.92 }}
-          transition={springBtn}
-        >
-          管理
-        </MotionLink>
-      )}
-
-      {/* 登录态 — 紧挨品牌名右侧 */}
-      {!checking && !user && (
-        <button
-          type="button"
-          onClick={() => { setAuthOpen(true); }}
-          className="cursor-pointer whitespace-nowrap rounded-full border border-accent/50 px-3 py-1 text-xs font-semibold text-accent transition-colors hover:bg-accent-soft"
-        >
-          请登录
-        </button>
-      )}
-      {!checking && user && (
-        <div className="flex min-w-0 items-center gap-1.5 whitespace-nowrap">
-          <span className="max-w-[6rem] truncate text-sm font-medium text-[var(--color-text)]" title={user.username}>
-            {user.username}
-          </span>
-          {isAdmin && (
-            <span className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[0.625rem] font-semibold text-accent">
-              管理员
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={logout}
-            className="cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-xs text-text-muted transition-colors hover:border-red-400 hover:text-red-500"
-          >
-            退出
-          </button>
-
-          {/* 消息通知：红色未读徽标 + 下拉列表 */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => { if (notifOpen) { closeNotifications(); } else { openNotifications(); } }}
-              aria-label="消息通知"
-              className="relative cursor-pointer rounded-md border border-[var(--color-border)] px-2 py-0.5 text-text-muted transition-colors hover:border-accent hover:text-accent"
-            >
-              <i className="iconfont2 icon-tongzhi text-base leading-none" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.625rem] font-bold text-white">
-                  {unreadNotifications > 99 ? '99+' : String(unreadNotifications)}
-                </span>
-              )}
-            </button>
-            <AnimatePresence>
-              {notifOpen && (
-                <>
-                  <div className="fixed inset-0 z-[940]" onClick={closeNotifications} />
-                  <Suspense fallback={null}>
-                    <NotificationPanel onClose={closeNotifications} />
-                  </Suspense>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      )}
 
       {/* 右侧：主题切换 */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -237,11 +159,6 @@ export default function Nav({ theme, onToggle }: NavProps) {
           transition={{ type: 'spring', stiffness: 400, damping: 18 }}
         />
       </motion.button>
-
-      {/* 登录 / 注册弹窗 */}
-      <Suspense fallback={null}>
-        <AuthModal open={authOpen} onClose={() => { setAuthOpen(false); }} />
-      </Suspense>
     </motion.header>
   );
 }

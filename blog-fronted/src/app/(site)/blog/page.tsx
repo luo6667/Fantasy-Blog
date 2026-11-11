@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
-import { articleApi } from '@/lib/api';
-import type { ArticleListItem, PaginatedResult, TagCount } from '@/types/api';
+import { articleApi, tagApi } from '@/lib/api';
+import type { ArticleListItem, PaginatedResult, TagItem } from '@/types/api';
 import BlogView from '@/views/blog';
 
 /**
@@ -23,11 +23,11 @@ export const metadata: Metadata = {
 
 export default async function BlogPage() {
   let initial: PaginatedResult<ArticleListItem> | null = null;
-  let initialTags: TagCount[] | null = null;
+  let initialTags: TagItem[] | null = null;
   try {
     [initial, initialTags] = await Promise.all([
       articleApi.list({ page: 1, pageSize: 10 }),
-      articleApi.tags(),
+      tagApi.list(),
     ]);
   } catch {
     // 后端不可用：降级为空壳，客户端正常加载

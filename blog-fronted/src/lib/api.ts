@@ -6,37 +6,28 @@
  * - 响应拦截器把网络错误 / 非 2xx / 业务错误统一归一化为 ApiError；
  * - request<T>() 解包后端统一结构 { code, msg, data }，code !== 0 抛 ApiError；
  * - 浏览器端走同源 /api（next.config rewrites 代理到后端）；服务端（SSR 运行时 /
- *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET；
- * - 注意：AI 流式对话(SSE)不用 axios（流式读取支持不成熟），
- *   用原生 fetch + ReadableStream（见下方 aiChatStream）。
+ *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET。
  */
 import axios, { AxiosError } from 'axios';
 
 import type {
-  AiChatMessage,
-  AiSettings,
   ArticleDetail,
   ArticleInput,
   ArticleListItem,
   AuthUser,
-  CommentItem,
   LoginResult,
-  NotificationItem,
   PaginatedResult,
   SiteContentItem,
   SiteContentKey,
   SiteContentValue,
-  TagCount,
   TagItem,
   UploadResult,
-  UserManageItem,
-  UserRole,
 } from '@/types/api';
 
 /**
  * API 基地址：
- * - 浏览器：同源 /api（Next rewrites 代理到 Express）
- * - 服务端（SSR 预取等）：直连 Express，绝对地址
+ * - 浏览器：同源 /api（Next rewrites 代理到 Go 后端）
+ * - 服务端（SSR 预取等）：直连后端，绝对地址
  */
 const API_BASE =
   typeof window !== 'undefined'
@@ -146,7 +137,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 /** 文章 API */
 export const articleApi = {
-  /** 分页列表，支持标签筛选与关键字搜索 */
+  /** 分页列表，支持主标签筛选与关键字搜索 */
   list: (params?: { page?: number; pageSize?: number; tag?: string; search?: string }) => {
     const qs = new URLSearchParams();
     if (params?.page) qs.set('page', String(params.page));
@@ -159,12 +150,6 @@ export const articleApi = {
 
   detail: (id: string) => request<ArticleDetail>(`/articles/${id}`),
 
-  /** 全部标签及文章数（用于筛选栏） */
-  tags: () => request<TagCount[]>('/articles/tags'),
-
-  /** 点赞 / 取消点赞 */
-  like: (id: string) => request<{ liked: boolean; likes: number }>(`/articles/${id}/like`, { method: 'POST' }),
-
   create: (input: ArticleInput) =>
     request<ArticleDetail>('/articles', { method: 'POST', body: JSON.stringify(input) }),
 
@@ -174,50 +159,25 @@ export const articleApi = {
   remove: (id: string) => request<{ id: string }>(`/articles/${id}`, { method: 'DELETE' }),
 };
 
-/** 认证 API */
+/** 认证 API（仅管理员） */
 export const authApi = {
-  /** role: user 普通用户 / admin 管理员 */
-  login: (role: UserRole, username: string, password: string) =>
+  login: (username: string, password: string) =>
     request<LoginResult>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password, role }),
-    }),
-  /** 注册普通用户 */
-  register: (username: string, password: string) =>
-    request<AuthUser>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, role: 'admin' }),
     }),
   me: () => request<AuthUser>('/auth/me'),
 };
 
-/** 评论 API（列表公开；发表/回复/点赞/删除需登录） */
-export const commentApi = {
-  list: (articleId: string) => request<CommentItem[]>(`/articles/${articleId}/comments`),
-  create: (articleId: string, content: string) =>
-    request<CommentItem>(`/articles/${articleId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    }),
-  reply: (commentId: string, content: string) =>
-    request<CommentItem>(`/comments/${commentId}/replies`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    }),
-  like: (commentId: string) =>
-    request<{ liked: boolean; likes: number }>(`/comments/${commentId}/like`, { method: 'POST' }),
-  remove: (commentId: string) =>
-    request<{ id: string }>(`/comments/${commentId}`, { method: 'DELETE' }),
-};
-
-/** 标签库 API（公开读，登录写） */
+/** 主标签库 API（公开读，管理员写） */
 export const tagApi = {
-  /** 标签库列表（含文章数） */
+  /** 主标签列表（含文章数） */
   list: () => request<TagItem[]>('/tags'),
   create: (name: string) =>
     request<TagItem>('/tags', { method: 'POST', body: JSON.stringify({ name }) }),
-  remove: (name: string) =>
-    request<{ name: string }>(`/tags/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+  rename: (id: string, name: string) =>
+    request<TagItem>(`/tags/${id}`, { method: 'PUT', body: JSON.stringify({ name }) }),
+  remove: (id: string) => request<{ id: string }>(`/tags/${id}`, { method: 'DELETE' }),
 };
 
 /** 站点内容 API（公开读，管理员写） */
@@ -242,96 +202,3 @@ export const uploadApi = {
     return request<UploadResult>('/upload', { method: 'POST', body: form, raw: true });
   },
 };
-
-/** 通知 API（登录） */
-export const notificationApi = {
-  list: () => request<NotificationItem[]>('/notifications'),
-  unreadCount: () => request<{ count: number }>('/notifications/unread-count'),
-  /** ids 缺省时标记全部已读 */
-  markRead: (ids?: string[]) =>
-    request<{ ok: boolean }>('/notifications/read', {
-      method: 'POST',
-      body: JSON.stringify(ids ? { ids } : {}),
-    }),
-};
-
-/** 用户 API（登录） */
-export const userApi = {
-  /** 用户列表 + 统计（管理员） */
-  listManage: () => request<UserManageItem[]>('/users/manage'),
-  /** 删除用户及级联数据（管理员） */
-  remove: (id: string) => request<{ id: string }>(`/users/${id}`, { method: 'DELETE' }),
-};
-
-/** AI API（配置管理 + 流式对话） */
-export const aiApi = {
-  /** 读取配置（管理员；apiKey 不回传明文，仅 hasKey） */
-  getSettings: () => request<AiSettings>('/ai/settings'),
-  /** 保存配置（apiKey 留空 = 保留旧值） */
-  saveSettings: (input: { baseURL: string; apiKey?: string; model: string }) =>
-    request<AiSettings>('/ai/settings', { method: 'PUT', body: JSON.stringify(input) }),
-};
-
-/**
- * AI 流式对话（SSE，OpenAI 兼容）
- *
- * 返回异步生成器，逐段产出文本增量（打字机效果）。
- * 未配置 AI / 上游错误 / 网络错误时抛出 ApiError。
- */
-export async function* aiChatStream(
-  messages: AiChatMessage[],
-  signal?: AbortSignal,
-): AsyncGenerator<string> {
-  const token = tokenStore.get();
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}/ai/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ messages }),
-      signal,
-    });
-  } catch {
-    throw new ApiError('网络错误，请确认后端服务已启动', -1, 0);
-  }
-
-  if (!res.ok || !res.body) {
-    const body = (await res.json().catch(() => null)) as { msg?: string; code?: number } | null;
-    throw new ApiError(
-      body?.msg ?? `AI 请求失败（HTTP ${String(res.status)}）`,
-      body?.code ?? res.status,
-      res.status,
-    );
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      let idx: number;
-      while ((idx = buffer.indexOf('\n')) !== -1) {
-        const line = buffer.slice(0, idx).trim();
-        buffer = buffer.slice(idx + 1);
-        if (!line.startsWith('data:')) continue;
-        const payload = line.slice(5).trim();
-        if (payload === '[DONE]') return;
-        try {
-          const json = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
-          const delta = json.choices?.[0]?.delta?.content;
-          if (delta) yield delta;
-        } catch {
-          /* 忽略无法解析的 SSE 行 */
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}

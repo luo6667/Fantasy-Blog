@@ -1,7 +1,6 @@
 'use client';
 
-import { motion, useInView } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 
 import {
   BgOrbs,
@@ -22,40 +21,10 @@ const btnBase =
   'inline-flex items-center gap-1.5 rounded-md border-[1.5px] border-[var(--color-border-light)] bg-[var(--color-bg-alt)] px-[1.25rem] py-2.5 font-[inherit] text-[0.9375rem] font-semibold text-[var(--color-text)] transition-[border-color,color,background,box-shadow] duration-[250ms] hover:border-accent hover:text-accent hover:shadow-md hover:shadow-accent/10';
 
 const STATS = [
-  { label: '学习时间', value: 1, suffix: ' 年+' },
-  { label: '完成项目', value: 8, suffix: '+' },
-  { label: '技术栈', value: 8, suffix: '+' },
+  { label: '学习时间', value: '1 年+' },
+  { label: '完成项目', value: '10+' },
+  { label: '技术栈', value: '10+' },
 ];
-
-function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!inView) return;
-    const duration = 1400;
-    const steps = 40;
-    const stepTime = duration / steps;
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      setCount(Math.round((target * step) / steps));
-      if (step >= steps) {
-        setCount(target);
-        clearInterval(timer);
-      }
-    }, stepTime);
-    return () => { clearInterval(timer); };
-  }, [inView, target]);
-
-  return (
-    <span ref={ref}>
-      {count}
-      {suffix}
-    </span>
-  );
-}
 
 export default function Home({
   contributions,
@@ -112,7 +81,7 @@ export default function Home({
             animate="animate"
             transition={{ ...springHero, duration: 0.6, delay: 0.18 }}
           >
-            构建高性能 Web 体验的前端工程师
+            全栈工程师，专注于前端开发和后端开发，擅长使用Vue、React、Golang、MySQL等技术栈。
           </motion.p>
 
           <motion.div
@@ -169,7 +138,7 @@ export default function Home({
                 transition={{ ...springHero, delay: i * 0.1 }}
               >
                 <span className="text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold tracking-[-0.02em] text-accent">
-                  <AnimatedCounter target={s.value} suffix={s.suffix} />
+                  {s.value}
                 </span>
                 <span className="text-xs uppercase tracking-[0.06em] text-text-muted">{s.label}</span>
               </motion.div>

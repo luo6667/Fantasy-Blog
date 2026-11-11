@@ -1,27 +1,26 @@
 import { create } from 'zustand';
 
 import { authApi, tokenStore } from '@/lib/api';
-import type { AuthUser, UserRole } from '@/types/api';
+import type { AuthUser } from '@/types/api';
 
 /**
- * 📘 stores/authStore.ts —— 登录态 Store（技术栈：zustand）
+ * 📘 stores/authStore.ts —— 管理员登录态 Store（技术栈：zustand）
  *
- * 替代原 AuthContext/AuthProvider 的全局登录状态：
+ * 站点只保留管理员身份：
  * - 启动时（模块加载）校验本地 token（GET /api/auth/me），token 失效自动清除；
- * - login（普通用户/管理员）/ register / logout 集中在此；
+ * - login / logout 集中在此；
  * - 通过 useAuth() hook 读取，组件只订阅所需片段，避免整棵子树重渲染。
  */
 interface AuthState {
   user: AuthUser | null;
   /** 启动时是否仍在校验本地 token */
   checking: boolean;
-  login: (role: UserRole, username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>()((set, get) => ({
+export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   checking: true,
 
@@ -39,15 +38,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }
   },
 
-  login: async (role, username, password) => {
-    const result = await authApi.login(role, username, password);
+  login: async (username, password) => {
+    const result = await authApi.login(username, password);
     tokenStore.set(result.token);
-    set({ user: result.user });
-  },
-
-  register: async (username, password) => {
-    await authApi.register(username, password);
-    await get().login('user', username, password);
+    set({ user: result.user, checking: false });
   },
 
   logout: () => {

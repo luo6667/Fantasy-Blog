@@ -41,6 +41,36 @@ export function Field({
   );
 }
 
+/** 下拉选择字段（label + select） */
+export function SelectField<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-xs text-text-muted">{label}</span>
+      <select
+        className={editorInputClass}
+        value={value}
+        onChange={(e) => { onChange(e.target.value as T); }}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /** 编辑器卡片：标题 + 描述 + 内容 + 底部操作栏 */
 export function EditorCard({
   title,

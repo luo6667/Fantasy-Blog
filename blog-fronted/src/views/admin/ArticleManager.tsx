@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { useArticleListQuery, useDeleteArticleMutation } from '@/hooks/queries';
-import { useAuth } from '@/hooks/useAuth';
 
 const btnGhost =
   'rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent';
@@ -13,10 +12,8 @@ const btnDanger = 'rounded-md px-3 py-1.5 text-sm text-red-500 transition-colors
  *
  * 列表 + 删除（confirm 确认）；
  * 新建/编辑跳转独立编辑器页面（/admin/new、/admin/edit/:id）。
- * 仅管理员可见（父级 Admin/index 保证）。
  */
 export default function ArticleManager() {
-  const { logout } = useAuth();
   const articleQuery = useArticleListQuery(null);
   const deleteArticle = useDeleteArticleMutation();
 
@@ -26,7 +23,7 @@ export default function ArticleManager() {
 
   /** 删除文章（确认后执行） */
   async function handleDelete(id: string) {
-    if (!window.confirm('确定删除这篇文章吗？其评论将一并删除，此操作不可恢复。')) return;
+    if (!window.confirm('确定删除这篇文章吗？此操作不可恢复。')) return;
     try {
       await deleteArticle.mutateAsync(id);
     } catch {
@@ -38,20 +35,15 @@ export default function ArticleManager() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-[-0.02em]">文章管理</h1>
+          <h2 className="text-xl font-bold tracking-[-0.02em]">文章列表</h2>
           <p className="text-sm text-text-muted">共 {String(articles.length)} 篇</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/admin/new"
-            className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          >
-            + 新建文章
-          </Link>
-          <button onClick={logout} className={btnGhost}>
-            退出登录
-          </button>
-        </div>
+        <Link
+          href="/admin/new"
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          + 新建文章
+        </Link>
       </div>
 
       {errorMessage && <p className="mb-4 text-sm text-red-500">{errorMessage}</p>}
@@ -66,9 +58,16 @@ export default function ArticleManager() {
             <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
               <div className="min-w-0">
                 <h3 className="truncate font-semibold">{a.title}</h3>
-                <p className="text-sm text-text-muted">
-                  {a.date}
-                  {a.tags.length > 0 ? ` · ${a.tags.join(' / ')}` : ''}
+                <p className="flex flex-wrap items-center gap-1.5 text-sm text-text-muted">
+                  <span>{a.date}</span>
+                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">
+                    {a.primaryTag.name}
+                  </span>
+                  {a.subTags.length > 0 && (
+                    <span className="truncate text-xs text-text-muted">
+                      {a.subTags.join(' / ')}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">

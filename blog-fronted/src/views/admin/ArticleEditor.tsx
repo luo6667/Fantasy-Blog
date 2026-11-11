@@ -40,7 +40,9 @@ export default function ArticleEditor() {
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [primaryTagId, setPrimaryTagId] = useState('');
+  const [subTags, setSubTags] = useState<string[]>([]);
+  const [subTagInput, setSubTagInput] = useState('');
   const [cover, setCover] = useState('');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [error, setError] = useState('');
@@ -63,7 +65,8 @@ export default function ArticleEditor() {
     setTitle(article.title);
     setExcerpt(article.excerpt);
     setContent(article.content);
-    setSelectedTags(article.tags);
+    setPrimaryTagId(article.primaryTag.id);
+    setSubTags(article.subTags);
     setCover(article.cover ?? '');
   }, [detailQuery.data]);
 
@@ -164,16 +167,25 @@ export default function ArticleEditor() {
   }
 
   /** 切换标签选中状态 */
-  function toggleTag(name: string) {
-    setSelectedTags((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
-    );
+  /** 添加子标签（回车 / 逗号触发，去空去重） */
+  function addSubTags(raw: string) {
+    const parts = raw
+      .split(/[,，]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    setSubTags((prev) => Array.from(new Set([...prev, ...parts])).slice(0, 20));
+    setSubTagInput('');
+  }
+
+  function removeSubTag(tag: string) {
+    setSubTags((prev) => prev.filter((t) => t !== tag));
   }
 
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (selectedTags.length === 0) {
-      setError('请至少选择一个分类标签');
+    if (!primaryTagId) {
+      setError('请选择主标签');
       return;
     }
     setError('');
@@ -181,7 +193,8 @@ export default function ArticleEditor() {
       title: title.trim(),
       excerpt: excerpt.trim(),
       content,
-      tags: selectedTags,
+      primaryTagId,
+      subTags,
       cover: cover || undefined,
     };
     try {
@@ -194,17 +207,13 @@ export default function ArticleEditor() {
     }
   }
 
-  // 合并可选标签：标签库 ∪ 已选标签（编辑时保留已被移除的标签显示）
-  const availableNames = new Set(availableTags.map((t) => t.name));
-  const mergedTags = [...new Set([...availableTags.map((t) => t.name), ...selectedTags])];
-
   return (
     <main>
       <BgOrbs />
       <section className="relative z-[1] px-6 py-12">
         <div className="mx-auto max-w-4xl">
           <Link
-            href="/admin"
+            href="/admin/articles"
             className="mb-4 inline-block text-sm text-text-muted transition-colors hover:text-accent"
           >
             ← 返回管理
@@ -227,34 +236,63 @@ export default function ArticleEditor() {
               <input className={inputClass} value={excerpt} onChange={(e) => { setExcerpt(e.target.value); }} required maxLength={500} />
             </label>
 
-            {/* 分类标签（必选，来自标签库） */}
+            {/* 主标签（必选，来自主标签库） */}
             <div className="flex flex-col gap-1.5 text-sm">
-              <span className="text-text-muted">分类标签 *（至少选择一个）</span>
-              {availableTags.length === 0 && !isEdit && !tagsLoading ? (
-                <p className="text-xs text-red-500">标签库为空，请先到「标签管理」添加分类标签。</p>
+              <span className="text-text-muted">主标签 *（每篇文章只能有一个）</span>
+              {availableTags.length === 0 && !tagsLoading ? (
+                <p className="text-xs text-red-500">主标签库为空，请先到「主标签管理」添加。</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {mergedTags.map((name) => {
-                    const active = selectedTags.includes(name);
-                    const removed = !availableNames.has(name);
-                    return (
-                      <button
-                        key={name}
-                        type="button"
-                        onClick={() => { toggleTag(name); }}
-                        className={`cursor-pointer rounded-full border px-3 py-1 text-[0.8125rem] transition-colors ${
-                          active
-                            ? 'border-transparent bg-accent font-semibold text-white'
-                            : 'border-[var(--color-border)] text-text-secondary hover:border-accent hover:text-accent'
-                        }`}
-                        title={removed ? '该标签已被从标签库移除，保存前请更换' : name}
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </div>
+                <select
+                  className={inputClass}
+                  value={primaryTagId}
+                  onChange={(e) => { setPrimaryTagId(e.target.value); }}
+                  required
+                >
+                  <option value="">请选择主标签</option>
+                  {availableTags.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
               )}
+            </div>
+
+            {/* 子标签（自由输入，不建表、不独立管理） */}
+            <div className="flex flex-col gap-1.5 text-sm">
+              <span className="text-text-muted">子标签（选填，回车或逗号添加，最多 20 个）</span>
+              <div className="flex flex-wrap gap-1.5">
+                {subTags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="flex items-center gap-1 rounded-full bg-accent-soft px-2.5 py-0.5 text-xs text-accent"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => { removeSubTag(tag); }}
+                      className="cursor-pointer text-accent/70 transition-colors hover:text-accent"
+                      aria-label={`移除子标签 ${tag}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                className={inputClass}
+                value={subTagInput}
+                onChange={(e) => { setSubTagInput(e.target.value); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ',' || e.key === '，') {
+                    e.preventDefault();
+                    addSubTags(subTagInput);
+                  }
+                }}
+                onBlur={() => { addSubTags(subTagInput); }}
+                placeholder="例如：React、性能优化"
+                maxLength={32}
+              />
             </div>
 
             {/* 封面图（本地上传） */}
@@ -341,7 +379,7 @@ export default function ArticleEditor() {
 
             <div className="flex justify-end gap-2">
               <Link
-                href="/admin"
+                href="/admin/articles"
                 className="rounded-md border border-[var(--color-border)] px-4 py-2 text-sm transition-colors hover:border-accent hover:text-accent"
               >
                 取消
