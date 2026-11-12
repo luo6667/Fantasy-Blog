@@ -59,6 +59,8 @@ npm install
 npm run dev        # 开发模式 (默认 http://localhost:3000)
 ```
 
+> 开发模式的页面是按需编译的，首次进入某个路由会慢一点；真实体验请以 `npm run build && npm start` 为准。
+
 前端通过 `next.config.ts` 的 rewrites 将 `/api/*` 与 `/uploads/*` 代理到后端
 (`http://localhost:4000`,可用环境变量 `API_TARGET` 覆盖)。
 
@@ -77,6 +79,7 @@ go run ./cmd/server seed-admin   # 创建或重置管理员，密码读 ADMIN_IN
 |---|---|
 | `npm run dev` | 开发模式 |
 | `npm run build` | 生产构建 |
+| `npm run nav:timing` | 路由切换计时（需先启动 3000/3300 服务，验证首屏是否即时可见） |
 | `npm run start` | 启动生产服务 |
 | `npm run lint` / `lint:fix` | ESLint 检查 / 自动修复 |
 | `npm run format` / `format:check` | Prettier 格式化 / 检查 |
