@@ -45,7 +45,7 @@ type homeProjectItem struct {
 	Tags      []string `json:"tags"`
 	Link      *string  `json:"link,omitempty"`
 	LinkLabel string   `json:"linkLabel,omitempty"`
-	Featured  bool     `json:"featured,omitempty"`
+	Featured  bool     `json:"featured"`
 	Order     int      `json:"order,omitempty"`
 }
 

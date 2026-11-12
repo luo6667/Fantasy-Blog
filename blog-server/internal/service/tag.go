@@ -82,6 +82,9 @@ func DeleteTag(db *gorm.DB, id string) (map[string]string, error) {
 		return nil, httpx.Conflict("该主标签下仍有文章，请先调整文章分类")
 	}
 	if err := db.Where("id = ?", id).Delete(&model.Tag{}).Error; err != nil {
+		if isMySQLErr(err, 1451) {
+			return nil, httpx.Conflict("该主标签下仍有文章，请先调整文章分类")
+		}
 		return nil, err
 	}
 	triggerRevalidate([]string{"/blog", "/blog/[id]"})

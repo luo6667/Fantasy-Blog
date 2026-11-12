@@ -306,7 +306,19 @@ func TestPrimaryTagCRUD(t *testing.T) {
 		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
-	if err := json.Unmarshal(env.Data, &tags); err != nil || len(tags) != 1 || tags[0].Name != "重命名标签" {
+	if err := json.Unmarshal(env.Data, &tags); err != nil {
+		t.Fatalf("list tags payload: %s", string(env.Data))
+	}
+	found := false
+	for _, item := range tags {
+		if item.ID == tag.ID {
+			found = true
+			if item.Name != "重命名标签" {
+				t.Fatalf("rename not applied: %+v", item)
+			}
+		}
+	}
+	if !found {
 		t.Fatalf("list tags payload: %s", string(env.Data))
 	}
 }
@@ -415,6 +427,19 @@ func TestArticlePrimaryAndSubTags(t *testing.T) {
 	}
 }
 
+func TestArticlePrimaryTagForeignKey(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+
+	err := db.Exec(
+		"INSERT INTO articles (id, title, excerpt, content, contentHtml, primaryTagId, subTags, cover, createdAt, updatedAt) "+
+			"VALUES (?, ?, ?, ?, ?, ?, JSON_ARRAY(), '', NOW(), NOW())",
+		"fk-test-article-id-00001", "t", "e", "c", "h", "missing-tag-id",
+	).Error
+	if err == nil {
+		t.Fatal("孤儿 primaryTagId 应被外键拒绝")
+	}
+}
+
 func TestSiteContentPlan(t *testing.T) {
 	db := resetTestDB(t, testConfig(t))
 	c := newClient(t, db)
@@ -463,6 +488,40 @@ func TestSiteContentPlan(t *testing.T) {
 	})
 	if status != http.StatusOK || env.Code != 0 {
 		t.Fatalf("update plan: status=%d body=%+v", status, env)
+	}
+}
+
+func TestSiteContentFeaturedRoundTrip(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+
+	token := c.login()
+	status, env := c.do(http.MethodPut, "/api/site-content/homeProjects", token, map[string]any{
+		"value": []map[string]any{
+			{"name": "未精选项目", "summary": "不应出现在首页精选。", "tags": []string{"Go"}, "featured": false, "order": 2},
+			{"name": "精选项目", "summary": "应出现在首页精选。", "tags": []string{"Go"}, "featured": true, "order": 1},
+		},
+	})
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("update homeProjects: status=%d body=%+v", status, env)
+	}
+
+	status, env = c.do(http.MethodGet, "/api/site-content/homeProjects", "", nil)
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("get homeProjects: status=%d body=%+v", status, env)
+	}
+	var item struct {
+		Value []homeProjectItem `json:"value"`
+	}
+	if err := json.Unmarshal(env.Data, &item); err != nil {
+		t.Fatalf("homeProjects payload: %s", string(env.Data))
+	}
+	if len(item.Value) != 2 {
+		t.Fatalf("homeProjects 数量不符: %+v", item.Value)
+	}
+	if item.Value[0].Featured || !item.Value[1].Featured {
+		t.Fatalf("featured 未按保存值回读: %+v", item.Value)
 	}
 }
 

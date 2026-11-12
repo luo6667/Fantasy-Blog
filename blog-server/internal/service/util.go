@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 
 	"blog-server/internal/httpx"
@@ -52,6 +53,13 @@ func NormalizeSubTags(tags []string) []string {
 		out = append(out, t)
 	}
 	return out
+}
+
+// isMySQLErr 判断是否为指定编号的 MySQL 错误。
+// 1451：父表行仍被子表引用（删除被拒）；1452：子表引用的父表行不存在。
+func isMySQLErr(err error, number uint16) bool {
+	var me *mysql.MySQLError
+	return errors.As(err, &me) && me.Number == number
 }
 
 // FindPrimaryTag 按 id 查主标签，不存在时返回 400。

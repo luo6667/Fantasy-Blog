@@ -179,6 +179,9 @@ func CreateArticle(db *gorm.DB, in CreateArticleInput) (*ArticleDetail, error) {
 		Cover:        in.Cover,
 	}
 	if err := db.Create(&doc).Error; err != nil {
+		if isMySQLErr(err, 1452) {
+			return nil, httpx.BadRequest("请选择有效的主标签")
+		}
 		return nil, err
 	}
 	triggerRevalidate([]string{"/blog", "/blog/[id]"})
@@ -225,6 +228,9 @@ func UpdateArticle(db *gorm.DB, id string, in UpdateArticleInput) (*ArticleDetai
 
 	if len(updates) > 0 {
 		if err := db.Model(&model.Article{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+			if isMySQLErr(err, 1452) {
+				return nil, httpx.BadRequest("请选择有效的主标签")
+			}
 			return nil, err
 		}
 		triggerRevalidate([]string{"/blog", "/blog/[id]"})
