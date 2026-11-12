@@ -89,7 +89,7 @@ export default function Blog({
             variants={fadeUp}
             initial="initial"
             animate="animate"
-            transition={{ ...springHero, duration: 0.6 }}
+            transition={{ ...springHero, opacity: { duration: 0.2 } }}
           >
             Articles &amp; Insights
           </motion.p>
@@ -99,7 +99,7 @@ export default function Blog({
             variants={fadeUp}
             initial="initial"
             animate="animate"
-            transition={{ ...springHero, duration: 0.7, delay: 0.08 }}
+            transition={{ ...springHero, opacity: { duration: 0.2 }, delay: 0.08 }}
           >
             <span className="text-accent">Blog</span>
           </motion.h1>
@@ -109,7 +109,7 @@ export default function Blog({
             variants={fadeUp}
             initial="initial"
             animate="animate"
-            transition={{ ...springHero, duration: 0.6, delay: 0.18 }}
+            transition={{ ...springHero, opacity: { duration: 0.2 }, delay: 0.18 }}
           >
             记录学习过程与工程实践的思考。
           </motion.p>
@@ -119,7 +119,7 @@ export default function Blog({
             variants={fadeUp}
             initial="initial"
             animate="animate"
-            transition={{ ...springHero, duration: 0.6, delay: 0.24 }}
+            transition={{ ...springHero, opacity: { duration: 0.2 }, delay: 0.24 }}
           >
             {loading ? '加载中…' : `共 ${String(total)} 篇文章 · 持续更新中`}
           </motion.p>

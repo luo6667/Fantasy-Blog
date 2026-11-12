@@ -103,7 +103,7 @@ export default function BlogDetail({
                   variants={fadeUp}
                   initial="initial"
                   animate="animate"
-                  transition={{ ...springHero, duration: 0.7 }}
+                  transition={{ ...springHero, opacity: { duration: 0.2 } }}
                 >
                   {article.title}
                 </motion.h1>
@@ -113,7 +113,7 @@ export default function BlogDetail({
                     variants={fadeUp}
                     initial="initial"
                     animate="animate"
-                    transition={{ ...springHero, duration: 0.6, delay: 0.08 }}
+                    transition={{ ...springHero, opacity: { duration: 0.2 }, delay: 0.08 }}
                   >
                     {article.excerpt}
                   </motion.p>

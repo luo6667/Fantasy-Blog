@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { BgOrbs, EducationList, Reveal, SectionHeading, Tag } from '@/components/common';
 import { RESUME_EDUCATION, RESUME_EVALUATION, RESUME_INTERNSHIPS, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
 import { useSiteContentQuery } from '@/hooks/queries';
-import { springBtn } from '@/lib/motion';
+import { heroItem, springBtn, staggerContainer } from '@/lib/motion';
 
 export default function Resume() {
   // 内容来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量，保证页面始终有内容
@@ -28,18 +28,21 @@ export default function Resume() {
       {/* Intro */}
       <section className="px-6 pb-8 pt-16">
         <div className="mx-auto max-w-page">
-          <div className="pb-8">
+          <motion.div initial="hidden" animate="show" variants={staggerContainer} className="pb-8">
             <motion.h1
+              variants={heroItem}
               className="mb-1.5 text-[clamp(2rem,5vw,2.75rem)] font-extrabold tracking-[-0.03em]"
             >
               <span className="text-accent">Fantasy</span>
             </motion.h1>
             <motion.p
+              variants={heroItem}
               className="mb-1 text-base text-text-secondary"
             >
               前端工程师 · 初级全栈开发者
             </motion.p>
             <motion.div
+              variants={heroItem}
               className="flex flex-wrap gap-x-5 gap-y-2 text-[0.9375rem] text-[var(--color-text)] [&_.iconfont]:text-base"
             >
               <span>
@@ -50,12 +53,13 @@ export default function Resume() {
               </span>
             </motion.div>
             <motion.p
+              variants={heroItem}
               className="mt-3 border-t border-[var(--color-border-light)] pt-3 text-[0.9375rem] leading-[1.6] text-text-secondary"
             >
               前端开发，热爱技术与创造。1 年学习经验，
               擅长将复杂需求转化为简洁直观的数字产品。
             </motion.p>
-          </div>
+          </motion.div>
         </div>
       </section>
 

@@ -3,7 +3,7 @@
 import { motion } from 'motion/react';
 
 import { MotionLink, SafeImg } from '@/components/common';
-import { springBtn, springSlow } from '@/lib/motion';
+import { heroItem, springBtn, springSlow, staggerContainer } from '@/lib/motion';
 
 const btnCover =
   'inline-flex items-center gap-1.5 rounded-md border-[1.5px] border-accent/50 bg-transparent px-[1.125rem] py-2.5 font-[inherit] text-sm font-semibold text-white/80 backdrop-blur-sm transition-[border-color,color,background,box-shadow] duration-[250ms] hover:border-accent hover:bg-accent hover:text-[var(--color-on-accent)] hover:shadow-lg hover:shadow-accent/30';
@@ -16,7 +16,12 @@ const btnCover =
  */
 export default function CoverContent() {
   return (
-    <div className="relative z-[1] flex flex-col items-center text-center">
+    <motion.div
+      className="relative z-[1] flex flex-col items-center text-center"
+      initial="hidden"
+      animate="show"
+      variants={staggerContainer}
+    >
       {/* 头像 + 呼吸光环 */}
       <motion.div
         className="relative mb-8"
@@ -45,6 +50,7 @@ export default function CoverContent() {
 
       {/* 欢迎来到 */}
       <motion.p
+        variants={heroItem}
         className="mb-2 text-sm font-medium uppercase tracking-[0.1em] text-white/70"
       >
         欢迎来到
@@ -52,6 +58,7 @@ export default function CoverContent() {
 
       {/* 主标题 */}
       <motion.h1
+        variants={heroItem}
         className="mb-3 text-[clamp(2.25rem,5vw,3.5rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-white"
       >
         Fantasy 的个人博客
@@ -59,6 +66,7 @@ export default function CoverContent() {
 
       {/* 副标题 */}
       <motion.p
+        variants={heroItem}
         className="mb-10 max-w-md text-base leading-[1.65] text-white/60"
       >
         一个前端努力转AI全栈的开发者
@@ -66,6 +74,7 @@ export default function CoverContent() {
 
       {/* 按钮组 */}
       <motion.div
+        variants={heroItem}
         className="flex flex-wrap items-center justify-center gap-3"
       >
         <MotionLink
@@ -107,6 +116,6 @@ export default function CoverContent() {
           <i className="iconfont icon-GitHub" /> GitHub
         </motion.a>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

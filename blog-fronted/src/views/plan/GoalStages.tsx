@@ -1,9 +1,11 @@
 'use client';
 
 import { Progress } from 'antd';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 import { PLAN_STATUS_LABEL } from '@/constants';
+import { heroItem, staggerContainer } from '@/lib/motion';
 import type { PlanContent, PlanStage } from '@/types/api';
 
 import { calculateProgress, findCurrentStage, sortPlanStages } from './planData';
@@ -86,10 +88,18 @@ export default function GoalStages({ content }: { content: PlanContent }) {
   }
 
   return (
-    <div className="border-t border-[var(--color-border)]">
+    <motion.div
+      className="border-t border-[var(--color-border)]"
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: '-40px 0px' }}
+      variants={staggerContainer}
+    >
       {stages.map((stage) => (
-        <StagePanel key={stage.id} stage={stage} open={stage.id === openID} onToggle={() => { setOpenID((current) => current === stage.id ? undefined : stage.id); }} />
+        <motion.div key={stage.id} variants={heroItem}>
+          <StagePanel stage={stage} open={stage.id === openID} onToggle={() => { setOpenID((current) => current === stage.id ? undefined : stage.id); }} />
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }
