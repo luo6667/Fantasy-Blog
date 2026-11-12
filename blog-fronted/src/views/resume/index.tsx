@@ -31,25 +31,16 @@ export default function Resume() {
           <div className="pb-8">
             <motion.h1
               className="mb-1.5 text-[clamp(2rem,5vw,2.75rem)] font-extrabold tracking-[-0.03em]"
-              initial={{ opacity: 0, y: 28, filter: 'blur(6px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20, mass: 0.5, delay: 0.08 }}
             >
               <span className="text-accent">Fantasy</span>
             </motion.h1>
             <motion.p
               className="mb-1 text-base text-text-secondary"
-              initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.16 }}
             >
               前端工程师 · 初级全栈开发者
             </motion.p>
             <motion.div
               className="flex flex-wrap gap-x-5 gap-y-2 text-[0.9375rem] text-[var(--color-text)] [&_.iconfont]:text-base"
-              initial={{ opacity: 0, y: 16, filter: 'blur(3px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.24 }}
             >
               <span>
                 <i className="iconfont icon-youjian mr-1" /> ljw15875758942@163.com
@@ -60,9 +51,6 @@ export default function Resume() {
             </motion.div>
             <motion.p
               className="mt-3 border-t border-[var(--color-border-light)] pt-3 text-[0.9375rem] leading-[1.6] text-text-secondary"
-              initial={{ opacity: 0, y: 16, filter: 'blur(3px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.32 }}
             >
               前端开发，热爱技术与创造。1 年学习经验，
               擅长将复杂需求转化为简洁直观的数字产品。

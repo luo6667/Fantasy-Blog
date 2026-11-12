@@ -13,8 +13,9 @@ interface RevealProps {
 /**
  * 滚动进场动画包裹组件
  *
- * 当元素滚动进入视口时触发弹簧 scale 弹入 + 淡入 + 上移。
- * 使用 spring 物理曲线，质感自然。once 确保动画只播放一次。
+ * 当元素滚动进入视口时上移回位，只动 transform、不做 fade/scale：
+ * 内容在 HTML 中立即可见，避免路由切换或首屏出现「空白等动画」。
+ * once 确保动画只播放一次。
  */
 export default function Reveal({ children, className = '', delay = 0 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -24,24 +25,9 @@ export default function Reveal({ children, className = '', delay = 0 }: RevealPr
     <motion.div
       ref={ref}
       className={className}
-      initial={{
-        opacity: 0,
-        y: 32,
-        scale: 0.94,
-      }}
-      animate={
-        isInView
-          ? { opacity: 1, y: 0, scale: 1 }
-          : { opacity: 0, y: 32, scale: 0.94 }
-      }
-      transition={{
-        duration: 0.7,
-        delay,
-        type: 'spring',
-        stiffness: 100,
-        damping: 22,
-        mass: 0.5,
-      }}
+      initial={{ y: 24 }}
+      animate={isInView ? { y: 0 } : { y: 24 }}
+      transition={{ duration: 0.35, delay, ease: 'easeOut' }}
     >
       {children}
     </motion.div>

@@ -46,9 +46,6 @@ export default function CoverContent() {
       {/* 欢迎来到 */}
       <motion.p
         className="mb-2 text-sm font-medium uppercase tracking-[0.1em] text-white/70"
-        initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ ...springSlow, delay: 0.15 }}
       >
         欢迎来到
       </motion.p>
@@ -56,9 +53,6 @@ export default function CoverContent() {
       {/* 主标题 */}
       <motion.h1
         className="mb-3 text-[clamp(2.25rem,5vw,3.5rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-white"
-        initial={{ opacity: 0, y: 24, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ ...springSlow, delay: 0.25 }}
       >
         Fantasy 的个人博客
       </motion.h1>
@@ -66,9 +60,6 @@ export default function CoverContent() {
       {/* 副标题 */}
       <motion.p
         className="mb-10 max-w-md text-base leading-[1.65] text-white/60"
-        initial={{ opacity: 0, y: 18, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ ...springSlow, delay: 0.4 }}
       >
         一个前端努力转AI全栈的开发者
       </motion.p>
@@ -76,9 +67,6 @@ export default function CoverContent() {
       {/* 按钮组 */}
       <motion.div
         className="flex flex-wrap items-center justify-center gap-3"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springSlow, delay: 0.55 }}
       >
         <MotionLink
           href="/home"
