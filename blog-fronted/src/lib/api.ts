@@ -9,8 +9,8 @@
  *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET。
  */
 import axios, { AxiosError } from 'axios';
-import type { ContributionsData } from '@/lib/contributions';
 
+import type { ContributionsData } from '@/lib/contributions';
 import type {
   ArticleDetail,
   ArticleInput,
@@ -94,6 +94,15 @@ http.interceptors.response.use(
     if (!err.response) {
       const msg = err.code === 'ECONNABORTED' ? '请求超时' : '网络错误，请确认后端服务已启动';
       return Promise.reject(new ApiError(msg, -1, 0));
+    }
+    // 登录态中途失效：清掉本地 token；仍在后台页面时回到登录页。
+    // 登录接口自身的 401 交给表单展示错误，不做跳转。
+    const requestUrl = err.config?.url ?? '';
+    if (err.response.status === 401 && !requestUrl.includes('/auth/login')) {
+      tokenStore.clear();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      }
     }
     const body = err.response.data;
     const code = typeof body.code === 'number' ? body.code : -2;

@@ -39,6 +39,18 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     setDrawerOpen(false);
   }, [pathname]);
 
+  // 任何后台请求返回 401 时，api 层会派发该事件：清理登录态并回到登录页。
+  useEffect(() => {
+    function onUnauthorized() {
+      logout();
+      router.replace('/admin/login');
+    }
+    window.addEventListener('auth:unauthorized', onUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', onUnauthorized);
+    };
+  }, [logout, router]);
+
   if (isLogin) return <>{children}</>;
 
   if (checking) {

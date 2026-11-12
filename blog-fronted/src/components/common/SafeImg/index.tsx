@@ -34,7 +34,8 @@ export default function SafeImg({
   priority,
   sizes,
 }: SafeImgProps) {
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const failed = failedSrc === src;
 
   // 无图 / 加载失败：渲染占位块（沿用传入的尺寸类）
   if (!src || failed) {
@@ -59,10 +60,13 @@ export default function SafeImg({
         fill
         sizes={sizes}
         priority={priority}
+        // 后台允许填写站外封面；这类地址不走 Next 的图片优化器，避免未配置
+        // remotePatterns 时被 400 拒绝。
+        unoptimized={/^https?:\/\//i.test(src)}
         draggable={false}
         className="object-cover"
         onError={() => {
-          setFailed(true);
+          setFailedSrc(src);
         }}
       />
     </span>
