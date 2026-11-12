@@ -3,6 +3,8 @@
 import { motion, useInView } from 'motion/react';
 import { type ReactNode, useRef } from 'react';
 
+import { fadeInFast, springHero } from '@/lib/motion';
+
 interface RevealProps {
   children: ReactNode;
   className?: string;
@@ -13,9 +15,10 @@ interface RevealProps {
 /**
  * 滚动进场动画包裹组件
  *
- * 当元素滚动进入视口时上移回位，只动 transform、不做 fade/scale：
- * 内容在 HTML 中立即可见，避免路由切换或首屏出现「空白等动画」。
- * once 确保动画只播放一次。
+ * 进入视口后上移回位 + 轻微放大 + 快速淡入：
+ * - 透明度用 0.2s tween，避免长时间不可读；
+ * - 位移/缩放用弹簧，保留全站统一的弹性观感；
+ * - once 确保动画只播放一次。
  */
 export default function Reveal({ children, className = '', delay = 0 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -25,9 +28,9 @@ export default function Reveal({ children, className = '', delay = 0 }: RevealPr
     <motion.div
       ref={ref}
       className={className}
-      initial={{ y: 24 }}
-      animate={isInView ? { y: 0 } : { y: 24 }}
-      transition={{ duration: 0.35, delay, ease: 'easeOut' }}
+      initial={{ opacity: 0, y: 24, scale: 0.985 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 24, scale: 0.985 }}
+      transition={{ ...springHero, opacity: { ...fadeInFast, delay }, delay }}
     >
       {children}
     </motion.div>
