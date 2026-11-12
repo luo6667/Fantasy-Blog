@@ -60,6 +60,9 @@ func Load() (*Config, error) {
 	}
 
 	if c.MySQLPass == "" {
+		if c.NodeEnv == "production" {
+			return nil, fmt.Errorf("MYSQL_PASSWORD must be set in production")
+		}
 		c.MySQLPass = "1234"
 	}
 
