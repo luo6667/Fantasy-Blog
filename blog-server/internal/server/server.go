@@ -50,13 +50,14 @@ func (a *App) Router() *gin.Engine {
 	})
 
 	authLimiter := middleware.NewRateLimiter(20, 15*time.Minute, "尝试过于频繁，请 15 分钟后再试", "20-in-15min; q=20; w=900")
+	contributionsLimiter := middleware.NewRateLimiter(60, time.Minute, "请求过于频繁，请稍后再试", "60-in-1min; q=60; w=60")
 
 	api := r.Group("/api")
 	api.Use(middleware.JSONBodyGuard())
 	api.GET("/health", func(c *gin.Context) {
 		httpx.Success(c, gin.H{"status": "up", "timestamp": httpx.ISO(time.Now())})
 	})
-	api.GET("/contributions", wrap(a.contributions))
+	api.GET("/contributions", contributionsLimiter.Handler(), wrap(a.contributions))
 
 	api.POST("/auth/login", authLimiter.Handler(), wrap(a.login))
 	api.GET("/auth/me", a.Auth.RequireAuth(), wrap(a.me))

@@ -45,6 +45,7 @@ var contributionState struct {
 	sync.Mutex
 	github, gitee contributionCache
 	refreshing    bool
+	loading       chan struct{}
 }
 var contributionClient = &http.Client{Timeout: 6 * time.Second}
 var giteeDayPattern = regexp.MustCompile(`data-content=\\?'([0-9]+)个贡献：[0-9]{4}-[0-9]{2}-[0-9]{2}\\?'.*?date=\\?'([0-9]{8})\\?'`)
@@ -54,12 +55,48 @@ func (a *App) contributions(c *gin.Context) error {
 		if !fresh {
 			go a.refreshContributions()
 		}
+		c.Header("Cache-Control", "public, max-age=300")
 		httpx.Success(c, cached)
 		return nil
 	}
-	data := a.fetchContributions(c.Request.Context())
-	httpx.Success(c, data)
+	c.Header("Cache-Control", "public, max-age=300")
+	httpx.Success(c, a.loadContributions(c.Request.Context()))
 	return nil
+}
+
+// loadContributions 合并冷启动时的并发请求：只有第一个请求拉取上游，
+// 其余请求等待同一次结果，避免同时打满 GitHub/Gitee。
+func (a *App) loadContributions(ctx context.Context) contributionData {
+	contributionState.Lock()
+	if waiting := contributionState.loading; waiting != nil {
+		contributionState.Unlock()
+		select {
+		case <-waiting:
+		case <-ctx.Done():
+		}
+		if data, exists, _ := cachedContributions(); exists {
+			return data
+		}
+		return unavailableContributions()
+	}
+	done := make(chan struct{})
+	contributionState.loading = done
+	contributionState.Unlock()
+
+	defer func() {
+		contributionState.Lock()
+		contributionState.loading = nil
+		close(done)
+		contributionState.Unlock()
+	}()
+	return a.fetchContributions(ctx)
+}
+
+func unavailableContributions() contributionData {
+	return contributionData{
+		GitHub: contributionSource{Status: "unavailable"},
+		Gitee:  contributionSource{Status: "unavailable"},
+	}
 }
 
 func (a *App) refreshContributions() {
@@ -131,7 +168,7 @@ func fetchGitHub(ctx context.Context, token string) contributionSource {
 	body, _ := json.Marshal(map[string]string{"query": query})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.github.com/graphql", bytes.NewReader(body))
 	if err != nil {
-		return contributionSource{}
+		return contributionSource{Status: "unavailable"}
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
@@ -140,7 +177,7 @@ func fetchGitHub(ctx context.Context, token string) contributionSource {
 		if res != nil {
 			res.Body.Close()
 		}
-		return contributionSource{}
+		return contributionSource{Status: "unavailable"}
 	}
 	defer res.Body.Close()
 	var data struct {
@@ -162,7 +199,7 @@ func fetchGitHub(ctx context.Context, token string) contributionSource {
 		} `json:"data"`
 	}
 	if json.NewDecoder(res.Body).Decode(&data) != nil {
-		return contributionSource{}
+		return contributionSource{Status: "unavailable"}
 	}
 	out := contributionSource{Status: "ok", Total: data.Data.User.ContributionsCollection.ContributionCalendar.Total}
 	for _, w := range data.Data.User.ContributionsCollection.ContributionCalendar.Weeks {
@@ -176,31 +213,29 @@ func fetchGitHub(ctx context.Context, token string) contributionSource {
 func fetchGitee(ctx context.Context) contributionSource {
 	year := time.Now().Year()
 	all := []contributionDay{}
-	for _, y := range []int{year} {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://gitee.com/%s/contribution_calendar?year=%d", giteeUser, y), nil)
-		if err != nil {
-			return contributionSource{}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://gitee.com/%s/contribution_calendar?year=%d", giteeUser, year), nil)
+	if err != nil {
+		return contributionSource{Status: "unavailable"}
+	}
+	req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	req.Header.Set("Referer", "https://gitee.com/"+giteeUser)
+	res, err := contributionClient.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		if res != nil {
+			res.Body.Close()
 		}
-		req.Header.Set("X-Requested-With", "XMLHttpRequest")
-		req.Header.Set("Referer", "https://gitee.com/"+giteeUser)
-		res, err := contributionClient.Do(req)
-		if err != nil || res.StatusCode != 200 {
-			if res != nil {
-				res.Body.Close()
-			}
-			return contributionSource{}
-		}
-		raw, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
-		res.Body.Close()
-		for _, m := range giteeDayPattern.FindAllStringSubmatch(string(raw), -1) {
-			count, _ := strconv.Atoi(m[1])
-			date := m[2][:4] + "-" + m[2][4:6] + "-" + m[2][6:]
-			all = append(all, contributionDay{Date: date, Count: count})
-		}
+		return contributionSource{Status: "unavailable"}
+	}
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 2<<20))
+	res.Body.Close()
+	for _, m := range giteeDayPattern.FindAllStringSubmatch(string(raw), -1) {
+		count, _ := strconv.Atoi(m[1])
+		date := m[2][:4] + "-" + m[2][4:6] + "-" + m[2][6:]
+		all = append(all, contributionDay{Date: date, Count: count})
 	}
 	sort.Slice(all, func(i, j int) bool { return all[i].Date < all[j].Date })
 	if len(all) == 0 {
-		return contributionSource{}
+		return contributionSource{Status: "unavailable"}
 	}
 	total := 0
 	for i := range all {
