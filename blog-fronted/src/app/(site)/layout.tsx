@@ -16,8 +16,9 @@ import { restoreTheme } from '@/stores/themeStore';
  * 组内所有页面（home/blog/about/resume/admin）。这里提供：
  * - 滚动进度条 + 顶栏 Nav + 底栏 Footer（整站共享）；
  * - 路由切换滚动回顶（替代原 SPA 的 ScrollToTop）；
+ * - 不对 children 加 key：路由变化时 App Router 自己替换节点，额外 key 会强制
+ *   整棵页面子树卸载重建，重复触发所有挂载动画与副作用；
  * - 不做整页 opacity 入场：首屏内容要立刻可见，避免把 LCP 推迟到 hydration 之后。
- * 整个布局是 client 组件：首屏 HTML 仍由 SSR 输出，交互逻辑在客户端。
  */
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
@@ -36,7 +37,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <>
       <ScrollProgress />
       <Nav theme={theme} onToggle={toggleTheme} />
-      <div key={pathname}>{children}</div>
+      <div>{children}</div>
       <Footer />
     </>
   );
