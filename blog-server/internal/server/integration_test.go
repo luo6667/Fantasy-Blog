@@ -104,7 +104,10 @@ type client struct {
 func newClient(t *testing.T, db *gorm.DB) *client {
 	t.Helper()
 	cfg := testConfig(t)
-	app := New(cfg, db)
+	app, err := New(cfg, db)
+	if err != nil {
+		t.Fatalf("new app: %v", err)
+	}
 	return &client{t: t, srv: httptest.NewServer(app.Router())}
 }
 

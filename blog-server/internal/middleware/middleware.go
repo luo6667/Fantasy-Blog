@@ -81,17 +81,71 @@ func CORS(origins []string) gin.HandlerFunc {
 	}
 }
 
-// ClientIP 取客户端 IP（trust proxy 1：X-Forwarded-For 的最后一跳）。
-func ClientIP(c *gin.Context) string {
-	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		if ip := strings.TrimSpace(parts[len(parts)-1]); ip != "" {
-			return ip
+// trustedProxies 是允许提供 X-Forwarded-For 的代理网段；为空时一律使用直连地址。
+var trustedProxies []*net.IPNet
+
+// ConfigureTrustedProxies 解析代理白名单（IP 或 CIDR），启动时调用一次。
+func ConfigureTrustedProxies(list []string) error {
+	parsed := make([]*net.IPNet, 0, len(list))
+	for _, raw := range list {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		if !strings.Contains(raw, "/") {
+			ip := net.ParseIP(raw)
+			if ip == nil {
+				return fmt.Errorf("TRUSTED_PROXIES 含非法地址 %q", raw)
+			}
+			bits := 32
+			if ip.To4() == nil {
+				bits = 128
+			}
+			raw = fmt.Sprintf("%s/%d", raw, bits)
+		}
+		_, network, err := net.ParseCIDR(raw)
+		if err != nil {
+			return fmt.Errorf("TRUSTED_PROXIES 含非法网段 %q", raw)
+		}
+		parsed = append(parsed, network)
+	}
+	trustedProxies = parsed
+	return nil
+}
+
+func isTrustedProxy(ip net.IP) bool {
+	for _, network := range trustedProxies {
+		if network.Contains(ip) {
+			return true
 		}
 	}
+	return false
+}
+
+// ClientIP 取客户端 IP：只有直连地址属于可信代理时才解析 X-Forwarded-For，
+// 并从右向左跳过可信代理，取第一个非代理地址。
+func ClientIP(c *gin.Context) string {
 	host, _, err := net.SplitHostPort(c.Request.RemoteAddr)
 	if err != nil {
-		return c.Request.RemoteAddr
+		host = c.Request.RemoteAddr
+	}
+	remote := net.ParseIP(host)
+	if remote == nil || !isTrustedProxy(remote) {
+		return host
+	}
+	xff := c.GetHeader("X-Forwarded-For")
+	if xff == "" {
+		return host
+	}
+	parts := strings.Split(xff, ",")
+	for i := len(parts) - 1; i >= 0; i-- {
+		ip := net.ParseIP(strings.TrimSpace(parts[i]))
+		if ip == nil {
+			continue
+		}
+		if !isTrustedProxy(ip) {
+			return ip.String()
+		}
 	}
 	return host
 }

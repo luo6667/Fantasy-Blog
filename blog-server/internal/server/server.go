@@ -25,15 +25,18 @@ type App struct {
 	Auth *middleware.Auth
 }
 
-// New 构造 App。
-func New(cfg *config.Config, db *gorm.DB) *App {
+// New 构造 App；配置非法（如 TRUSTED_PROXIES 写错）时返回错误。
+func New(cfg *config.Config, db *gorm.DB) (*App, error) {
+	if err := middleware.ConfigureTrustedProxies(cfg.TrustedProxies); err != nil {
+		return nil, err
+	}
 	manager := auth.NewManager(cfg.JWTSecret, cfg.JWTExpires)
 	service.RevalidateHook = func(paths []string) { service.Revalidate(cfg, paths) }
 	return &App{
 		Cfg:  cfg,
 		DB:   db,
 		Auth: &middleware.Auth{Manager: manager, DB: db},
-	}
+	}, nil
 }
 
 // Router 组装全部中间件与路由。

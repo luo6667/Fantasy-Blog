@@ -26,6 +26,8 @@ type Config struct {
 	JWTSecret   string
 	JWTExpires  time.Duration
 	CORSOrigins []string
+	// TrustedProxies 是允许携带 X-Forwarded-For 的代理地址（IP 或 CIDR）。
+	TrustedProxies []string
 
 	AdminInitialPassword string
 
@@ -54,6 +56,7 @@ func Load() (*Config, error) {
 		NextRevalidateURL:    os.Getenv("NEXT_REVALIDATE_URL"),
 		RevalidateSecret:     os.Getenv("REVALIDATE_SECRET"),
 		GitHubToken:          os.Getenv("GITHUB_TOKEN"),
+		TrustedProxies:       splitOrigins(envString("TRUSTED_PROXIES", "127.0.0.1,::1")),
 	}
 
 	if c.MySQLPass == "" {

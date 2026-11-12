@@ -175,7 +175,11 @@ func envOr(key, fallback string) string {
 }
 
 func serve(logger *slog.Logger, cfg *config.Config, db *gorm.DB) {
-	app := server.New(cfg, db)
+	app, err := server.New(cfg, db)
+	if err != nil {
+		logger.Error("server init failed", "error", err)
+		os.Exit(1)
+	}
 	handler := app.Router()
 
 	srv := &http.Server{
