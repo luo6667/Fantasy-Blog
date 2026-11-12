@@ -2,73 +2,31 @@
 
 import Link from 'next/link';
 
-import type { PlanStage } from '@/types/api';
+import type { PlanContent } from '@/types/api';
 
-const STATUS_LABEL: Record<PlanStage['status'], string> = {
-  planned: '计划中',
-  active: '进行中',
-  done: '已完成',
-};
+import { calculatePlanProgress, findCurrentStage } from '../plan/planData';
 
-/**
- * In Progress：正在构建
- *
- * 从 plan 里取「进行中」阶段及其后 1–2 个阶段，做成一条极简时间线；
- * 首页只展示摘要，完整路线图仍在 /plan。
- */
-export default function InProgress({ stages }: { stages: PlanStage[] }) {
-  if (stages.length === 0) return null;
-  const activeIndex = Math.max(
-    0,
-    stages.findIndex((s) => s.status === 'active'),
-  );
-  const start = stages[activeIndex] ? activeIndex : 0;
-  const picked = stages.slice(start, start + 3);
-  if (picked.length === 0) return null;
+/** 首页摘要：突出唯一总目标及当前阶段，不重复展示完整子目标列表。 */
+export default function InProgress({ content }: { content: PlanContent }) {
+  const progress = calculatePlanProgress(content);
+  const stage = findCurrentStage(content);
 
   return (
     <section className="px-6 py-16 md:py-24">
-      <div className="mx-auto max-w-page">
-        <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="mb-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">
-              In Progress
-            </p>
-            <h2 className="text-[clamp(1.7rem,3vw,2.3rem)] font-extrabold tracking-[-0.03em]">正在构建</h2>
-          </div>
-          <Link
-            href="/plan"
-            className="border-b border-[var(--color-text)]/30 pb-1 text-sm font-medium text-text-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            查看完整规划 →
+      <div className="mx-auto max-w-page border-y border-[var(--color-border)] py-8 md:grid md:grid-cols-[0.9fr_1.1fr] md:gap-10">
+        <div>
+          <p className="mb-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">In Progress</p>
+          <h2 className="text-[clamp(1.7rem,3vw,2.3rem)] font-extrabold tracking-[-0.03em]">正在构建</h2>
+          <Link href="/plan" className="mt-5 inline-block border-b border-[var(--color-text)]/30 pb-1 text-sm font-medium text-text-muted transition-colors hover:border-accent hover:text-accent">
+            查看目标规划 →
           </Link>
         </div>
-
-        <ol className="grid gap-8 md:grid-cols-3 md:gap-10">
-          {picked.map((stage) => (
-            <li
-              key={`${stage.period}-${stage.title}`}
-              className="relative border-l border-[var(--color-border)] pl-6 md:border-l-0 md:border-t md:pl-0 md:pt-6"
-            >
-              <span
-                aria-hidden
-                className="absolute -left-[4px] top-0 h-2 w-2 rounded-full bg-accent md:-top-[4px] md:left-0"
-              />
-              <p className="mb-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                {stage.period}
-              </p>
-              <h3 className="mb-2 text-[1.05rem] font-bold leading-[1.4] tracking-[-0.01em]">
-                {stage.title}
-              </h3>
-              <p className="mb-3 line-clamp-2 text-[0.9rem] leading-[1.7] text-text-muted">
-                {stage.summary}
-              </p>
-              <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-accent">
-                {STATUS_LABEL[stage.status]}
-              </span>
-            </li>
-          ))}
-        </ol>
+        <article className="mt-8 border-l border-[var(--color-border)] pl-6 md:mt-0">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-text-muted">Overall goal</p>
+          <h3 className="mt-2 text-[1.2rem] font-bold leading-[1.4] tracking-[-0.02em]">{content.title || '我的目标'}</h3>
+          {content.summary && <p className="mt-2 max-w-[52ch] text-[0.9rem] leading-[1.7] text-text-muted">{content.summary}</p>}
+          <p className="mt-4 text-sm text-text-muted"><span className="font-semibold text-accent">{progress.done}/{progress.total}</span> 个子目标完成{stage && <> · 当前阶段：{stage.title}</>}</p>
+        </article>
       </div>
     </section>
   );

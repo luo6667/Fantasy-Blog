@@ -425,23 +425,68 @@ func TestSiteContentPlan(t *testing.T) {
 		t.Fatalf("plan: status=%d body=%+v", status, env)
 	}
 	var item struct {
-		Value []struct {
-			Period string `json:"period"`
-			Goals  []struct {
-				Title string `json:"title"`
-			} `json:"goals"`
+		Value struct {
+			Title  string `json:"title"`
+			Stages []struct {
+				ID    string `json:"id"`
+				Order int    `json:"order"`
+				Goals []struct {
+					Title string `json:"title"`
+				} `json:"goals"`
+			} `json:"stages"`
 		} `json:"value"`
 	}
 	if err := json.Unmarshal(env.Data, &item); err != nil {
 		t.Fatalf("plan payload: %s", string(env.Data))
 	}
-	stages := item.Value
-	if len(stages) != 4 {
-		t.Fatalf("plan stages=%d，期望 4", len(stages))
+	if item.Value.Title == "" || len(item.Value.Stages) != 3 {
+		t.Fatalf("plan 默认数据不完整: %+v", item.Value)
 	}
-	for _, s := range stages {
-		if s.Period == "" || len(s.Goals) == 0 {
-			t.Fatalf("plan stage 数据不完整: %+v", s)
+	for _, stage := range item.Value.Stages {
+		if stage.ID == "" || stage.Order < 1 || len(stage.Goals) == 0 {
+			t.Fatalf("plan stage 数据不完整: %+v", stage)
 		}
+	}
+
+	token := c.login()
+	status, env = c.do(http.MethodPut, "/api/site-content/plan", token, map[string]any{
+		"value": map[string]any{
+			"title":   "学习 Go",
+			"summary": "建立 Go 服务端开发能力。",
+			"stages": []map[string]any{{
+				"id": "stage-basics", "order": 2, "title": "基础与工具链", "summary": "掌握语法和开发环境。",
+				"goals": []map[string]any{{
+					"id": "goal-syntax", "title": "掌握 Go 基础语法", "desc": "变量、函数、结构体与接口。", "status": "active",
+				}},
+			}},
+		},
+	})
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("update plan: status=%d body=%+v", status, env)
+	}
+}
+
+func TestSiteContentInternships(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+
+	status, env := c.do(http.MethodGet, "/api/site-content/internships", "", nil)
+	if status != http.StatusOK || env.Code != 0 || string(env.Data) == "" {
+		t.Fatalf("get internships: status=%d body=%+v", status, env)
+	}
+
+	token := c.login()
+	status, env = c.do(http.MethodPut, "/api/site-content/internships", token, map[string]any{
+		"value": []map[string]any{{
+			"company": "示例科技", "role": "前端开发实习生", "period": "2026.07 – 2026.09",
+			"desc": []string{"参与业务页面开发与组件维护。"},
+		}},
+	})
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("update internships: status=%d body=%+v", status, env)
+	}
+	if !strings.Contains(string(env.Data), "前端开发实习生") {
+		t.Fatalf("internship response missing role: %s", string(env.Data))
 	}
 }

@@ -4,72 +4,73 @@ import Link from 'next/link';
 import { NAV_TABS } from '@/constants';
 
 const MotionLink = motion.create(Link);
+const motionConfig = { type: 'spring', stiffness: 400, damping: 18 } as const;
+const NAV_ICONS = ['icon-wangzhi', 'icon-book', 'icon-banshou', 'icon-wenjian', 'icon-geren'] as const;
 
-/**
- * 底部页脚组件
- *
- * 包含导航链接、联系方式与版权信息。
- */
+/** 主站底栏：品牌、站内导航与联系信息三栏收束。 */
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-[var(--color-border)] px-6 pb-6 pt-10 text-[0.8125rem] text-text-muted">
-      <div className="mx-auto grid max-w-page grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
-        {/* 导航 */}
-        <div>
-          <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--color-text)]">
-            导航
-          </h4>
-          <nav className="flex flex-col gap-2">
-            {NAV_TABS.map((t) => (
+    <footer className="border-t border-[var(--color-border)] px-6 pb-6 pt-14 text-[0.8125rem] text-text-muted md:pt-16">
+      <div className="mx-auto grid max-w-page gap-10 md:grid-cols-[1.2fr_0.8fr_1fr] md:gap-12">
+        <section>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">Independent creator</p>
+          <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-[var(--color-text)]">Fantasy</h2>
+          <p className="mt-4 max-w-[26ch] text-sm leading-[1.8] text-text-secondary">
+            把想法做成值得停留的作品，也把过程写成可以回看的文字。
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-text)]">Navigate / 浏览</h2>
+          <nav className="mt-4 flex flex-col gap-3" aria-label="页脚导航">
+            {NAV_TABS.map((tab, index) => (
               <MotionLink
-                key={t.to}
-                href={t.to}
-                className="inline-block w-fit text-sm text-text-secondary"
-                whileHover={{ x: 4, color: 'var(--color-accent)' }}
-                whileTap={{ scale: 0.94 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                key={tab.to}
+                href={tab.to}
+                className="inline-flex w-fit items-center gap-2 text-sm text-text-secondary transition-colors hover:text-accent"
+                whileHover={{ x: 3 }}
+                whileTap={{ scale: 0.96 }}
+                transition={motionConfig}
               >
-                {t.label}
+                <i className={`iconfont ${NAV_ICONS[index] ?? 'icon-wangzhi'} text-[0.9rem]`} aria-hidden="true" />
+                {tab.label}
               </MotionLink>
             ))}
           </nav>
-        </div>
+        </section>
 
-        {/* 联系方式 */}
-        <div>
-          <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.06em] text-[var(--color-text)]">
-            联系方式
-          </h4>
-          <div className="flex flex-col gap-2 [&_.iconfont]:text-[0.9375rem]">
+        <section>
+          <h2 className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[var(--color-text)]">Contact / 联系方式</h2>
+          <div className="mt-4 flex flex-col gap-3 text-sm">
             <motion.a
-              href="mailto:your.email@example.com"
-              className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent"
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+              href="mailto:ljw15875758942@163.com"
+              className="inline-flex items-center gap-1.5 text-text-secondary transition-colors hover:text-accent"
+              whileHover={{ x: 3 }}
+              whileTap={{ scale: 0.96 }}
+              transition={motionConfig}
             >
-              <i className="iconfont icon-youjian" /> ljw15875758942@163.com
+              <i className="iconfont icon-youjian text-[0.95rem]" aria-hidden="true" /> ljw15875758942@163.com
             </motion.a>
             <motion.a
               href="https://github.com/luo6667"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-accent"
-              whileHover={{ x: 4 }}
-              whileTap={{ scale: 0.94 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+              className="inline-flex items-center gap-1.5 text-text-secondary transition-colors hover:text-accent"
+              whileHover={{ x: 3 }}
+              whileTap={{ scale: 0.96 }}
+              transition={motionConfig}
             >
-              <i className="iconfont icon-GitHub" /> GitHub
+              <i className="iconfont icon-GitHub text-[0.95rem]" aria-hidden="true" /> GitHub ↗
             </motion.a>
           </div>
-        </div>
+        </section>
       </div>
 
-      <p className="mt-8 border-t border-[var(--color-border-light)] pt-4 text-center text-xs">
-        &copy; {year} Fantasy. All rights reserved.
-      </p>
+      <div className="mx-auto mt-12 max-w-page border-t border-[var(--color-border-light)] pt-4 text-xs">
+        <p>© {year} Fantasy. All rights reserved.</p>
+      </div>
     </footer>
   );
 }

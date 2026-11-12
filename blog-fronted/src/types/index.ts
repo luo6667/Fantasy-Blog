@@ -1,5 +1,6 @@
 export type { BlogPost } from './blog';
 export type { Education } from './education';
+export type { ResumeInternship } from './internship';
 export type { NavTab } from './nav';
 export type { ResumeProject } from './project';
 export type { SkillGroup } from './skill';

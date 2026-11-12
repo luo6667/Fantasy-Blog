@@ -1,10 +1,10 @@
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 
-import { articleApi, siteContentApi } from '@/lib/api';
-import { getGitHubContributions } from '@/lib/github';
+import { articleApi, contributionApi, siteContentApi } from '@/lib/api';
+import type { ContributionsData } from '@/lib/contributions';
 import { siteContentKeys } from '@/lib/queryKeys';
 import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
-import type { ArticleListItem } from '@/types/api';
+import type { ArticleListItem, SiteContentItem } from '@/types/api';
 import HomeView from '@/views/home';
 
 /**
@@ -20,7 +20,7 @@ import HomeView from '@/views/home';
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const contributions = await getGitHubContributions();
+  const contributions = await contributionApi.get().catch(() => null as ContributionsData | null);
 
   const recentPosts = await articleApi
     .list({ page: 1, pageSize: 3 })
@@ -44,7 +44,12 @@ export default async function HomePage() {
 
   return (
     <HydrationBoundary state={dehydrate(qc)}>
-      <HomeView contributions={contributions} recentPosts={recentPosts} />
+      <HomeView
+        contributions={contributions}
+        recentPosts={recentPosts}
+        projectsValue={(qc.getQueryData<SiteContentItem>(siteContentKeys.byKey('homeProjects'))?.value ?? SITE_CONTENT_FALLBACKS.homeProjects)}
+        planValue={(qc.getQueryData<SiteContentItem>(siteContentKeys.byKey('plan'))?.value ?? SITE_CONTENT_FALLBACKS.plan)}
+      />
     </HydrationBoundary>
   );
 }

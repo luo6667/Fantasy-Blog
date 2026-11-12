@@ -6,11 +6,12 @@ import { usePathname, useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 
 const ADMIN_NAV = [
   { href: '/admin/articles', label: '文章管理', desc: '文章 · 主标签' },
   { href: '/admin/plan', label: '规划管理', desc: '成长路线图' },
-  { href: '/admin/resume', label: '简历管理', desc: '教育 · 技能 · 项目' },
+  { href: '/admin/resume', label: '简历管理', desc: '教育 · 技能 · 实习 · 项目' },
 ] as const;
 
 /**
@@ -25,6 +26,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isAdmin, checking, user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isLogin = pathname === '/admin/login';
@@ -48,6 +50,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }
 
   if (!isAdmin) return null;
+
+  const activeNav = ADMIN_NAV.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+  const currentPageLabel = activeNav?.label ?? '管理后台';
 
   function handleLogout() {
     logout();
@@ -128,8 +135,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         {footer}
       </motion.aside>
 
-      {/* 移动端顶栏 */}
-      <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--color-border-light)] bg-surface px-4 py-3 md:hidden">
+      {/* 移动端后台顶栏 */}
+      <div className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--color-border-light)] bg-surface px-4 md:hidden">
         <button
           type="button"
           onClick={() => { setDrawerOpen(true); }}
@@ -138,9 +145,17 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         >
           ☰
         </button>
-        <span className="text-sm font-semibold">管理后台</span>
-        <Link href="/home" className="ml-auto text-xs text-text-muted hover:text-accent">
-          回首页
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{currentPageLabel}</span>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label="切换主题"
+          className="cursor-pointer border-none bg-transparent p-1.5 text-text-muted transition-colors hover:text-accent [&_.iconfont]:text-lg"
+        >
+          <i className={`iconfont ${theme === 'light' ? 'icon-yueliang' : 'icon-taiyang'}`} />
+        </button>
+        <Link href="/home" className="text-xs font-medium text-text-muted hover:text-accent">
+          首页
         </Link>
       </div>
 
@@ -188,6 +203,38 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       <div
         className={`transition-[padding] duration-300 ${collapsed ? 'md:pl-16' : 'md:pl-[232px]'}`}
       >
+        {/* 桌面端后台顶栏：侧栏保留管理入口，顶栏提供页面定位与快捷操作 */}
+        <header className="sticky top-0 z-30 hidden h-16 border-b border-[var(--color-border-light)] bg-[var(--color-bg)]/95 backdrop-blur md:block">
+          <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-6 px-6">
+            <div className="min-w-0">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-accent">Fantasy / 管理</p>
+              <h1 className="truncate text-sm font-semibold text-[var(--color-text)]">{currentPageLabel}</h1>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                aria-label="切换主题"
+                className="cursor-pointer rounded-md border-none bg-transparent p-2 text-text-muted transition-colors hover:bg-bg-alt hover:text-accent [&_.iconfont]:text-lg"
+              >
+                <i className={`iconfont ${theme === 'light' ? 'icon-yueliang' : 'icon-taiyang'}`} />
+              </button>
+              <Link
+                href="/home"
+                className="rounded-md px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-bg-alt hover:text-accent"
+              >
+                查看站点 ↗
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="cursor-pointer rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm text-text-muted transition-colors hover:border-red-400 hover:text-red-500"
+              >
+                退出登录
+              </button>
+            </div>
+          </div>
+        </header>
         <div className="mx-auto max-w-5xl px-6 py-10">{children}</div>
       </div>
     </div>

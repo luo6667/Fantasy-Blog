@@ -53,6 +53,7 @@ func (a *App) Router() *gin.Engine {
 	api.GET("/health", func(c *gin.Context) {
 		httpx.Success(c, gin.H{"status": "up", "timestamp": httpx.ISO(time.Now())})
 	})
+	api.GET("/contributions", wrap(a.contributions))
 
 	api.POST("/auth/login", authLimiter.Handler(), wrap(a.login))
 	api.GET("/auth/me", a.Auth.RequireAuth(), wrap(a.me))

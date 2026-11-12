@@ -16,6 +16,8 @@ export function useSiteContentQuery(key: SiteContentKey) {
   return useQuery({
     queryKey: siteContentKeys.byKey(key),
     queryFn: () => siteContentApi.get(key),
+    // 页面已由服务端预取内容；首次水合沿用同一快照，后台保存后再由 mutation 失效缓存。
+    staleTime: Infinity,
   });
 }
 

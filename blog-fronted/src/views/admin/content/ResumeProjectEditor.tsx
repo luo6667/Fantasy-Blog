@@ -53,7 +53,7 @@ export default function ResumeProjectEditor({ value }: { value: ResumeProjectIte
             <span className="text-xs text-text-muted">描述段落</span>
             {item.desc.map((d, j) => (
               <div key={j} className="flex items-start gap-2">
-                <textarea className={editorInputClass} rows={2} value={d} onChange={(e) => { updateDesc(i, j, e.target.value); }} />
+                <textarea className={editorInputClass} rows={2} value={d ?? ''} onChange={(e) => { updateDesc(i, j, e.target.value); }} />
                 <button type="button" className={editorBtnDanger} onClick={() => { removeDesc(i, j); }}>删除</button>
               </div>
             ))}

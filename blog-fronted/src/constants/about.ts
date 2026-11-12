@@ -1,5 +1,20 @@
 import type { Education, SkillGroup } from '@/types';
 
+/**
+ * 关于页的叙事内容。它不需要后台维护：修改这里并发布即可更新站点。
+ */
+export const ABOUT_PROFILE = {
+  eyebrow: 'Creator dossier / 2026',
+  name: 'Fantasy',
+  role: '设计、开发与持续写作',
+  intro: '我把想法落成可用的产品，也把过程整理成值得回看的文字。这个站点是作品集、实验场和长期笔记的交汇处。',
+  focus: [
+    { title: '正在构建', content: '更轻、更快，也更适合长期书写的个人内容系统。' },
+    { title: '持续练习', content: '在前端工程、Go 服务与产品表达之间建立自己的工作方法。' },
+  ],
+  pointOfView: '好的个人作品不必喧哗。它应该有清晰的结构、可靠的细节，并留下一点让人愿意停留的温度。',
+} as const;
+
 export const ABOUT_CORE_SKILLS: SkillGroup[] = [
   {
     label: '前端',

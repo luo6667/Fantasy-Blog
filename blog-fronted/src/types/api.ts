@@ -87,10 +87,11 @@ export interface UploadResult {
   mimetype: string;
 }
 
-/** 站点内容 key：简历页 4 块 + 首页精选项目 + 规划页路线图 */
+/** 站点内容 key：简历页内容 + 首页精选项目 + 规划页路线图 */
 export type SiteContentKey =
   | 'education'
   | 'skills'
+  | 'internships'
   | 'resumeProjects'
   | 'evaluation'
   | 'homeProjects'
@@ -108,6 +109,14 @@ export interface EducationItem {
 export interface ResumeProjectItem {
   title: string;
   meta: string;
+  desc: string[];
+}
+
+/** 简历页实习经历项 */
+export interface InternshipItem {
+  company: string;
+  role: string;
+  period: string;
   desc: string[];
 }
 
@@ -140,31 +149,40 @@ export interface HomeProjectItem {
 /** 规划条目状态：未开始 / 进行中 / 已完成 */
 export type PlanItemStatus = 'planned' | 'active' | 'done';
 
-/** 规划阶段下的单个目标 */
+/** 阶段性目标下可独立完成的子目标。 */
 export interface PlanGoal {
+  id: string;
   title: string;
   desc: string;
   status: PlanItemStatus;
-  tags: string[];
 }
 
-/** 规划阶段（成长路线图的一个时间段） */
+/** 一个总目标下的阶段性目标；状态和进度由子目标实时计算，不写入数据。 */
 export interface PlanStage {
-  period: string;
+  id: string;
+  /** 阶段展示顺序；后台可编辑，公开页按此升序排列。 */
+  order: number;
   title: string;
   summary: string;
-  status: PlanItemStatus;
   goals: PlanGoal[];
+}
+
+/** 规划页唯一的总目标。 */
+export interface PlanContent {
+  title: string;
+  summary: string;
+  stages: PlanStage[];
 }
 
 /** 各 key 对应的内容值 */
 export type SiteContentValue =
   | EducationItem[]
   | string[]
+  | InternshipItem[]
   | ResumeProjectItem[]
   | string
   | HomeProjectItem[]
-  | PlanStage[];
+  | PlanContent;
 
 /** 站点内容项 */
 export interface SiteContentItem {

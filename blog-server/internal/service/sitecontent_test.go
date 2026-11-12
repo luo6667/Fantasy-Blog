@@ -13,6 +13,7 @@ func TestSiteContentRevalidatePaths(t *testing.T) {
 		{"plan", []string{"/plan"}},
 		{"education", []string{"/resume"}},
 		{"skills", []string{"/resume"}},
+		{"internships", []string{"/resume"}},
 		{"resumeProjects", []string{"/resume"}},
 		{"evaluation", []string{"/resume"}},
 		{"homeProjects", []string{"/home"}},

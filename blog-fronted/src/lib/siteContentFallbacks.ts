@@ -1,8 +1,9 @@
 import { HOME_PROJECTS } from '@/constants/home';
-import { PLAN_STAGES } from '@/constants/plan';
+import { PLAN_CONTENT } from '@/constants/plan';
 import {
   RESUME_EDUCATION,
   RESUME_EVALUATION,
+  RESUME_INTERNSHIPS,
   RESUME_PROJECTS,
   RESUME_SKILLS,
 } from '@/constants/resume';
@@ -19,8 +20,9 @@ import type { SiteContentKey, SiteContentValue } from '@/types/api';
 export const SITE_CONTENT_FALLBACKS: Record<SiteContentKey, SiteContentValue> = {
   education: RESUME_EDUCATION,
   skills: RESUME_SKILLS,
+  internships: RESUME_INTERNSHIPS,
   resumeProjects: RESUME_PROJECTS,
   evaluation: RESUME_EVALUATION,
   homeProjects: HOME_PROJECTS,
-  plan: PLAN_STAGES,
+  plan: PLAN_CONTENT,
 };

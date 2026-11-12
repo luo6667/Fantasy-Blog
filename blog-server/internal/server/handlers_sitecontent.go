@@ -27,6 +27,13 @@ type resumeProjectItem struct {
 	Desc  []string `json:"desc"`
 }
 
+type internshipItem struct {
+	Company string   `json:"company"`
+	Role    string   `json:"role"`
+	Period  string   `json:"period"`
+	Desc    []string `json:"desc"`
+}
+
 type homeProjectItem struct {
 	Name      string   `json:"name"`
 	Summary   string   `json:"summary,omitempty"`
@@ -43,18 +50,24 @@ type homeProjectItem struct {
 }
 
 type planGoal struct {
-	Title  string   `json:"title"`
-	Desc   string   `json:"desc"`
-	Status string   `json:"status"`
-	Tags   []string `json:"tags"`
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Desc   string `json:"desc"`
+	Status string `json:"status"`
 }
 
 type planStage struct {
-	Period  string     `json:"period"`
+	ID      string     `json:"id"`
+	Order   int        `json:"order"`
 	Title   string     `json:"title"`
 	Summary string     `json:"summary"`
-	Status  string     `json:"status"`
 	Goals   []planGoal `json:"goals"`
+}
+
+type planContent struct {
+	Title   string      `json:"title"`
+	Summary string      `json:"summary"`
+	Stages  []planStage `json:"stages"`
 }
 
 // zlen 返回 zod 口径的字符串长度。
@@ -113,6 +126,36 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 				add(i, "String must contain at least 1 character(s)")
 			} else if zlen(items[i]) > 500 {
 				add(i, "单条技能最多 500 字")
+			}
+		}
+		out = items
+	case "internships":
+		var items []internshipItem
+		if err := json.Unmarshal(raw, &items); err != nil {
+			return nil, httpx.BadRequest("Invalid input")
+		}
+		for i := range items {
+			it := &items[i]
+			it.Company = strings.TrimSpace(it.Company)
+			it.Role = strings.TrimSpace(it.Role)
+			it.Period = strings.TrimSpace(it.Period)
+			if it.Company == "" || zlen(it.Company) > 128 {
+				add(i, "公司不能为空且最多 128 字")
+			}
+			if it.Role == "" || zlen(it.Role) > 128 {
+				add(i, "岗位不能为空且最多 128 字")
+			}
+			if it.Period == "" || zlen(it.Period) > 64 {
+				add(i, "实习时间不能为空且最多 64 字")
+			}
+			if len(it.Desc) == 0 || len(it.Desc) > 50 {
+				add(i, "职责描述需为 1 到 50 段")
+			}
+			for j := range it.Desc {
+				it.Desc[j] = strings.TrimSpace(it.Desc[j])
+				if it.Desc[j] == "" || zlen(it.Desc[j]) > 1000 {
+					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("%d", i), Message: "每段职责描述不能为空且最多 1000 字"})
+				}
 			}
 		}
 		out = items
@@ -243,66 +286,68 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 		}
 		out = items
 	case "plan":
-		var items []planStage
-		if err := json.Unmarshal(raw, &items); err != nil {
+		var content planContent
+		if err := json.Unmarshal(raw, &content); err != nil {
 			return nil, httpx.BadRequest("Invalid input")
 		}
-		if len(items) > 12 {
-			return nil, httpx.BadRequest("最多 12 个阶段")
+		content.Title = strings.TrimSpace(content.Title)
+		content.Summary = strings.TrimSpace(content.Summary)
+		if content.Title == "" || zlen(content.Title) > 64 {
+			return nil, httpx.BadRequest("总目标标题不能为空且最多 64 字")
 		}
-		for i := range items {
-			st := &items[i]
-			st.Period = strings.TrimSpace(st.Period)
-			st.Title = strings.TrimSpace(st.Title)
-			st.Summary = strings.TrimSpace(st.Summary)
-			if st.Period == "" {
-				add(i, "时间段不能为空")
-			} else if zlen(st.Period) > 32 {
-				add(i, "时间段最多 32 字")
+		if zlen(content.Summary) > 200 {
+			return nil, httpx.BadRequest("总目标简介最多 200 字")
+		}
+		if len(content.Stages) > 12 {
+			return nil, httpx.BadRequest("最多 12 个阶段性目标")
+		}
+		usedOrders := make(map[int]struct{}, len(content.Stages))
+		for i := range content.Stages {
+			stage := &content.Stages[i]
+			stage.ID = strings.TrimSpace(stage.ID)
+			stage.Title = strings.TrimSpace(stage.Title)
+			stage.Summary = strings.TrimSpace(stage.Summary)
+			if stage.ID == "" || zlen(stage.ID) > 64 {
+				add(i, "阶段标识不能为空且最多 64 字")
 			}
-			if st.Title == "" {
-				add(i, "阶段标题不能为空")
-			} else if zlen(st.Title) > 64 {
-				add(i, "阶段标题最多 64 字")
+			if stage.Order == 0 {
+				stage.Order = i + 1
+			} else if stage.Order < 1 || stage.Order > 9999 {
+				add(i, "阶段序号必须在 1 到 9999 之间")
 			}
-			if zlen(st.Summary) > 200 {
-				add(i, "阶段概览最多 200 字")
+			if _, exists := usedOrders[stage.Order]; exists {
+				add(i, "阶段序号不能重复")
 			}
-			if !validPlanStatus(st.Status) {
-				add(i, "状态只能是 planned / active / done")
+			usedOrders[stage.Order] = struct{}{}
+			if stage.Title == "" || zlen(stage.Title) > 64 {
+				add(i, "阶段标题不能为空且最多 64 字")
 			}
-			if len(st.Goals) > 20 {
-				add(i, "每个阶段最多 20 个目标")
+			if zlen(stage.Summary) > 200 {
+				add(i, "阶段简介最多 200 字")
 			}
-			for j := range st.Goals {
-				g := &st.Goals[j]
-				g.Title = strings.TrimSpace(g.Title)
-				g.Desc = strings.TrimSpace(g.Desc)
-				if g.Title == "" {
-					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标题不能为空"})
-				} else if zlen(g.Title) > 64 {
-					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标题最多 64 字"})
+			if len(stage.Goals) > 20 {
+				add(i, "每个阶段最多 20 个子目标")
+			}
+			for j := range stage.Goals {
+				goal := &stage.Goals[j]
+				goal.ID = strings.TrimSpace(goal.ID)
+				goal.Title = strings.TrimSpace(goal.Title)
+				goal.Desc = strings.TrimSpace(goal.Desc)
+				if goal.ID == "" || zlen(goal.ID) > 64 {
+					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标识不能为空且最多 64 字"})
 				}
-				if zlen(g.Desc) > 400 {
+				if goal.Title == "" || zlen(goal.Title) > 64 {
+					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标题不能为空且最多 64 字"})
+				}
+				if zlen(goal.Desc) > 400 {
 					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标描述最多 400 字"})
 				}
-				if !validPlanStatus(g.Status) {
+				if !validPlanStatus(goal.Status) {
 					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "状态只能是 planned / active / done"})
-				}
-				if len(g.Tags) > 6 {
-					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "每个目标最多 6 个标签"})
-				}
-				for k := range g.Tags {
-					g.Tags[k] = strings.TrimSpace(g.Tags[k])
-					if g.Tags[k] == "" {
-						issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "标签不能为空"})
-					} else if zlen(g.Tags[k]) > 24 {
-						issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "单个标签最多 24 字"})
-					}
 				}
 			}
 		}
-		out = items
+		out = content
 	default:
 		return nil, httpx.BadRequest("未知的内容类型：" + key)
 	}

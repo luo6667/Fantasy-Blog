@@ -3,7 +3,7 @@
 import { motion } from 'motion/react';
 
 import { BgOrbs, EducationList, Reveal, SectionHeading, Tag } from '@/components/common';
-import { RESUME_EDUCATION, RESUME_EVALUATION, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
+import { RESUME_EDUCATION, RESUME_EVALUATION, RESUME_INTERNSHIPS, RESUME_PROJECTS, RESUME_SKILLS } from '@/constants';
 import { useSiteContentQuery } from '@/hooks/queries';
 import { springBtn } from '@/lib/motion';
 
@@ -11,11 +11,13 @@ export default function Resume() {
   // 内容来自管理后台可编辑的站点内容；未加载 / 加载失败时回退到默认常量，保证页面始终有内容
   const educationQuery = useSiteContentQuery('education');
   const skillsQuery = useSiteContentQuery('skills');
+  const internshipsQuery = useSiteContentQuery('internships');
   const projectsQuery = useSiteContentQuery('resumeProjects');
   const evaluationQuery = useSiteContentQuery('evaluation');
 
   const education = (educationQuery.data?.value as typeof RESUME_EDUCATION | undefined) ?? RESUME_EDUCATION;
   const skills = (skillsQuery.data?.value as string[] | undefined) ?? RESUME_SKILLS;
+  const internships = (internshipsQuery.data?.value as typeof RESUME_INTERNSHIPS | undefined) ?? RESUME_INTERNSHIPS;
   const projects = (projectsQuery.data?.value as typeof RESUME_PROJECTS | undefined) ?? RESUME_PROJECTS;
   const evaluation = (evaluationQuery.data?.value as string | undefined) ?? RESUME_EVALUATION;
 
@@ -99,6 +101,37 @@ export default function Resume() {
           </div>
         </div>
       </section>
+
+      {/* Internships */}
+      {internships.length > 0 && (
+        <section className="relative z-[1] px-6 py-8">
+          <div className="mx-auto max-w-page">
+            <Reveal>
+              <SectionHeading icon="icon-wenjian">实习经历</SectionHeading>
+            </Reveal>
+            <div className="mt-5">
+              {internships.map((internship, index) => (
+                <Reveal key={`${internship.company}-${internship.role}-${internship.period}`}>
+                  <motion.div
+                    className={`mb-6 pb-6 ${index < internships.length - 1 ? 'border-b border-[var(--color-border-light)]' : ''}`}
+                    whileHover={{ x: 6 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+                  >
+                    <h4 className="mb-1 text-[1.0625rem] font-semibold">{internship.role}</h4>
+                    <p className="mb-3 text-sm font-medium text-text-secondary">{internship.company} · {internship.period}</p>
+                    {internship.desc.map((paragraph) => (
+                      <div key={paragraph} className="mb-2 flex gap-2">
+                        <span className="mt-[0.6rem] h-[5px] w-[5px] shrink-0 rounded-full bg-text-muted" />
+                        <p className="m-0 text-sm leading-[1.6] text-text-muted">{paragraph}</p>
+                      </div>
+                    ))}
+                  </motion.div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Projects */}
       <section className="relative z-[1] px-6 py-8">

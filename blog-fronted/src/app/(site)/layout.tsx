@@ -7,6 +7,7 @@ import ScrollProgress from '@/components/common/ScrollProgress';
 import Footer from '@/components/layout/Footer';
 import Nav from '@/components/layout/Nav';
 import { useTheme } from '@/hooks/useTheme';
+import { restoreTheme } from '@/stores/themeStore';
 
 /**
  * 📘 app/(site)/layout.tsx —— 主站布局（Client Component，路由组 (site) 的共享外壳）
@@ -26,6 +27,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
+
+  useEffect(() => {
+    restoreTheme();
+  }, []);
 
   return (
     <>

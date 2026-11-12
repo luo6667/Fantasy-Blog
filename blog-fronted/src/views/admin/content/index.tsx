@@ -4,7 +4,7 @@ import { useSiteContentsQuery } from '@/hooks/queries';
 import type {
   EducationItem,
   HomeProjectItem,
-  PlanStage,
+  InternshipItem,
   ResumeProjectItem,
   SiteContentKey,
   SiteContentValue,
@@ -13,6 +13,7 @@ import type {
 import EducationEditor from './EducationEditor';
 import EvaluationEditor from './EvaluationEditor';
 import HomeProjectEditor from './HomeProjectEditor';
+import InternshipEditor from './InternshipEditor';
 import PlanEditor from './PlanEditor';
 import ResumeProjectEditor from './ResumeProjectEditor';
 import SkillEditor from './SkillEditor';
@@ -39,7 +40,7 @@ function LoadingState({ error, loading }: { error?: string; loading: boolean }) 
   return null;
 }
 
-/** 规划管理（/admin/plan）：成长路线图 */
+/** 规划管理（/admin/plan）：总目标、阶段与子目标 */
 export function PlanContentManager() {
   const { contentsQuery, map } = useContentMap();
   if (contentsQuery.isLoading || contentsQuery.error) {
@@ -52,15 +53,15 @@ export function PlanContentManager() {
       <div className="mb-5">
         <h1 className="text-2xl font-bold tracking-[-0.02em]">规划管理</h1>
         <p className="mt-1 text-sm text-text-muted">
-          管理规划页「成长规划」的阶段与目标，保存后页面立即生效。
+          管理总目标、阶段和子目标；进度与状态会按子目标完成情况自动计算。
         </p>
       </div>
-      <PlanEditor value={map.get('plan') as PlanStage[] | undefined} />
+      <PlanEditor value={map.get('plan')} />
     </div>
   );
 }
 
-/** 简历管理（/admin/resume）：教育背景 / 专业技能 / 项目经历 / 个人评价 + 首页精选项目 */
+/** 简历管理（/admin/resume）：教育背景 / 专业技能 / 实习经历 / 项目经历 / 个人评价 + 首页精选项目 */
 export function ResumeContentManager() {
   const { contentsQuery, map } = useContentMap();
   if (contentsQuery.isLoading || contentsQuery.error) {
@@ -79,6 +80,7 @@ export function ResumeContentManager() {
       <div className="grid gap-6">
         <EducationEditor value={map.get('education') as EducationItem[] | undefined} />
         <SkillEditor value={map.get('skills') as string[] | undefined} />
+        <InternshipEditor value={map.get('internships') as InternshipItem[] | undefined} />
         <ResumeProjectEditor value={map.get('resumeProjects') as ResumeProjectItem[] | undefined} />
         <EvaluationEditor value={map.get('evaluation') as string | undefined} />
         <HomeProjectEditor value={map.get('homeProjects') as HomeProjectItem[] | undefined} />

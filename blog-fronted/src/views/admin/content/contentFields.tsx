@@ -25,14 +25,14 @@ export function Field({
         <textarea
           className={editorInputClass}
           rows={rows}
-          value={value}
+          value={value ?? ''}
           placeholder={placeholder}
           onChange={(e) => { onChange(e.target.value); }}
         />
       ) : (
         <input
           className={editorInputClass}
-          value={value}
+          value={value ?? ''}
           placeholder={placeholder}
           onChange={(e) => { onChange(e.target.value); }}
         />
@@ -58,7 +58,7 @@ export function SelectField<T extends string>({
       <span className="text-xs text-text-muted">{label}</span>
       <select
         className={editorInputClass}
-        value={value}
+        value={value ?? ''}
         onChange={(e) => { onChange(e.target.value as T); }}
       >
         {options.map((opt) => (

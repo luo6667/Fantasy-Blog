@@ -9,6 +9,7 @@
  *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET。
  */
 import axios, { AxiosError } from 'axios';
+import type { ContributionsData } from '@/lib/contributions';
 
 import type {
   ArticleDetail,
@@ -202,3 +203,5 @@ export const uploadApi = {
     return request<UploadResult>('/upload', { method: 'POST', body: form, raw: true });
   },
 };
+
+export const contributionApi = { get: () => request<ContributionsData>('/contributions') };

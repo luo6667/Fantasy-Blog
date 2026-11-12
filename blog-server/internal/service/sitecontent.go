@@ -19,6 +19,7 @@ var siteContentDefaultsJSON []byte
 var SiteContentKeys = []string{
 	"education",
 	"skills",
+	"internships",
 	"resumeProjects",
 	"evaluation",
 	"homeProjects",
@@ -142,7 +143,7 @@ func SiteContentRevalidatePaths(key string) []string {
 	switch key {
 	case "plan":
 		return []string{"/plan"}
-	case "education", "skills", "resumeProjects", "evaluation":
+	case "education", "skills", "internships", "resumeProjects", "evaluation":
 		return []string{"/resume"}
 	case "homeProjects":
 		return []string{"/home"}

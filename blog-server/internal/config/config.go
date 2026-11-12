@@ -35,6 +35,7 @@ type Config struct {
 
 	NextRevalidateURL string
 	RevalidateSecret  string
+	GitHubToken       string
 }
 
 // Load 从环境变量读取配置，缺省值与 Node 版一致。
@@ -52,6 +53,7 @@ func Load() (*Config, error) {
 		AdminInitialPassword: os.Getenv("ADMIN_INITIAL_PASSWORD"),
 		NextRevalidateURL:    os.Getenv("NEXT_REVALIDATE_URL"),
 		RevalidateSecret:     os.Getenv("REVALIDATE_SECRET"),
+		GitHubToken:          os.Getenv("GITHUB_TOKEN"),
 	}
 
 	if c.MySQLPass == "" {

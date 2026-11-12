@@ -237,7 +237,7 @@ export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] 
               <div key={j} className="flex items-center gap-2">
                 <input
                   className={editorInputClass}
-                  value={t}
+                  value={t ?? ''}
                   placeholder="如 React"
                   onChange={(e) => {
                     updateTag(i, j, e.target.value);
@@ -268,7 +268,7 @@ export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] 
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                checked={item.featured}
+                checked={item.featured ?? false}
                 onChange={(e) => {
                   update(i, { featured: e.target.checked });
                 }}
@@ -282,7 +282,7 @@ export default function HomeProjectEditor({ value }: { value: HomeProjectItem[] 
                 min={0}
                 max={9999}
                 className={`${editorInputClass} w-24`}
-                value={item.order}
+                value={item.order ?? 0}
                 onChange={(e) => {
                   update(i, { order: Number(e.target.value) || 0 });
                 }}

@@ -14,16 +14,9 @@ interface ThemeState {
   toggleTheme: () => void;
 }
 
-/** 初始化主题：优先读取 localStorage，否则默认 light */
-function getInitialTheme(): ThemeMode {
-  if (typeof window !== 'undefined' && localStorage.getItem('theme') === 'dark') {
-    return 'dark';
-  }
-  return 'light';
-}
-
 export const useThemeStore = create<ThemeState>()((set) => ({
-  theme: getInitialTheme(),
+  // SSR 与客户端首次渲染固定为 light，避免图标和 data-theme 的水合差异。
+  theme: 'light',
   toggleTheme: () => {
     set((s) => ({ theme: s.theme === 'light' ? 'dark' : 'light' }));
   },
@@ -41,11 +34,12 @@ function syncThemeColor(theme: ThemeMode): void {
   if (el) el.setAttribute('content', THEME_COLORS[theme]);
 }
 
-// 模块加载即同步初始主题，避免首屏闪错主题
-if (typeof window !== 'undefined') {
-  const initialTheme = useThemeStore.getState().theme;
-  document.documentElement.setAttribute('data-theme', initialTheme);
-  syncThemeColor(initialTheme);
+/** React 挂载后恢复用户保存的主题；不在首次渲染阶段读取 localStorage。 */
+export function restoreTheme() {
+  const theme: ThemeMode = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+  useThemeStore.setState({ theme });
+  document.documentElement.setAttribute('data-theme', theme);
+  syncThemeColor(theme);
 }
 
 // 主题变化时同步到 DOM 与 localStorage

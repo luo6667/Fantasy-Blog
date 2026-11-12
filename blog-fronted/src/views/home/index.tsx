@@ -1,11 +1,11 @@
 'use client';
 
+import { PLAN_CONTENT } from '@/constants';
 import { HOME_PROJECTS } from '@/constants/home';
-import { useSiteContentQuery } from '@/hooks/queries';
-import type { GitHubContributionsData } from '@/lib/github';
-import { SITE_CONTENT_FALLBACKS } from '@/lib/siteContentFallbacks';
-import type { ArticleListItem, HomeProjectItem, PlanStage } from '@/types/api';
+import type { ContributionsData } from '@/lib/contributions';
+import type { ArticleListItem, HomeProjectItem, PlanContent } from '@/types/api';
 
+import { normalizePlanContent } from '../plan/planData';
 import Hero from './Hero';
 import InProgress from './InProgress';
 import Practice from './Practice';
@@ -21,18 +21,18 @@ import SelectedWork from './SelectedWork';
 export default function HomeView({
   contributions,
   recentPosts,
+  projectsValue,
+  planValue,
 }: {
-  contributions: GitHubContributionsData | null;
+  contributions: ContributionsData | null;
   recentPosts: ArticleListItem[];
+  projectsValue: unknown;
+  planValue: unknown;
 }) {
-  const { data: projectsData } = useSiteContentQuery('homeProjects');
-  const { data: planData } = useSiteContentQuery('plan');
-
-  const projects = ((projectsData?.value as StoredProject[] | undefined) ?? HOME_PROJECTS).map(
+  const projects = ((projectsValue as StoredProject[] | undefined) ?? HOME_PROJECTS).map(
     normalizeProject,
   );
-  const plan =
-    (planData?.value as PlanStage[] | undefined) ?? (SITE_CONTENT_FALLBACKS.plan as PlanStage[]);
+  const plan = normalizePlanContent(planValue as PlanContent, PLAN_CONTENT);
 
   const featured = projects
     .filter((project) => project.featured)
@@ -42,9 +42,9 @@ export default function HomeView({
   return (
     <>
       <Hero />
-      <SelectedWork projects={featured} />
-      <Practice contributions={contributions} posts={recentPosts} />
-      <InProgress stages={plan} />
+      <SelectedWork projects={featured} posts={recentPosts} />
+      <Practice contributions={contributions} />
+      <InProgress content={plan} />
     </>
   );
 }

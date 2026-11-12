@@ -19,6 +19,7 @@
   /* 规划页状态色（已完成） */
   --color-success: #3f7d5a;
   --color-success-soft: rgba(63, 125, 90, 0.1);
+  --color-progress-active: #c86d1a;
 
   /* GitHub 贡献热力图（亮色） */
   --gh-0: #ebedf0;
@@ -36,13 +37,14 @@
   --color-bg-alt: #252320;
   --color-surface: #2a2825;
   --color-text: #e8e4e0;
-  --color-text-secondary: #b5b0aa;
-  --color-text-muted: #8b8680;
+  --color-text-secondary: #cec8c1;
+  --color-text-muted: #b8b2aa;
   --color-border: #3a3630;
   --color-border-light: #302c28;
   /* 规划页状态色（已完成） */
   --color-success: #7bb894;
   --color-success-soft: rgba(123, 184, 148, 0.14);
+  --color-progress-active: #f0a34a;
 
   /* GitHub 贡献热力图（暗色） */
   --gh-0: #2d333b;
@@ -50,6 +52,23 @@
   --gh-2: #006d32;
   --gh-3: #26a641;
   --gh-4: #39d353;
+}
+
+/* Ant Design 的有色标签默认面向亮色背景；在规划页暗色卡片中补足文字与背景对比。 */
+[data-theme='dark'] .plan-stage-checklist .ant-tag {
+  color: var(--color-text) !important;
+  border-color: transparent !important;
+  background: #37332e !important;
+}
+
+[data-theme='dark'] .plan-stage-checklist .ant-tag-orange {
+  color: #ffe0af !important;
+  background: #704116 !important;
+}
+
+[data-theme='dark'] .plan-stage-checklist .ant-tag-green {
+  color: #c1ebd0 !important;
+  background: #274632 !important;
 }
 
 /* ==========================================
