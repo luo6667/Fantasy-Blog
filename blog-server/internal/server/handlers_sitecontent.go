@@ -280,6 +280,7 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 				}
 				it.Link = &link
 			}
+			it.Tags = dedupeStrings(it.Tags)
 		}
 		if featured > 4 {
 			return nil, httpx.BadRequest("精选项目最多 4 个")
@@ -302,6 +303,7 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 			return nil, httpx.BadRequest("最多 12 个阶段性目标")
 		}
 		usedOrders := make(map[int]struct{}, len(content.Stages))
+		usedStageIDs := make(map[string]struct{}, len(content.Stages))
 		for i := range content.Stages {
 			stage := &content.Stages[i]
 			stage.ID = strings.TrimSpace(stage.ID)
@@ -309,6 +311,10 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 			stage.Summary = strings.TrimSpace(stage.Summary)
 			if stage.ID == "" || zlen(stage.ID) > 64 {
 				add(i, "阶段标识不能为空且最多 64 字")
+			} else if _, dup := usedStageIDs[stage.ID]; dup {
+				add(i, "阶段标识不能重复")
+			} else {
+				usedStageIDs[stage.ID] = struct{}{}
 			}
 			if stage.Order == 0 {
 				stage.Order = i + 1
@@ -328,6 +334,7 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 			if len(stage.Goals) > 20 {
 				add(i, "每个阶段最多 20 个子目标")
 			}
+			usedGoalIDs := make(map[string]struct{}, len(stage.Goals))
 			for j := range stage.Goals {
 				goal := &stage.Goals[j]
 				goal.ID = strings.TrimSpace(goal.ID)
@@ -335,6 +342,10 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 				goal.Desc = strings.TrimSpace(goal.Desc)
 				if goal.ID == "" || zlen(goal.ID) > 64 {
 					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标识不能为空且最多 64 字"})
+				} else if _, dup := usedGoalIDs[goal.ID]; dup {
+					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标识不能重复"})
+				} else {
+					usedGoalIDs[goal.ID] = struct{}{}
 				}
 				if goal.Title == "" || zlen(goal.Title) > 64 {
 					issues = append(issues, httpx.Issue{Path: fmt.Sprintf("plan:%d:%d", i, j), Message: "目标标题不能为空且最多 64 字"})
@@ -360,6 +371,23 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 		return nil, httpx.BadRequest(strings.Join(parts, "；"))
 	}
 	return json.Marshal(out)
+}
+
+// dedupeStrings 去重（保持首次出现顺序），用于主题标签等自由字符串数组。
+func dedupeStrings(in []string) []string {
+	if len(in) == 0 {
+		return in
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, item := range in {
+		if _, ok := seen[item]; ok {
+			continue
+		}
+		seen[item] = struct{}{}
+		out = append(out, item)
+	}
+	return out
 }
 
 func formatSiteContentIssue(issue httpx.Issue) string {

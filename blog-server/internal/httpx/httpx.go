@@ -8,7 +8,6 @@ package httpx
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -158,16 +157,6 @@ func WriteError(c *gin.Context, err error) {
 		Fail(c, 400, verr.Join())
 		return
 	}
-	log.Printf("unhandled error: %v", err)
+	log.Printf("unhandled error: %s %s: %v", c.Request.Method, c.Request.URL.Path, err)
 	Fail(c, 500, "Internal server error")
 }
-
-// AsError 尝试把任意错误转为 *Error，便于测试。
-func AsError(err error) (*Error, bool) {
-	var herr *Error
-	ok := errors.As(err, &herr)
-	return herr, ok
-}
-
-// Sprintf 便捷格式化（用于构造动态消息）。
-func Sprintf(format string, args ...any) string { return fmt.Sprintf(format, args...) }

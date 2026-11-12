@@ -552,3 +552,58 @@ func TestSiteContentInternships(t *testing.T) {
 		t.Fatalf("internship response missing role: %s", string(env.Data))
 	}
 }
+
+func TestSiteContentRejectsDuplicatePlanIDs(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+	token := c.login()
+
+	status, env := c.do(http.MethodPut, "/api/site-content/plan", token, map[string]any{
+		"value": map[string]any{
+			"title": "测试规划", "summary": "",
+			"stages": []map[string]any{
+				{
+					"id": "stage-a", "order": 1, "title": "阶段 A", "summary": "",
+					"goals": []map[string]any{
+						{"id": "goal-x", "title": "目标一", "desc": "", "status": "planned"},
+						{"id": "goal-x", "title": "目标二", "desc": "", "status": "planned"},
+					},
+				},
+				{"id": "stage-a", "order": 2, "title": "阶段 B", "summary": "", "goals": []map[string]any{}},
+			},
+		},
+	})
+	if status != http.StatusBadRequest {
+		t.Fatalf("duplicate ids should be rejected: status=%d msg=%q", status, env.Msg)
+	}
+	if !strings.Contains(env.Msg, "阶段标识不能重复") || !strings.Contains(env.Msg, "目标标识不能重复") {
+		t.Fatalf("unexpected message: %q", env.Msg)
+	}
+}
+
+func TestSiteContentDedupesHomeProjectTags(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+	token := c.login()
+
+	status, env := c.do(http.MethodPut, "/api/site-content/homeProjects", token, map[string]any{
+		"value": []map[string]any{{
+			"name": "去重项目", "summary": "标签应去重。", "tags": []string{"Go", "Go", "React"}, "featured": true, "order": 1,
+		}},
+	})
+	if status != http.StatusOK {
+		t.Fatalf("update homeProjects: status=%d body=%+v", status, env)
+	}
+
+	var item struct {
+		Value []homeProjectItem `json:"value"`
+	}
+	if err := json.Unmarshal(env.Data, &item); err != nil || len(item.Value) != 1 {
+		t.Fatalf("payload: %s", string(env.Data))
+	}
+	if len(item.Value[0].Tags) != 2 {
+		t.Fatalf("tags not deduped: %+v", item.Value[0].Tags)
+	}
+}

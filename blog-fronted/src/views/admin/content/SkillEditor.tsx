@@ -29,7 +29,7 @@ export default function SkillEditor({ value }: { value: string[] | undefined }) 
           <textarea
             className={editorInputClass}
             rows={2}
-            value={s ?? ''}
+            value={s}
             placeholder="输入一条技能描述…"
             onChange={(e) => { update(i, e.target.value); }}
           />

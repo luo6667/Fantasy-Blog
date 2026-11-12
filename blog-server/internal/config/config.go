@@ -6,12 +6,16 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+	_ "time/tzdata"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 // Config 是进程运行所需的全部配置。
@@ -119,12 +123,43 @@ func Load() (*Config, error) {
 // 关键参数与 Sequelize 的 timezone '+08:00' 对齐：loc=Asia/Shanghai 让
 // DATETIME 的读写都按东八区解释，parseTime=true 直接扫描为 time.Time。
 func (c *Config) MySQLDSN() string {
-	loc := url.QueryEscape("Asia/Shanghai")
-	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=true&loc=%s",
-		c.MySQLUser, c.MySQLPass, c.MySQLHost, c.MySQLPort, c.MySQLDB, loc,
-	)
+	return c.dsn(c.MySQLDB)
 }
+
+// MySQLDSNWithoutDatabase 用于建库前的连接（此时目标库可能还不存在）。
+func (c *Config) MySQLDSNWithoutDatabase() string {
+	return c.dsn("")
+}
+
+// dsn 用驱动自带的 Config 生成连接串：密码含 @ : / 等字符时会自动转义。
+func (c *Config) dsn(dbName string) string {
+	cfg := mysql.NewConfig()
+	cfg.User = c.MySQLUser
+	cfg.Passwd = c.MySQLPass
+	cfg.Net = "tcp"
+	cfg.Addr = net.JoinHostPort(c.MySQLHost, strconv.Itoa(c.MySQLPort))
+	cfg.DBName = dbName
+	cfg.ParseTime = true
+	cfg.Loc = shanghaiLocation()
+	cfg.Params = map[string]string{"charset": "utf8mb4"}
+	return cfg.FormatDSN()
+}
+
+// shanghaiLocation 缓存东八区时区；系统缺少 tzdata 时退化为固定偏移。
+var shanghaiLocation = func() func() *time.Location {
+	var cached *time.Location
+	return func() *time.Location {
+		if cached != nil {
+			return cached
+		}
+		if loc, err := time.LoadLocation("Asia/Shanghai"); err == nil {
+			cached = loc
+		} else {
+			cached = time.FixedZone("CST", 8*60*60)
+		}
+		return cached
+	}
+}()
 
 // ServerAddr 返回监听地址。
 func (c *Config) ServerAddr() string {

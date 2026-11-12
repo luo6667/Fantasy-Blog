@@ -70,7 +70,7 @@ export default function GitHubContributions({
       col = Array<Cell | null>(7).fill(null);
       weeks.set(week, col);
     }
-    col[dt.getUTCDay()] = { date, count: (pair.github?.count ?? 0) + (pair.gitee?.count ?? 0), level: 0, ...pair } as Cell;
+    col[dt.getUTCDay()] = { date, count: (pair.github?.count ?? 0) + (pair.gitee?.count ?? 0), level: 0, ...pair };
   }
   const cols = [...weeks.entries()].sort((a, b) => a[0] - b[0]).map(([, col]) => col);
 

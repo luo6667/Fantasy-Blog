@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,5 +44,25 @@ func TestConfigureTrustedProxiesRejectsInvalid(t *testing.T) {
 	t.Cleanup(func() { _ = ConfigureTrustedProxies(nil) })
 	if err := ConfigureTrustedProxies([]string{"not-an-ip"}); err == nil {
 		t.Fatal("invalid proxy entry should fail")
+	}
+}
+
+func TestRateLimiterSweepsExpiredEntries(t *testing.T) {
+	rl := NewRateLimiter(2, time.Minute, "slow down", "2-in-1min")
+	rl.entries["1.1.1.1"] = &rateEntry{windowStart: time.Now().Add(-2 * time.Minute)}
+	rl.lastSweep = time.Now().Add(-2 * time.Minute)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest("GET", "/", nil)
+	c.Request.RemoteAddr = "2.2.2.2:1234"
+
+	rl.Handler()(c)
+
+	if _, exists := rl.entries["1.1.1.1"]; exists {
+		t.Fatal("expired rate-limit entry should be swept")
+	}
+	if policy := rec.Header().Get("RateLimit-Policy"); !strings.Contains(policy, "2-in-1min") {
+		t.Fatalf("unexpected policy header: %q", policy)
 	}
 }

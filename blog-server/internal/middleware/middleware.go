@@ -3,6 +3,8 @@ package middleware
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -193,8 +195,9 @@ type RateLimiter struct {
 	limit   int
 	window  time.Duration
 	msg     string
-	// policy 用于 draft-8 头，例如 "20-in-15min"; q=20; w=900。
-	policy string
+	// policy 是限流策略名（如 20-in-15min），q/w/pk 在响应时生成。
+	policy    string
+	lastSweep time.Time
 }
 
 // NewRateLimiter 构造限流中间件。
@@ -211,10 +214,18 @@ func NewRateLimiter(limit int, window time.Duration, msg, policy string) *RateLi
 // Handler 返回 gin 中间件。
 func (rl *RateLimiter) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key := ClientIP(c) + "|" + rl.policy
+		key := ClientIP(c)
 		now := time.Now()
 
 		rl.mu.Lock()
+		if now.Sub(rl.lastSweep) >= rl.window {
+			for ip, entry := range rl.entries {
+				if now.Sub(entry.windowStart) >= rl.window {
+					delete(rl.entries, ip)
+				}
+			}
+			rl.lastSweep = now
+		}
 		e, ok := rl.entries[key]
 		if !ok || now.Sub(e.windowStart) >= rl.window {
 			e = &rateEntry{windowStart: now}
@@ -232,9 +243,10 @@ func (rl *RateLimiter) Handler() gin.HandlerFunc {
 		}
 		rl.mu.Unlock()
 
+		seconds := int(rl.window.Seconds())
 		h := c.Writer.Header()
-		h.Set("RateLimit-Policy", rl.policy)
-		h.Set("RateLimit", fmt.Sprintf("\"%s\"; q=%d; w=%d; pk=:%s:", rl.policy, rl.limit, int(rl.window.Seconds()), "local"))
+		h.Set("RateLimit-Policy", fmt.Sprintf("%q; q=%d; w=%d", rl.policy, rl.limit, seconds))
+		h.Set("RateLimit", fmt.Sprintf("%q; q=%d; w=%d; pk=:%s:", rl.policy, rl.limit, seconds, keyHash(key)))
 		h.Set("RateLimit-Limit", fmt.Sprintf("%d", rl.limit))
 		h.Set("RateLimit-Remaining", fmt.Sprintf("%d", remaining))
 		h.Set("RateLimit-Reset", fmt.Sprintf("%d", reset))
@@ -246,6 +258,12 @@ func (rl *RateLimiter) Handler() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+// keyHash 生成响应头里的匿名键：只暴露密钥的短哈希，不泄露客户端 IP。
+func keyHash(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return base64.RawURLEncoding.EncodeToString(sum[:])[:12]
 }
 
 // Auth 封装 JWT 校验与数据库回查。
@@ -271,36 +289,35 @@ func (a *Auth) verify(token string) (*auth.Actor, error) {
 	return &auth.Actor{ID: admin.ID, Username: admin.Username, Role: "admin"}, nil
 }
 
-// RequireAuth 要求有效登录态。
-func (a *Auth) RequireAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
-			httpx.Fail(c, 401, "请先登录")
-			c.Abort()
-			return
-		}
-		actor, err := a.verify(strings.TrimPrefix(header, "Bearer "))
-		if err != nil {
-			httpx.WriteError(c, err)
-			c.Abort()
-			return
-		}
-		c.Set(ActorKey, actor)
-		c.Next()
+// bearerToken 解析 Authorization 头；方案名按 RFC 6750 大小写不敏感。
+func bearerToken(header string) (string, bool) {
+	scheme, token, ok := strings.Cut(header, " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return "", false
 	}
+	token = strings.TrimSpace(token)
+	return token, token != ""
 }
 
-// RequireAdmin 要求管理员。
+// RequireAuth 要求有效登录态。
+func (a *Auth) RequireAuth() gin.HandlerFunc {
+	return a.requireAdmin()
+}
+
+// RequireAdmin 要求管理员（本期只存在管理员账号，行为与 RequireAuth 一致）。
 func (a *Auth) RequireAdmin() gin.HandlerFunc {
+	return a.requireAdmin()
+}
+
+func (a *Auth) requireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		header := c.GetHeader("Authorization")
-		if !strings.HasPrefix(header, "Bearer ") {
+		token, ok := bearerToken(c.GetHeader("Authorization"))
+		if !ok {
 			httpx.Fail(c, 401, "请先登录")
 			c.Abort()
 			return
 		}
-		actor, err := a.verify(strings.TrimPrefix(header, "Bearer "))
+		actor, err := a.verify(token)
 		if err != nil {
 			httpx.WriteError(c, err)
 			c.Abort()

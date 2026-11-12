@@ -3,7 +3,6 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -42,9 +41,7 @@ func Open(cfg *config.Config) (*gorm.DB, error) {
 
 // EnsureDatabase 在目标库不存在时创建（与旧版 ensureDatabase 对齐）。
 func EnsureDatabase(cfg *config.Config) error {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/?charset=utf8mb4&parseTime=true",
-		cfg.MySQLUser, cfg.MySQLPass, cfg.MySQLHost, cfg.MySQLPort)
-	conn, err := sql.Open("mysql", dsn)
+	conn, err := sql.Open("mysql", cfg.MySQLDSNWithoutDatabase())
 	if err != nil {
 		return err
 	}

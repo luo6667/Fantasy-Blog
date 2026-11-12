@@ -186,6 +186,9 @@ func serve(logger *slog.Logger, cfg *config.Config, db *gorm.DB) {
 		Addr:              cfg.ServerAddr(),
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {

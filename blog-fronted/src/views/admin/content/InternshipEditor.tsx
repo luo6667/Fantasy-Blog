@@ -44,7 +44,7 @@ export default function InternshipEditor({ value }: { value: InternshipItem[] | 
             <span className="text-xs text-text-muted">职责描述</span>
             {item.desc.map((desc, descIndex) => (
               <div key={descIndex} className="flex items-start gap-2">
-                <textarea className={editorInputClass} rows={2} value={desc ?? ''} onChange={(event) => { updateDesc(index, descIndex, event.target.value); }} />
+                <textarea className={editorInputClass} rows={2} value={desc} onChange={(event) => { updateDesc(index, descIndex, event.target.value); }} />
                 <button type="button" className={editorBtnDanger} onClick={() => { removeDesc(index, descIndex); }}>删除</button>
               </div>
             ))}

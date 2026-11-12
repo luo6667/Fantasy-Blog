@@ -3,7 +3,7 @@
 import { PLAN_CONTENT } from '@/constants';
 import { HOME_PROJECTS } from '@/constants/home';
 import type { ContributionsData } from '@/lib/contributions';
-import type { ArticleListItem, HomeProjectItem, PlanContent } from '@/types/api';
+import type { ArticleListItem, HomeProjectItem } from '@/types/api';
 
 import { normalizePlanContent } from '../plan/planData';
 import Hero from './Hero';
@@ -32,7 +32,7 @@ export default function HomeView({
   const projects = ((projectsValue as StoredProject[] | undefined) ?? HOME_PROJECTS).map(
     normalizeProject,
   );
-  const plan = normalizePlanContent(planValue as PlanContent, PLAN_CONTENT);
+  const plan = normalizePlanContent(planValue, PLAN_CONTENT);
 
   const featured = projects
     .filter((project) => project.featured)

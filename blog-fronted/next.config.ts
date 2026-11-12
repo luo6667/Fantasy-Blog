@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   rewrites() {
     return [
-      // API 与上传文件代理到 Express 后端
+      // API 与上传文件代理到 Go 后端
       { source: '/api/:path*', destination: `${API_TARGET}/api/:path*` },
       { source: '/uploads/:path*', destination: `${API_TARGET}/uploads/:path*` },
     ];

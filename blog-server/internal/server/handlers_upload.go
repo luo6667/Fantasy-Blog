@@ -47,6 +47,9 @@ func sniffImage(buf []byte) string {
 
 // uploadImage 上传图片（multipart 字段名 image）。
 func (a *App) uploadImage(c *gin.Context) error {
+	// 在 multipart 解析前限制整个请求体，避免超大请求先落临时文件；
+	// 额外留 1MB 给边界与表单头，文件本身仍按 UploadMaxSize 校验。
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, a.Cfg.UploadMaxSize+(1<<20))
 	file, err := c.FormFile("image")
 	if err != nil {
 		if errors.Is(err, http.ErrMissingFile) {

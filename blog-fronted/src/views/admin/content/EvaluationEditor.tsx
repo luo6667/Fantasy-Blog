@@ -17,7 +17,7 @@ export default function EvaluationEditor({ value }: { value: string | undefined 
       <textarea
         className={editorInputClass}
         rows={6}
-        value={draft ?? ''}
+        value={draft}
         placeholder="写一段个人评价…"
         onChange={(e) => { setDraft(e.target.value); }}
       />
