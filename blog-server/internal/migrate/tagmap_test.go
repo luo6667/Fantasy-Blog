@@ -178,3 +178,37 @@ func TestNormalizeSubtagsMigrationIsIdempotent(t *testing.T) {
 		t.Fatalf("subTags=%s，期望 [A,B]", subs)
 	}
 }
+
+func TestApplyRecoversUnrecordedRedesign(t *testing.T) {
+	db := tagmapDB(t)
+	if _, err := Apply(db); err != nil {
+		t.Fatalf("initial migrate: %v", err)
+	}
+	if err := db.Exec("DELETE FROM `schema_migrations` WHERE version = ?", TagMapVersion).Error; err != nil {
+		t.Fatalf("delete version: %v", err)
+	}
+	applied, err := Apply(db)
+	if err != nil {
+		t.Fatalf("recover migrate: %v", err)
+	}
+	found := false
+	for _, version := range applied {
+		if version == TagMapVersion {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("0001 应被补登记: %v", applied)
+	}
+}
+
+func TestApplyRejectsHalfMigratedRedesign(t *testing.T) {
+	db := tagmapDB(t)
+	applyLegacyBaseline(t, db)
+	if err := db.Exec("ALTER TABLE `articles` ADD COLUMN `primaryTagId` varchar(24) NULL").Error; err != nil {
+		t.Fatalf("simulate partial migration: %v", err)
+	}
+	if _, err := Apply(db); err == nil || !strings.Contains(err.Error(), "半完成") {
+		t.Fatalf("半完成状态应被拒绝，got %v", err)
+	}
+}

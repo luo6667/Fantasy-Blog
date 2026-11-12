@@ -126,3 +126,14 @@
 审批信息记录在 `migration_approvals`（version、approvedBy、approvedAt、sourceDigest、checksum）。`sourceDigest` 必须与当前库一致，数据在导出后被改动会导致校验失败。
 
 已执行过 0001 的库：`0002_normalize_subtags.sql` 会幂等归一化历史子标签（trim/去空/去重/保持首次出现顺序），不需要重新执行 0001。
+
+## 7. MySQL DDL 与失败恢复
+
+MySQL 的 DDL 会隐式提交，迁移执行器的事务包裹**不能**让 `0001` 原子回滚。若 `0001` 执行到一半失败（例如加列成功、删列失败），会出现「新列已存在、版本未登记」的状态。此时：
+
+- 执行器会检测 `articles.primaryTagId` 与 `articles.tags` 的组合：
+  - 新列在、旧列不在 → 视为结构已完成，只补登记版本后继续；
+  - 新列在、旧列也在，或两列都不在 → 直接报错，要求从全量备份恢复后重跑，或按本文档手工收尾。
+- 禁止在未恢复的半完成库上直接重跑 `migrate`（`ADD COLUMN` 会报重复列）。
+
+恢复步骤：停止写入 → `mysql <库名> < backups/<迁移前全量备份>.sql` → 重新执行演练流程。

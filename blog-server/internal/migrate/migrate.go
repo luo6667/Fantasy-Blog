@@ -58,6 +58,22 @@ func Apply(db *gorm.DB) ([]string, error) {
 			continue
 		}
 		if version == TagMapVersion {
+			// MySQL 的 DDL 会隐式提交：0001 若在「加列之后、删列之前」失败，
+			// 版本不会被登记。这里识别两种状态并给出可执行的恢复指引。
+			hasNewColumns := db.Migrator().HasColumn("articles", "primaryTagId")
+			hasLegacyColumns := db.Migrator().HasColumn("articles", "tags")
+			if hasNewColumns && !hasLegacyColumns {
+				// 结构已经是新版本（上次执行只差登记），直接补登记后继续后续迁移。
+				if err := record(db, version); err != nil {
+					return applied, err
+				}
+				applied = append(applied, version)
+				continue
+			}
+			if hasNewColumns || !hasLegacyColumns {
+				return applied, fmt.Errorf("%s 处于半完成状态（articles 新旧列并存或缺失），"+
+					"MySQL DDL 不参与事务，请从备份恢复后重跑，或按 migrations/0001_blog_redesign_checklist.md 手工收尾", version)
+			}
 			if err := requireTagApproval(db); err != nil {
 				return applied, err
 			}
