@@ -12,10 +12,21 @@ import type { NextConfig } from 'next';
  */
 const API_TARGET = process.env.API_TARGET ?? 'http://localhost:4000';
 
+/**
+ * 局域网预览：Next dev 默认只信任 localhost，从 `192.168.x.x:3000` 打开时
+ * 会拦截 /_next 开发资源，页面只剩服务端渲染的骨架。
+ * 用 DEV_ORIGINS（逗号分隔的主机名，允许 `*.lan` 这类通配）放行。
+ */
+const DEV_ORIGINS = (process.env.DEV_ORIGINS ?? '192.168.31.85')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
   devIndicators: false,
+  allowedDevOrigins: DEV_ORIGINS,
   rewrites() {
     return [
       // API 与上传文件代理到 Go 后端

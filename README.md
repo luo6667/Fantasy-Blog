@@ -61,6 +61,20 @@ npm run dev        # 开发模式 (默认 http://localhost:3000)
 
 > 开发模式的页面是按需编译的，首次进入某个路由会慢一点；真实体验请以 `npm run build && npm start` 为准。
 
+#### 局域网预览（让同网段的设备访问）
+
+```bash
+# 开发模式：改代码即时生效
+npm run dev:lan            # 监听 0.0.0.0:3000
+
+# 生产预览：更快，推荐
+npm run build && npm run start:lan
+```
+
+手机打开 `http://<本机局域网 IP>:3000`（本机当前为 `192.168.31.85`）。
+Windows 防火墙需放行 3000 端口（仅私有网络）。IP 变化时可用
+`DEV_ORIGINS=新IP npm run dev:lan` 覆盖 `allowedDevOrigins`；生产模式无此限制。
+
 前端通过 `next.config.ts` 的 rewrites 将 `/api/*` 与 `/uploads/*` 代理到后端
 (`http://localhost:4000`,可用环境变量 `API_TARGET` 覆盖)。
 
