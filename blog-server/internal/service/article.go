@@ -39,8 +39,9 @@ type ArticleListItem struct {
 // ArticleDetail 是详情视图：列表字段 + 正文。
 type ArticleDetail struct {
 	ArticleListItem
-	Content     string `json:"content"`
-	ContentHTML string `json:"contentHtml"`
+	Content     string    `json:"content"`
+	ContentHTML string    `json:"contentHtml"`
+	TOC         []Heading `json:"toc"`
 }
 
 // ArticlePage 是分页结果。
@@ -81,10 +82,12 @@ func toListItem(a *articleRow) ArticleListItem {
 }
 
 func toDetail(a *articleRow) ArticleDetail {
+	contentHTML, toc := BuildTableOfContents(a.ContentHTML)
 	return ArticleDetail{
 		ArticleListItem: toListItem(a),
 		Content:         a.Content,
-		ContentHTML:     a.ContentHTML,
+		ContentHTML:     contentHTML,
+		TOC:             toc,
 	}
 }
 

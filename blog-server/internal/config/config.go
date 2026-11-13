@@ -42,6 +42,12 @@ type Config struct {
 	NextRevalidateURL string
 	RevalidateSecret  string
 	GitHubToken       string
+
+	GitHubOAuthClientID     string
+	GitHubOAuthClientSecret string
+	GitHubOAuthRedirectURL  string
+	CommentSessionSecret    string
+	CommentSessionExpires   time.Duration
 }
 
 // Load 从环境变量读取配置，缺省值与 Node 版一致。
@@ -56,11 +62,15 @@ func Load() (*Config, error) {
 		UploadDir:     envString("UPLOAD_DIR", "uploads"),
 		UploadMaxSize: int64(envInt("UPLOAD_MAX_SIZE", 5*1024*1024)),
 
-		AdminInitialPassword: os.Getenv("ADMIN_INITIAL_PASSWORD"),
-		NextRevalidateURL:    os.Getenv("NEXT_REVALIDATE_URL"),
-		RevalidateSecret:     os.Getenv("REVALIDATE_SECRET"),
-		GitHubToken:          os.Getenv("GITHUB_TOKEN"),
-		TrustedProxies:       splitOrigins(envString("TRUSTED_PROXIES", "127.0.0.1,::1")),
+		AdminInitialPassword:    os.Getenv("ADMIN_INITIAL_PASSWORD"),
+		NextRevalidateURL:       os.Getenv("NEXT_REVALIDATE_URL"),
+		RevalidateSecret:        os.Getenv("REVALIDATE_SECRET"),
+		GitHubToken:             os.Getenv("GITHUB_TOKEN"),
+		GitHubOAuthClientID:     os.Getenv("GITHUB_OAUTH_CLIENT_ID"),
+		GitHubOAuthClientSecret: os.Getenv("GITHUB_OAUTH_CLIENT_SECRET"),
+		GitHubOAuthRedirectURL:  os.Getenv("GITHUB_OAUTH_REDIRECT_URL"),
+		CommentSessionSecret:    os.Getenv("COMMENT_SESSION_SECRET"),
+		TrustedProxies:          splitOrigins(envString("TRUSTED_PROXIES", "127.0.0.1,::1")),
 	}
 
 	if c.MySQLPass == "" {
@@ -100,6 +110,29 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("JWT_EXPIRES_IN: %w", err)
 	}
+	c.CommentSessionExpires, err = parseDuration(envString("COMMENT_SESSION_EXPIRES_IN", "30d"))
+	if err != nil {
+		return nil, fmt.Errorf("COMMENT_SESSION_EXPIRES_IN: %w", err)
+	}
+
+	oauthValues := []string{c.GitHubOAuthClientID, c.GitHubOAuthClientSecret, c.GitHubOAuthRedirectURL, c.CommentSessionSecret}
+	configured := 0
+	for _, value := range oauthValues {
+		if value != "" {
+			configured++
+		}
+	}
+	if configured != 0 && configured != len(oauthValues) {
+		return nil, fmt.Errorf("GitHub 评论登录配置必须同时提供 GITHUB_OAUTH_CLIENT_ID、GITHUB_OAUTH_CLIENT_SECRET、GITHUB_OAUTH_REDIRECT_URL 与 COMMENT_SESSION_SECRET")
+	}
+	if configured == len(oauthValues) {
+		if len(c.CommentSessionSecret) < 16 {
+			return nil, fmt.Errorf("COMMENT_SESSION_SECRET must be at least 16 characters")
+		}
+		if u, perr := url.Parse(c.GitHubOAuthRedirectURL); perr != nil || u.Scheme == "" || u.Host == "" {
+			return nil, fmt.Errorf("GITHUB_OAUTH_REDIRECT_URL must be a valid URL")
+		}
+	}
 
 	c.CORSOrigins = splitOrigins(envString("CORS_ORIGIN", "http://localhost:3000"))
 
@@ -116,6 +149,12 @@ func Load() (*Config, error) {
 	}
 
 	return c, nil
+}
+
+// GitHubOAuthEnabled 表示评论者 GitHub 登录已完整配置。
+func (c *Config) GitHubOAuthEnabled() bool {
+	return c.GitHubOAuthClientID != "" && c.GitHubOAuthClientSecret != "" &&
+		c.GitHubOAuthRedirectURL != "" && c.CommentSessionSecret != ""
 }
 
 // MySQLDSN 返回 gorm mysql 驱动使用的 DSN。

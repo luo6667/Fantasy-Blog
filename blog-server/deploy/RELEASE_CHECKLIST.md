@@ -10,7 +10,7 @@
       `mysqldump --single-transaction --routines --triggers --add-drop-table <db> > backup-$(date +%s).sql`
 - [ ] 在生产**副本**上执行 `migrate-tags export` → 人工核对并填写 `approvedBy/approvedAt` → `migrate-tags verify` → `migrate-tags apply`，再执行 `./bin/server migrate`。
 - [ ] 导出迁移后的标签/文章核对表并确认。
-- [ ] 确认 `shared/backend.env`：`MYSQL_*`、`JWT_SECRET`、`UPLOAD_DIR`、`NEXT_REVALIDATE_URL`、`REVALIDATE_SECRET`。
+- [ ] 确认 `shared/backend.env`：`MYSQL_*`、`JWT_SECRET`、`UPLOAD_DIR`、`NEXT_REVALIDATE_URL`、`REVALIDATE_SECRET`；若启用评论，还需完整配置 `GITHUB_OAUTH_CLIENT_ID`、`GITHUB_OAUTH_CLIENT_SECRET`、`GITHUB_OAUTH_REDIRECT_URL`、`COMMENT_SESSION_SECRET`。
 - [ ] 维护窗口内暂停写入；记录当前版本目录（用于回滚）。
 
 ## 1. 构建与上传
@@ -39,6 +39,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin
 - [ ] 上传图片成功，`/uploads/<file>` 可访问且带 immutable 缓存头。
 - [ ] 站点内容六块（含 plan）读取/保存正常，保存后 Next 页面刷新。
 - [ ] 已删除接口返回 404：`/api/notifications`、`/api/comments`、`/api/users/manage`、`/api/ai/*`。
+- [ ] GitHub OAuth App 的回调地址与 `GITHUB_OAUTH_REDIRECT_URL` 完全一致；读者可登录、评论、切换/取消表情，管理员可在文章管理中删除评论。
 - [ ] 旧发布物仍可回滚（上一版目录 + 备份 SQL 均在）。
 
 ## 4. 回滚

@@ -309,6 +309,20 @@ func (a *Auth) RequireAdmin() gin.HandlerFunc {
 	return a.requireAdmin()
 }
 
+// OptionalAdminFrom 读取有效管理员 Bearer token；无效或缺失时返回 nil。
+// 它只用于同时允许「评论作者 Cookie」与「管理员 JWT」的资源所有权校验。
+func (a *Auth) OptionalAdminFrom(c *gin.Context) *auth.Actor {
+	token, ok := bearerToken(c.GetHeader("Authorization"))
+	if !ok {
+		return nil
+	}
+	actor, err := a.verify(token)
+	if err != nil {
+		return nil
+	}
+	return actor
+}
+
 func (a *Auth) requireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, ok := bearerToken(c.GetHeader("Authorization"))

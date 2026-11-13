@@ -18,7 +18,7 @@ export const ABOUT_PROFILE = {
 export const ABOUT_CORE_SKILLS: SkillGroup[] = [
   {
     label: '前端',
-    tags: ['Vue', 'React', 'Nextjs', 'Nuxtjs'],
+    tags: ['JavaScript', 'TypeScript', 'Vue', 'React', 'Nextjs', 'Nuxtjs', 'Uniapp'],
   },
   {
     label: '后端',

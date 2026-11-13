@@ -2,15 +2,16 @@
 
 个人博客后端：**Go 1.27 + Gin + GORM + MySQL 8**。
 
-当前形态是「管理员专用的内容后端」：只保留管理员登录，文章按
-**1 个主标签 + 多个自由子标签**归类，主标签集中管理；评论、点赞、通知、
-普通用户与 AI 对话已在改造中移除（旧 Node 版可在 git 历史中查看）。
+当前形态是「管理员内容后台 + GitHub 评论身份」：管理员只负责内容管理；
+读者只能通过 GitHub 授权参与文章评论与表情互动。文章按 **1 个主标签 + 多个
+自由子标签**归类，普通用户密码登录、通知与 AI 对话不再提供。
 
 ## 功能范围
 
 | 模块 | 说明 |
 | --- | --- |
 | 认证 | `POST /api/auth/login` 仅查 `admins` 表；`GET /api/auth/me`；JWT HS256，7 天 |
+| GitHub 互动 | OAuth 登录后可单层评论、删除自己的评论、每篇文章选择一个表情；管理员可删除任意评论 |
 | 文章 | 列表（分页 / 主标签筛选 / 搜索）、详情、创建、更新、删除（管理员） |
 | 主标签 | 列表（含文章数）、创建、改名、删除（仍被文章引用时 409） |
 | 子标签 | 文章内的自由字符串数组：自动 trim、去空、去重，不建表、不单独管理 |
@@ -19,7 +20,7 @@
 | 按需刷新 | 文章 / 标签 / 站点内容变更后请求 Next.js `/api/revalidate`（失败只记日志） |
 
 已删除、且**不应重新出现**的接口（均返回 404）：`auth/register`、`articles/:id/like`、
-`articles/:id/comments`、`comments/*`、`notifications/*`、`users/*`、`ai/*`。
+`comments/:id/replies`、`notifications/*`、`users/*`、`ai/*`。
 
 ## 目录
 
@@ -58,6 +59,11 @@ deploy/               systemd unit 示例与发布清单
 | `ADMIN_INITIAL_PASSWORD` | 空 | `seed-admin` 子命令使用的管理员密码（≥8 位） |
 | `NEXT_REVALIDATE_URL` | 空 | Next 站点地址；缺省则跳过按需刷新 |
 | `REVALIDATE_SECRET` | 空 | 与 Next 共享的刷新密钥 |
+| `GITHUB_OAUTH_CLIENT_ID` | 空 | GitHub OAuth App Client ID；评论登录启用时必填 |
+| `GITHUB_OAUTH_CLIENT_SECRET` | 空 | GitHub OAuth App Client secret；评论登录启用时必填 |
+| `GITHUB_OAUTH_REDIRECT_URL` | 空 | GitHub 回调绝对地址，如 `https://example.com/api/auth/github/callback` |
+| `COMMENT_SESSION_SECRET` | 空 | 评论会话签名密钥，≥16 字符；评论登录启用时必填 |
+| `COMMENT_SESSION_EXPIRES_IN` | `30d` | GitHub 评论会话有效期 |
 
 `.env` 查找顺序：`ENV_FILE` → 当前目录 `.env` → 可执行文件所在模块根目录 `.env`。
 真实环境变量优先，不会被 `.env` 覆盖。
@@ -84,6 +90,7 @@ go run ./cmd/server
 - `0001_blog_redesign.sql`：新增 `primaryTagId` / `subTags`，旧 `tags[0]` 迁为主标签、
   余项迁为子标签（自动补建同名主标签，空标签归「未分类」），删除旧列与
   `users/comments/notifications/ai_configs`。
+- `0005_github_comments.sql`：新增 GitHub 评论者、单层评论和单选文章表情表；文章删除时级联清理互动数据。
 - 执行前先备份并核对 `migrations/0001_blog_redesign_checklist.md`；生产禁止 AutoMigrate。
 - 回滚：`mysql <db> < backups/<timestamp>-pre-redesign.sql`（备份已在 `.gitignore`）。
 

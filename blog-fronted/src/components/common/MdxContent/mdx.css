@@ -16,6 +16,7 @@
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  scroll-margin-top: 6rem;
 }
 
 .mdx-content h3 {
@@ -23,6 +24,7 @@
   font-size: 1.125rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  scroll-margin-top: 6rem;
 }
 
 .mdx-content h4 {

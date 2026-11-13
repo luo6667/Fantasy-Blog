@@ -182,7 +182,6 @@ func TestRemovedRoutesReturn404(t *testing.T) {
 	cases := []struct{ method, path string }{
 		{http.MethodPost, "/api/auth/register"},
 		{http.MethodPost, "/api/articles/abc/like"},
-		{http.MethodGet, "/api/articles/abc/comments"},
 		{http.MethodPost, "/api/comments/abc/replies"},
 		{http.MethodGet, "/api/notifications"},
 		{http.MethodGet, "/api/notifications/unread-count"},

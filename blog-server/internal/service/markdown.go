@@ -3,11 +3,13 @@ package service
 import (
 	"bytes"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
+	xhtml "golang.org/x/net/html"
 )
 
 // md 渲染 GFM：表格、删除线、自动链接、任务列表。
@@ -52,4 +54,87 @@ func RenderMarkdown(source string) (string, error) {
 	}
 	out := sanitizer.Sanitize(buf.String())
 	return strings.TrimRight(out, "\n"), nil
+}
+
+// Heading 是文章正文目录的一项；仅包含正文 H2/H3，不重复文章的 H1 标题。
+type Heading struct {
+	ID    string `json:"id"`
+	Level int    `json:"level"`
+	Text  string `json:"text"`
+}
+
+// BuildTableOfContents 为已消毒 HTML 的 H2/H3 注入确定性锚点并提取目录。
+// 该步骤发生在读取详情时，因此历史文章不必重新保存也能拥有目录。
+func BuildTableOfContents(source string) (string, []Heading) {
+	doc, err := xhtml.Parse(strings.NewReader("<!doctype html><html><body>" + source + "</body></html>"))
+	if err != nil {
+		return source, []Heading{}
+	}
+	body := findElement(doc, "body")
+	if body == nil {
+		return source, []Heading{}
+	}
+	toc := make([]Heading, 0)
+	index := 0
+	var visit func(*xhtml.Node)
+	visit = func(node *xhtml.Node) {
+		if node.Type == xhtml.ElementNode && (node.Data == "h2" || node.Data == "h3") {
+			index++
+			level := 2
+			if node.Data == "h3" {
+				level = 3
+			}
+			id := "section-" + strconv.Itoa(index)
+			setHTMLAttr(node, "id", id)
+			toc = append(toc, Heading{ID: id, Level: level, Text: strings.TrimSpace(nodeText(node))})
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			visit(child)
+		}
+	}
+	visit(body)
+	var out bytes.Buffer
+	for child := body.FirstChild; child != nil; child = child.NextSibling {
+		if err := xhtml.Render(&out, child); err != nil {
+			return source, toc
+		}
+	}
+	return strings.TrimSpace(out.String()), toc
+}
+
+func findElement(node *xhtml.Node, name string) *xhtml.Node {
+	if node.Type == xhtml.ElementNode && node.Data == name {
+		return node
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if found := findElement(child, name); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+func nodeText(node *xhtml.Node) string {
+	var out strings.Builder
+	var visit func(*xhtml.Node)
+	visit = func(current *xhtml.Node) {
+		if current.Type == xhtml.TextNode {
+			out.WriteString(current.Data)
+		}
+		for child := current.FirstChild; child != nil; child = child.NextSibling {
+			visit(child)
+		}
+	}
+	visit(node)
+	return out.String()
+}
+
+func setHTMLAttr(node *xhtml.Node, key, value string) {
+	for i := range node.Attr {
+		if node.Attr[i].Key == key {
+			node.Attr[i].Val = value
+			return
+		}
+	}
+	node.Attr = append(node.Attr, xhtml.Attribute{Key: key, Val: value})
 }

@@ -1,14 +1,17 @@
-'use client';
+'use client'
 
-import { motion } from 'motion/react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { motion } from 'motion/react'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
 
-import { BgOrbs, MdxContent, SafeImg, Tag } from '@/components/common';
-import { useArticleDetailQuery, useDeleteArticleMutation } from '@/hooks/queries';
-import { useAuth } from '@/hooks/useAuth';
-import { fadeUp, springHero } from '@/lib/motion';
-import type { ArticleDetail } from '@/types/api';
+import { BgOrbs, MdxContent, SafeImg, Tag } from '@/components/common'
+import { useArticleDetailQuery, useDeleteArticleMutation } from '@/hooks/queries'
+import { useAuth } from '@/hooks/useAuth'
+import { fadeUp, springHero } from '@/lib/motion'
+import type { ArticleDetail } from '@/types/api'
+
+import ArticleInteraction from './ArticleInteraction'
+import ArticleTOC from './ArticleTOC'
 
 /**
  * 博客文章详情页 /blog/:id
@@ -22,24 +25,24 @@ import type { ArticleDetail } from '@/types/api';
 export default function BlogDetail({
   initialArticle = null,
 }: {
-  initialArticle?: ArticleDetail | null;
+  initialArticle?: ArticleDetail | null
 }) {
-  const params = useParams();
-  const id = typeof params.id === 'string' ? params.id : '';
-  const router = useRouter();
-  const { isAdmin } = useAuth();
+  const params = useParams()
+  const id = typeof params.id === 'string' ? params.id : ''
+  const router = useRouter()
+  const { isAdmin } = useAuth()
 
-  const { data: article, isLoading: loading, error } = useArticleDetailQuery(id, initialArticle);
-  const deleteArticle = useDeleteArticleMutation();
-  const errorMessage = error?.message ?? deleteArticle.error?.message;
+  const { data: article, isLoading: loading, error } = useArticleDetailQuery(id, initialArticle)
+  const deleteArticle = useDeleteArticleMutation()
+  const errorMessage = error?.message ?? deleteArticle.error?.message
 
   /** 删除文章（管理员，确认后返回列表） */
   async function handleDelete() {
-    if (!id) return;
-    if (!window.confirm('确定删除这篇文章吗？此操作不可恢复。')) return;
+    if (!id) return
+    if (!window.confirm('确定删除这篇文章吗？此操作不可恢复。')) return
     try {
-      await deleteArticle.mutateAsync(id);
-      router.push('/blog');
+      await deleteArticle.mutateAsync(id)
+      router.push('/blog')
     } catch {
       /* 错误已通过 errorMessage 展示 */
     }
@@ -59,10 +62,7 @@ export default function BlogDetail({
             <div className="rounded-lg border border-[var(--color-border-light)] bg-bg-alt p-6">
               <p className="mb-2 font-semibold text-[var(--color-text)]">文章加载失败</p>
               <p className="mb-4 text-sm text-text-muted">{errorMessage}</p>
-              <Link
-                href="/blog"
-                className="text-accent transition-colors hover:opacity-80"
-              >
+              <Link href="/blog" className="text-accent transition-colors hover:opacity-80">
                 ← 返回博客列表
               </Link>
             </div>
@@ -88,7 +88,9 @@ export default function BlogDetail({
                     </Link>
                     <button
                       type="button"
-                      onClick={() => { void handleDelete(); }}
+                      onClick={() => {
+                        void handleDelete()
+                      }}
                       className="rounded-md px-3 py-1 text-red-500 transition-colors hover:bg-red-500/10"
                     >
                       删除
@@ -127,21 +129,28 @@ export default function BlogDetail({
                   ))}
                 </div>
 
-                {article.cover && (
-                  <SafeImg
-                    src={article.cover}
-                    alt={article.title}
-                    priority
-                    sizes="(max-width: 860px) 100vw, 860px"
-                    className="mb-8 aspect-video w-full rounded-lg border border-[var(--color-border-light)]"
-                  />
-                )}
-                <MdxContent html={article.contentHtml} />
+                <ArticleTOC headings={article.toc ?? []} variant="mobile" />
+                <div className="relative">
+                  {article.cover && (
+                    <SafeImg
+                      src={article.cover}
+                      alt={article.title}
+                      priority
+                      sizes="(max-width: 860px) 100vw, 860px"
+                      className="mb-8 aspect-video w-full rounded-lg border border-[var(--color-border-light)]"
+                    />
+                  )}
+                  <MdxContent html={article.contentHtml} />
+                  <ArticleInteraction articleID={article.id} isAdmin={isAdmin} />
+                  <div className="hidden min-[1400px]:block">
+                    <ArticleTOC headings={article.toc ?? []} variant="desktop" />
+                  </div>
+                </div>
               </article>
             </div>
           )}
         </div>
       </section>
     </main>
-  );
+  )
 }

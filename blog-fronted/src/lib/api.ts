@@ -8,22 +8,27 @@
  * - 浏览器端走同源 /api（next.config rewrites 代理到后端）；服务端（SSR 运行时 /
  *   SSG 构建期 generateStaticParams、generateMetadata、server component 取数）直连 API_TARGET。
  */
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios'
 
-import type { ContributionsData } from '@/lib/contributions';
+import type { ContributionsData } from '@/lib/contributions'
 import type {
+  AdminArticleComment,
+  ArticleComment,
   ArticleDetail,
   ArticleInput,
   ArticleListItem,
   AuthUser,
+  GitHubCommenter,
   LoginResult,
   PaginatedResult,
+  ReactionSummary,
+  ReactionType,
   SiteContentItem,
   SiteContentKey,
   SiteContentValue,
   TagItem,
   UploadResult,
-} from '@/types/api';
+} from '@/types/api'
 
 /**
  * API 基地址：
@@ -33,19 +38,19 @@ import type {
 const API_BASE =
   typeof window !== 'undefined'
     ? '/api'
-    : `${process.env.API_TARGET ?? 'http://localhost:4000'}/api`;
-const TOKEN_KEY = 'blog_token';
+    : `${process.env.API_TARGET ?? 'http://localhost:4000'}/api`
+const TOKEN_KEY = 'blog_token'
 
 /** 业务/网络错误 */
 export class ApiError extends Error {
-  readonly code: number;
-  readonly status: number;
+  readonly code: number
+  readonly status: number
 
   constructor(message: string, code: number, status: number) {
-    super(message);
-    this.name = 'ApiError';
-    this.code = code;
-    this.status = status;
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.status = status
   }
 }
 
@@ -54,72 +59,76 @@ export const tokenStore = {
   get: (): string | null =>
     typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null,
   set: (token: string): void => {
-    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token)
   },
   clear: (): void => {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY)
   },
-};
+}
 
 interface RequestOptions {
   /** HTTP 方法（默认 GET） */
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   /** 请求体（保持 fetch 风格命名；字符串/FormData 均可，axios 按 Content-Type 序列化） */
-  body?: unknown;
-  headers?: Record<string, string>;
-  signal?: AbortSignal;
+  body?: unknown
+  headers?: Record<string, string>
+  signal?: AbortSignal
   /** true 时不设置 Content-Type（用于 FormData 上传，由浏览器自动带 boundary） */
-  raw?: boolean;
+  raw?: boolean
 }
 
 /** axios 实例：baseURL /api + 30s 超时 */
 const http = axios.create({
   baseURL: API_BASE,
   timeout: 30_000,
-});
+})
 
 // 请求拦截器：自动附带 JWT
 http.interceptors.request.use((config) => {
-  const token = tokenStore.get();
+  const token = tokenStore.get()
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`
   }
-  return config;
-});
+  return config
+})
 
 // 响应拦截器：HTTP 非 2xx / 网络错误 / 超时归一化为 ApiError
 http.interceptors.response.use(
   (res) => res,
   (err: AxiosError<{ code?: number; msg?: string }>) => {
     if (!err.response) {
-      const msg = err.code === 'ECONNABORTED' ? '请求超时' : '网络错误，请确认后端服务已启动';
-      return Promise.reject(new ApiError(msg, -1, 0));
+      const msg = err.code === 'ECONNABORTED' ? '请求超时' : '网络错误，请确认后端服务已启动'
+      return Promise.reject(new ApiError(msg, -1, 0))
     }
     // 登录态中途失效：清掉本地 token；仍在后台页面时回到登录页。
     // 登录接口自身的 401 交给表单展示错误，不做跳转。
-    const requestUrl = err.config?.url ?? '';
-    if (err.response.status === 401 && !requestUrl.includes('/auth/login')) {
-      tokenStore.clear();
+    const requestUrl = err.config?.url ?? ''
+    if (err.response.status === 401 && requestUrl.endsWith('/auth/me')) {
+      tokenStore.clear()
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'))
       }
     }
-    const body = err.response.data;
-    const code = typeof body.code === 'number' ? body.code : -2;
+    const body = err.response.data
+    const code = typeof body.code === 'number' ? body.code : -2
     return Promise.reject(
-      new ApiError(body.msg ?? `请求失败（HTTP ${String(err.response.status)}）`, code, err.response.status),
-    );
+      new ApiError(
+        body.msg ?? `请求失败（HTTP ${String(err.response.status)}）`,
+        code,
+        err.response.status,
+      ),
+    )
   },
-);
+)
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, headers, signal, raw } = options;
-  const reqHeaders: Record<string, string> = { ...(headers ?? {}) };
+  const { method = 'GET', body, headers, signal, raw } = options
+  const reqHeaders: Record<string, string> = { ...(headers ?? {}) }
   if (!raw && body && !(body instanceof FormData)) {
-    reqHeaders['Content-Type'] = 'application/json';
+    reqHeaders['Content-Type'] = 'application/json'
   }
 
-  let res;
+  let res
   try {
     res = await http.request<T>({
       url: path,
@@ -127,35 +136,35 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       data: body,
       headers: reqHeaders,
       signal,
-    });
+    })
   } catch (e) {
     // 拦截器已把网络错误/非 2xx 归一化为 ApiError，其余（如用户取消）也统一提示
-    if (e instanceof ApiError) throw e;
-    throw new ApiError('网络错误，请确认后端服务已启动', -1, 0);
+    if (e instanceof ApiError) throw e
+    throw new ApiError('网络错误，请确认后端服务已启动', -1, 0)
   }
 
   // 2xx：解包统一结构 { code, msg, data }
-  const payload = res.data as { code?: number; msg?: string; data?: T } | null;
+  const payload = res.data as { code?: number; msg?: string; data?: T } | null
   if (!payload || typeof payload.code !== 'number') {
-    throw new ApiError(`响应格式错误（HTTP ${String(res.status)}）`, -2, res.status);
+    throw new ApiError(`响应格式错误（HTTP ${String(res.status)}）`, -2, res.status)
   }
   if (payload.code !== 0) {
-    throw new ApiError(payload.msg ?? '请求失败', payload.code, res.status);
+    throw new ApiError(payload.msg ?? '请求失败', payload.code, res.status)
   }
-  return payload.data as T;
+  return payload.data as T
 }
 
 /** 文章 API */
 export const articleApi = {
   /** 分页列表，支持主标签筛选与关键字搜索 */
   list: (params?: { page?: number; pageSize?: number; tag?: string; search?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.page) qs.set('page', String(params.page));
-    if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
-    if (params?.tag) qs.set('tag', params.tag);
-    if (params?.search) qs.set('search', params.search);
-    const q = qs.toString();
-    return request<PaginatedResult<ArticleListItem>>(`/articles${q ? `?${q}` : ''}`);
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.pageSize) qs.set('pageSize', String(params.pageSize))
+    if (params?.tag) qs.set('tag', params.tag)
+    if (params?.search) qs.set('search', params.search)
+    const q = qs.toString()
+    return request<PaginatedResult<ArticleListItem>>(`/articles${q ? `?${q}` : ''}`)
   },
 
   detail: (id: string) => request<ArticleDetail>(`/articles/${id}`),
@@ -167,7 +176,7 @@ export const articleApi = {
     request<ArticleDetail>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
 
   remove: (id: string) => request<{ id: string }>(`/articles/${id}`, { method: 'DELETE' }),
-};
+}
 
 /** 认证 API（仅管理员） */
 export const authApi = {
@@ -177,7 +186,39 @@ export const authApi = {
       body: JSON.stringify({ username, password }),
     }),
   me: () => request<AuthUser>('/auth/me'),
-};
+}
+
+/** GitHub 评论者认证（与管理员账号完全独立，使用 HttpOnly Cookie）。 */
+export const githubCommentAuthApi = {
+  me: () => request<GitHubCommenter>('/auth/github/me'),
+  logout: () => request<{ ok: boolean }>('/auth/github/logout', { method: 'POST' }),
+  start: (returnTo: string) => {
+    // 此同源端点会立即重定向到 GitHub，不能由 Next 客户端路由接管。
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.href = `/api/auth/github/start?${new URLSearchParams({ returnTo }).toString()}`
+  },
+}
+
+/** 文章互动 API：公开读取，写入仅允许 GitHub 评论者。 */
+export const interactionApi = {
+  comments: (articleID: string) => request<ArticleComment[]>(`/articles/${articleID}/comments`),
+  createComment: (articleID: string, content: string) =>
+    request<ArticleComment>(`/articles/${articleID}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+  deleteComment: (commentID: string) =>
+    request<{ id: string }>(`/comments/${commentID}`, { method: 'DELETE' }),
+  adminComments: () => request<AdminArticleComment[]>('/admin/comments'),
+  reactions: (articleID: string) => request<ReactionSummary>(`/articles/${articleID}/reactions`),
+  setReaction: (articleID: string, type: ReactionType) =>
+    request<ReactionSummary>(`/articles/${articleID}/reaction`, {
+      method: 'PUT',
+      body: JSON.stringify({ type }),
+    }),
+  removeReaction: (articleID: string) =>
+    request<ReactionSummary>(`/articles/${articleID}/reaction`, { method: 'DELETE' }),
+}
 
 /** 主标签库 API（公开读，管理员写） */
 export const tagApi = {
@@ -188,7 +229,7 @@ export const tagApi = {
   rename: (id: string, name: string) =>
     request<TagItem>(`/tags/${id}`, { method: 'PUT', body: JSON.stringify({ name }) }),
   remove: (id: string) => request<{ id: string }>(`/tags/${id}`, { method: 'DELETE' }),
-};
+}
 
 /** 站点内容 API（公开读，管理员写） */
 export const siteContentApi = {
@@ -202,15 +243,15 @@ export const siteContentApi = {
       method: 'PUT',
       body: JSON.stringify({ value }),
     }),
-};
+}
 
 /** 上传 API */
 export const uploadApi = {
   uploadImage: (file: File) => {
-    const form = new FormData();
-    form.append('image', file);
-    return request<UploadResult>('/upload', { method: 'POST', body: form, raw: true });
+    const form = new FormData()
+    form.append('image', file)
+    return request<UploadResult>('/upload', { method: 'POST', body: form, raw: true })
   },
-};
+}
 
-export const contributionApi = { get: () => request<ContributionsData>('/contributions') };
+export const contributionApi = { get: () => request<ContributionsData>('/contributions') }

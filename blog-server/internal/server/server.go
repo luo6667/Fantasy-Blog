@@ -20,9 +20,10 @@ import (
 
 // App 持有进程级依赖。
 type App struct {
-	Cfg  *config.Config
-	DB   *gorm.DB
-	Auth *middleware.Auth
+	Cfg         *config.Config
+	DB          *gorm.DB
+	Auth        *middleware.Auth
+	CommentAuth *middleware.CommenterAuth
 }
 
 // New 构造 App；配置非法（如 TRUSTED_PROXIES 写错）时返回错误。
@@ -33,9 +34,10 @@ func New(cfg *config.Config, db *gorm.DB) (*App, error) {
 	manager := auth.NewManager(cfg.JWTSecret, cfg.JWTExpires)
 	service.RevalidateHook = func(paths []string) { service.Revalidate(cfg, paths) }
 	return &App{
-		Cfg:  cfg,
-		DB:   db,
-		Auth: &middleware.Auth{Manager: manager, DB: db},
+		Cfg:         cfg,
+		DB:          db,
+		Auth:        &middleware.Auth{Manager: manager, DB: db},
+		CommentAuth: middleware.NewCommenterAuth(cfg.CommentSessionSecret, cfg.CommentSessionExpires, db),
 	}, nil
 }
 
@@ -50,6 +52,7 @@ func (a *App) Router() *gin.Engine {
 	})
 
 	authLimiter := middleware.NewRateLimiter(20, 15*time.Minute, "尝试过于频繁，请 15 分钟后再试", "20-in-15min")
+	interactionLimiter := middleware.NewRateLimiter(30, time.Minute, "操作过于频繁，请稍后再试", "30-in-1min")
 	contributionsLimiter := middleware.NewRateLimiter(60, time.Minute, "请求过于频繁，请稍后再试", "60-in-1min")
 
 	api := r.Group("/api")
@@ -61,12 +64,23 @@ func (a *App) Router() *gin.Engine {
 
 	api.POST("/auth/login", authLimiter.Handler(), wrap(a.login))
 	api.GET("/auth/me", a.Auth.RequireAuth(), wrap(a.me))
+	api.GET("/auth/github/start", authLimiter.Handler(), wrap(a.githubStart))
+	api.GET("/auth/github/callback", wrap(a.githubCallback))
+	api.GET("/auth/github/me", a.CommentAuth.Require(), wrap(a.githubMe))
+	api.POST("/auth/github/logout", wrap(a.githubLogout))
 
 	api.GET("/articles", wrap(a.listArticles))
 	api.GET("/articles/:id", wrap(a.articleDetail))
 	api.POST("/articles", a.Auth.RequireAdmin(), wrap(a.createArticle))
 	api.PUT("/articles/:id", a.Auth.RequireAdmin(), wrap(a.updateArticle))
 	api.DELETE("/articles/:id", a.Auth.RequireAdmin(), wrap(a.deleteArticle))
+	api.GET("/articles/:id/comments", wrap(a.listComments))
+	api.POST("/articles/:id/comments", interactionLimiter.Handler(), a.CommentAuth.Require(), wrap(a.createComment))
+	api.GET("/articles/:id/reactions", a.CommentAuth.Optional(), wrap(a.reactions))
+	api.PUT("/articles/:id/reaction", interactionLimiter.Handler(), a.CommentAuth.Require(), wrap(a.setReaction))
+	api.DELETE("/articles/:id/reaction", interactionLimiter.Handler(), a.CommentAuth.Require(), wrap(a.removeReaction))
+	api.DELETE("/comments/:id", a.CommentAuth.Optional(), wrap(a.deleteComment))
+	api.GET("/admin/comments", a.Auth.RequireAdmin(), wrap(a.listAdminComments))
 
 	api.GET("/tags", wrap(a.listTags))
 	api.POST("/tags", a.Auth.RequireAdmin(), wrap(a.createTag))

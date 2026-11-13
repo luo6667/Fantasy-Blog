@@ -43,3 +43,18 @@ func TestRenderMarkdownStripsEventHandlers(t *testing.T) {
 		t.Fatalf("event handlers must be stripped: %q", html)
 	}
 }
+
+func TestBuildTableOfContentsAddsStableAnchors(t *testing.T) {
+	body, toc := BuildTableOfContents("<h1>文章标题</h1><h2>第一节</h2><p>正文</p><h3>细节</h3><h2>第二节</h2>")
+	if len(toc) != 3 {
+		t.Fatalf("toc length = %d, want 3", len(toc))
+	}
+	if toc[0].Level != 2 || toc[1].Level != 3 || toc[0].Text != "第一节" {
+		t.Fatalf("unexpected toc: %+v", toc)
+	}
+	for _, heading := range toc {
+		if !strings.Contains(body, `id="`+heading.ID+`"`) {
+			t.Fatalf("body missing anchor %q: %s", heading.ID, body)
+		}
+	}
+}

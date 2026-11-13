@@ -1,9 +1,10 @@
-'use client';
+'use client'
 
-import { useArticleListQuery, useTagsQuery } from '@/hooks/queries';
+import { useArticleListQuery, useTagsQuery } from '@/hooks/queries'
 
-import ArticleManager from './ArticleManager';
-import TagManager from './TagManager';
+import ArticleManager from './ArticleManager'
+import CommentManager from './CommentManager'
+import TagManager from './TagManager'
 
 /**
  * 文章管理页（/admin/articles）
@@ -11,12 +12,12 @@ import TagManager from './TagManager';
  * 概览指标 + 文章列表 + 主标签管理合并为默认页。
  */
 export default function AdminArticles() {
-  const articlesQuery = useArticleListQuery(null);
-  const tagsQuery = useTagsQuery();
+  const articlesQuery = useArticleListQuery(null)
+  const tagsQuery = useTagsQuery()
 
-  const total = articlesQuery.data?.total ?? 0;
-  const tagCount = tagsQuery.data?.length ?? 0;
-  const usedTagCount = (tagsQuery.data ?? []).filter((t) => t.count > 0).length;
+  const total = articlesQuery.data?.total ?? 0
+  const tagCount = tagsQuery.data?.length ?? 0
+  const usedTagCount = (tagsQuery.data ?? []).filter((t) => t.count > 0).length
 
   return (
     <div>
@@ -46,6 +47,7 @@ export default function AdminArticles() {
         <ArticleManager />
         <TagManager />
       </div>
+      <CommentManager />
     </div>
-  );
+  )
 }

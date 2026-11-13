@@ -136,3 +136,40 @@ type SiteContent struct {
 
 // TableName site_contents。
 func (SiteContent) TableName() string { return "site_contents" }
+
+// GitHubCommenter 是可在文章下互动的 GitHub 公开身份，不参与后台管理员认证。
+type GitHubCommenter struct {
+	ID         string    `gorm:"column:id;primaryKey;size:24"`
+	GitHubID   string    `gorm:"column:githubId;size:32;uniqueIndex"`
+	Login      string    `gorm:"column:login;size:64"`
+	Name       string    `gorm:"column:name;size:255"`
+	AvatarURL  string    `gorm:"column:avatarUrl;size:2048"`
+	ProfileURL string    `gorm:"column:profileUrl;size:2048"`
+	CreatedAt  time.Time `gorm:"column:createdAt"`
+	UpdatedAt  time.Time `gorm:"column:updatedAt"`
+}
+
+func (GitHubCommenter) TableName() string { return "github_commenters" }
+
+// ArticleComment 是单层文章评论。
+type ArticleComment struct {
+	ID          string    `gorm:"column:id;primaryKey;size:24"`
+	ArticleID   string    `gorm:"column:articleId;size:24;index"`
+	CommenterID string    `gorm:"column:commenterId;size:24;index"`
+	Content     string    `gorm:"column:content;size:1000"`
+	CreatedAt   time.Time `gorm:"column:createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updatedAt"`
+}
+
+func (ArticleComment) TableName() string { return "article_comments" }
+
+// ArticleReaction 是一位评论者对一篇文章的单选表情。
+type ArticleReaction struct {
+	ArticleID   string    `gorm:"column:articleId;primaryKey;size:24"`
+	CommenterID string    `gorm:"column:commenterId;primaryKey;size:24"`
+	Type        string    `gorm:"column:type;size:16"`
+	CreatedAt   time.Time `gorm:"column:createdAt"`
+	UpdatedAt   time.Time `gorm:"column:updatedAt"`
+}
+
+func (ArticleReaction) TableName() string { return "article_reactions" }
