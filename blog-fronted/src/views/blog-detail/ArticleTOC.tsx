@@ -1,10 +1,26 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 import type { ArticleHeading } from '@/types/api'
 
 const CHINESE_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+
+
+/** 点击目录：立即定位到标题，并保持目录自身的滚动位置不被浏览器的锚点跳转重置。 */
+function jumpToHeading(event: MouseEvent<HTMLAnchorElement>, id: string, onActivate: (id: string) => void) {
+  event.preventDefault()
+  onActivate(id)
+  const target = document.getElementById(id)
+  if (target) {
+    const root = document.documentElement
+    const previous = root.style.scrollBehavior
+    root.style.scrollBehavior = 'auto'
+    target.scrollIntoView({ block: 'start' })
+    root.style.scrollBehavior = previous
+  }
+  window.history.replaceState(null, '', `#${id}`)
+}
 
 function ListIcon() {
   return (
@@ -78,46 +94,62 @@ function DesktopTOC({
   const scrollRef = useRef<HTMLDivElement>(null)
   const [indicator, setIndicator] = useState({ top: 0, height: 24 })
 
-  // 让指示线与当前条目对齐，并把当前条目滚入目录可视区；
-  // 指示线的 top 始终被限制在滚动容器高度内，不会越界。
+  // 计算指示线位置：高度跟随当前条目（多行时变长），并限制在滚动容器内
+  const positionIndicator = useCallback(() => {
+    const list = listRef.current
+    const scroll = scrollRef.current
+    if (!list || !scroll) return
+    const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
+    if (!target) return
+    const viewport = scroll.clientHeight
+    const height = Math.min(target.offsetHeight, viewport)
+    const top = Math.min(Math.max(target.offsetTop - scroll.scrollTop, 0), viewport - height)
+    setIndicator((previous) =>
+      previous.top === top && previous.height === height ? previous : { top, height },
+    )
+  }, [activeID])
+
+  // 章节变化时（滚动正文或点击目录）把当前条目滚入可视区，再对齐指示线
   useEffect(() => {
     const list = listRef.current
     const scroll = scrollRef.current
     if (!list || !scroll) return
+    const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
+    if (!target) return
 
-    const sync = () => {
-      const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
-      if (!target) return
+    const edge = 12
+    const viewport = scroll.clientHeight
+    const itemTop = target.offsetTop - scroll.scrollTop
+    let nextScroll = scroll.scrollTop
+    if (itemTop < edge) nextScroll = Math.max(0, target.offsetTop - edge)
+    else if (itemTop + target.offsetHeight > viewport - edge)
+      nextScroll = target.offsetTop + target.offsetHeight - viewport + edge
+    if (nextScroll !== scroll.scrollTop) scroll.scrollTop = nextScroll
 
-      const viewport = scroll.clientHeight
-      const edge = 12
-      const itemHeight = target.offsetHeight
-
-      let nextScroll = scroll.scrollTop
-      const itemTop = target.offsetTop - scroll.scrollTop
-      const itemBottom = itemTop + itemHeight
-      if (itemTop < edge) nextScroll = Math.max(0, target.offsetTop - edge)
-      else if (itemBottom > viewport - edge)
-        nextScroll = target.offsetTop + itemHeight - viewport + edge
-
-      if (nextScroll !== scroll.scrollTop) {
-        scroll.scrollTop = nextScroll
-      }
-
-      // 指示线的高度跟随条目高度：条目折成多行时，进度条同步变长
-      const height = Math.min(itemHeight, viewport)
-      const top = Math.min(Math.max(target.offsetTop - scroll.scrollTop, 0), viewport - height)
-      setIndicator((previous) =>
-        previous.top === top && previous.height === height ? previous : { top, height },
-      )
-    }
-
-    // 等目录滚动与布局稳定后再测量
-    const frame = window.requestAnimationFrame(sync)
+    const frame = window.requestAnimationFrame(positionIndicator)
     return () => {
       window.cancelAnimationFrame(frame)
     }
-  }, [activeID, headings])
+  }, [activeID, positionIndicator])
+
+  // 手动滚动目录时只重新对齐指示线，不自动滚动目录，避免抽搐
+  useEffect(() => {
+    const scroll = scrollRef.current
+    if (!scroll) return
+    let frame = 0
+    const onScroll = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        positionIndicator()
+      })
+    }
+    scroll.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+      scroll.removeEventListener('scroll', onScroll)
+    }
+  }, [positionIndicator])
 
   return (
     <aside className="fixed right-6 top-24 z-20 hidden w-52 min-[1400px]:block xl:right-8">
@@ -133,7 +165,7 @@ function DesktopTOC({
           aria-hidden
         />
         <span
-          className="pointer-events-none absolute left-[-0.5px] z-10 w-[1.5px] -translate-x-1/2 rounded-full bg-accent transition-all duration-300 ease-out"
+          className="pointer-events-none absolute left-[-0.5px] z-10 w-[1.5px] -translate-x-1/2 rounded-full bg-accent"
           style={{ top: `${String(indicator.top)}px`, height: `${String(indicator.height)}px` }}
           aria-hidden
         />
@@ -150,8 +182,8 @@ function DesktopTOC({
                   <a
                     href={`#${heading.id}`}
                     data-heading-id={heading.id}
-                    onClick={() => {
-                      onActivate(heading.id)
+                    onClick={(event) => {
+                      jumpToHeading(event, heading.id, onActivate)
                     }}
                     className={`flex items-baseline gap-2 break-words py-1.5 text-[0.8125rem] leading-6 transition-colors ${
                       active ? 'font-semibold text-accent' : 'text-text-muted hover:text-[var(--color-text)]'
@@ -202,8 +234,8 @@ function MobileTOC({
             key={heading.id}
             ref={active ? activeRef : undefined}
             href={`#${heading.id}`}
-            onClick={() => {
-              onActivate(heading.id)
+            onClick={(event) => {
+              jumpToHeading(event, heading.id, onActivate)
             }}
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors ${
               active
