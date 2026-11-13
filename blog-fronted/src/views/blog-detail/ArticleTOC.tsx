@@ -76,7 +76,7 @@ function DesktopTOC({
 }) {
   const listRef = useRef<HTMLOListElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [indicatorTop, setIndicatorTop] = useState(0)
+  const [indicator, setIndicator] = useState({ top: 0, height: 24 })
 
   // 让指示线与当前条目对齐，并把当前条目滚入目录可视区；
   // 指示线的 top 始终被限制在滚动容器高度内，不会越界。
@@ -89,22 +89,27 @@ function DesktopTOC({
       const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
       if (!target) return
 
-      const itemTop = target.offsetTop - scroll.scrollTop
-      const itemBottom = itemTop + target.offsetHeight
       const viewport = scroll.clientHeight
       const edge = 12
+      const itemHeight = target.offsetHeight
 
       let nextScroll = scroll.scrollTop
+      const itemTop = target.offsetTop - scroll.scrollTop
+      const itemBottom = itemTop + itemHeight
       if (itemTop < edge) nextScroll = Math.max(0, target.offsetTop - edge)
       else if (itemBottom > viewport - edge)
-        nextScroll = target.offsetTop + target.offsetHeight - viewport + edge
+        nextScroll = target.offsetTop + itemHeight - viewport + edge
 
       if (nextScroll !== scroll.scrollTop) {
         scroll.scrollTop = nextScroll
       }
 
-      const center = target.offsetTop + target.offsetHeight / 2 - scroll.scrollTop
-      setIndicatorTop(Math.min(Math.max(center, edge), viewport - edge))
+      // 指示线的高度跟随条目高度：条目折成多行时，进度条同步变长
+      const height = Math.min(itemHeight, viewport)
+      const top = Math.min(Math.max(target.offsetTop - scroll.scrollTop, 0), viewport - height)
+      setIndicator((previous) =>
+        previous.top === top && previous.height === height ? previous : { top, height },
+      )
     }
 
     // 等目录滚动与布局稳定后再测量
@@ -128,8 +133,8 @@ function DesktopTOC({
           aria-hidden
         />
         <span
-          className="pointer-events-none absolute left-[-0.5px] z-10 h-6 w-[1.5px] -translate-x-1/2 rounded-full bg-accent transition-[top] duration-300 ease-out"
-          style={{ top: `${String(indicatorTop - 12)}px` }}
+          className="pointer-events-none absolute left-[-0.5px] z-10 w-[1.5px] -translate-x-1/2 rounded-full bg-accent transition-all duration-300 ease-out"
+          style={{ top: `${String(indicator.top)}px`, height: `${String(indicator.height)}px` }}
           aria-hidden
         />
         <div
@@ -148,18 +153,16 @@ function DesktopTOC({
                     onClick={() => {
                       onActivate(heading.id)
                     }}
-                    className={`flex gap-2 break-words py-1.5 text-[0.8125rem] leading-6 transition-colors ${
-                      active ? 'text-accent' : 'text-text-muted hover:text-[var(--color-text)]'
+                    className={`flex items-baseline gap-2 break-words py-1.5 text-[0.8125rem] leading-6 transition-colors ${
+                      active ? 'font-semibold text-accent' : 'text-text-muted hover:text-[var(--color-text)]'
                     }`}
                   >
                     {label && (
-                      <span
-                        className={`shrink-0 font-mono text-[0.7rem] ${active ? 'text-accent' : 'text-text-muted'}`}
-                      >
+                      <span className={`shrink-0 ${active ? 'text-accent' : 'text-text-muted'}`}>
                         {label}
                       </span>
                     )}
-                    <span className={`${label ? '' : 'pl-3'} ${active ? 'font-semibold' : ''}`}>{heading.text}</span>
+                    <span className={label ? '' : 'pl-3'}>{heading.text}</span>
                   </a>
                 </li>
               )
