@@ -43,7 +43,7 @@ export default function CurrentStageChecklist({ stage }: { stage: PlanStage | un
 
   return (
     <Card
-      className="plan-stage-checklist h-[23rem] shadow-none"
+      className="plan-stage-checklist shadow-none"
       styles={{
         root: { background: 'var(--color-bg-alt)', borderColor: 'var(--color-border)', color: 'var(--color-text)' },
         body: { height: '100%', padding: 0 },
@@ -51,21 +51,18 @@ export default function CurrentStageChecklist({ stage }: { stage: PlanStage | un
       aria-label="当前阶段清单"
     >
       <div className="flex h-full flex-col p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-accent">Stage dashboard</p>
-            <h2 className="mt-1 text-lg font-bold tracking-[-0.02em]">{stage?.title || '当前阶段'}</h2>
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-accent">Stage dashboard</p>
           <span className="font-mono text-sm text-text-muted">{stage ? String(stage.order).padStart(2, '0') : '—'}</span>
         </div>
 
         {stage ? (
           <>
-            <div className="mt-3 flex items-center gap-4 border-y border-[var(--color-border-light)] py-3">
-              <Progress type="circle" percent={progress?.percent ?? 0} size={76} strokeWidth={10} strokeColor="var(--color-accent)" railColor="var(--color-border-light)" />
+            <div className="mt-4 flex items-center gap-5 border-y border-[var(--color-border-light)] py-4">
+              <Progress type="circle" percent={progress?.percent ?? 0} size={92} strokeWidth={10} strokeColor="var(--color-accent)" railColor="var(--color-border-light)" />
               <div className="min-w-0">
                 <p className="text-sm text-text-muted">阶段进度</p>
-                <p className="mt-1 text-xl font-bold tracking-[-0.03em] text-[var(--color-text)]">{progress?.done} / {progress?.total}</p>
+                <p className="mt-1 text-2xl font-bold tracking-[-0.03em] text-[var(--color-text)]">{progress?.done} / {progress?.total}</p>
               </div>
             </div>
 

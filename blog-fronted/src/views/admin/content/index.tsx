@@ -53,7 +53,7 @@ export function PlanContentManager() {
       <div className="mb-5">
         <h1 className="text-2xl font-bold tracking-[-0.02em]">规划管理</h1>
         <p className="mt-1 text-sm text-text-muted">
-          管理总目标、阶段和子目标；进度与状态会按子目标完成情况自动计算。
+          按阶段维护目标与子目标；进度与状态会按子目标完成情况自动计算。
         </p>
       </div>
       <PlanEditor value={map.get('plan')} />

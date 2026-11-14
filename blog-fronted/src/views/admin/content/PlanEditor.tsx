@@ -2,7 +2,7 @@ import { PLAN_CONTENT } from '@/constants';
 import type { PlanContent, PlanGoal, PlanStage } from '@/types/api';
 
 import { normalizePlanContent } from '../../plan/planData';
-import { EditorCard, Field, SaveBar } from './contentFields';
+import { EditorCard, SaveBar } from './contentFields';
 import PlanStageFields from './PlanStageFields';
 import { editorBtnAdd, useContentEditor } from './useContentEditor';
 
@@ -18,7 +18,7 @@ function emptyStage(order: number): PlanStage {
   return { id: newID('stage'), order, title: '', summary: '', goals: [emptyGoal()] };
 }
 
-/** 规划管理：维护唯一总目标及其阶段、子目标；阶段状态由子目标自动计算。 */
+/** 规划管理：按阶段维护标题、说明与子目标；阶段状态与进度由子目标自动计算。 */
 export default function PlanEditor({ value }: { value: unknown }) {
   const normalizedValue = value === undefined ? undefined : normalizePlanContent(value, PLAN_CONTENT);
   const { draft, setDraft, dirty, saving, error, save } = useContentEditor<PlanContent>('plan', normalizedValue);
@@ -30,16 +30,11 @@ export default function PlanEditor({ value }: { value: unknown }) {
 
   return (
     <EditorCard
-      title="阶段性目标"
-      desc="维护一个总目标和多个阶段。阶段状态、阶段进度与总进度均由子目标的完成状态自动计算。"
+      title="阶段列表"
+      desc="阶段状态、阶段进度与总进度均由子目标的完成状态自动计算。"
       footer={<SaveBar dirty={dirty} saving={saving} error={error} onSave={() => { void save(); }} onReset={() => { setDraft(normalizedValue ?? null); }} />}
     >
-      <div className="grid gap-3">
-        <Field label="总目标标题" value={draft.title} placeholder="如 学习 Go" onChange={(title) => { setDraft({ ...draft, title }); }} />
-        <Field label="总目标简介（可选）" textarea rows={3} value={draft.summary} placeholder="这段时间希望建立什么能力…" onChange={(summary) => { setDraft({ ...draft, summary }); }} />
-      </div>
-      <div className="space-y-3 border-t border-[var(--color-border-light)] pt-4">
-        <p className="text-sm font-semibold">阶段列表</p>
+      <div className="space-y-3">
         {draft.stages.map((stage, index) => (
           <PlanStageFields
             key={stage.id}
