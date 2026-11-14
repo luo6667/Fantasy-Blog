@@ -17,8 +17,10 @@ export default function Footer() {
         <section>
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">Independent creator</p>
           <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-[var(--color-text)]">Fantasy</h2>
-          <p className="mt-4 max-w-[26ch] text-sm leading-[1.8] text-text-secondary">
-            把想法做成值得停留的作品，也把过程写成可以回看的文字。
+          <p className="mt-4 max-w-[26ch] text-base leading-[1.7] text-text-secondary">
+            Seek depth,
+            <br />
+            embrace outward
           </p>
         </section>
 
