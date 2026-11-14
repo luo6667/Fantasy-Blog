@@ -25,10 +25,11 @@ function BookIcon({ className = '' }: { className?: string }) {
 
 function RouteIcon({ className = '' }: { className?: string }) {
   return (
-    <svg className={className} width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <circle cx="5" cy="15" r="2.2" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="15" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M7 15h3.5a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <svg className={className} width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7 3v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="7" cy="5.2" r="2.1" fill="currentColor" />
+      <circle cx="7" cy="10" r="2.1" fill="var(--color-bg-alt)" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="7" cy="14.8" r="2.1" fill="var(--color-bg-alt)" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
@@ -102,7 +103,7 @@ export default function Hero() {
               whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              <RouteIcon className="size-4 shrink-0" />
+              <RouteIcon className="size-[1.1rem] shrink-0" />
               <span>查看规划</span>
               <ArrowIcon className="size-3.5 shrink-0 opacity-70 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:text-accent group-hover:opacity-100" />
             </MotionLink>
