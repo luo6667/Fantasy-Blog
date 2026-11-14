@@ -25,11 +25,14 @@ function BookIcon({ className = '' }: { className?: string }) {
 
 function RouteIcon({ className = '' }: { className?: string }) {
   return (
-    <svg className={className} width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M7 3v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="7" cy="5.2" r="2.1" fill="currentColor" />
-      <circle cx="7" cy="10" r="2.1" fill="var(--color-bg-alt)" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="7" cy="14.8" r="2.1" fill="var(--color-bg-alt)" stroke="currentColor" strokeWidth="1.6" />
+    <svg className={className} width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M3.4 17.2h4.2v-4.3h4.2V8.6H16v-4.2h3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -103,7 +106,7 @@ export default function Hero() {
               whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              <RouteIcon className="size-[1.1rem] shrink-0" />
+              <RouteIcon className="shrink-0" />
               <span>查看规划</span>
               <ArrowIcon className="size-3.5 shrink-0 opacity-70 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:text-accent group-hover:opacity-100" />
             </MotionLink>
