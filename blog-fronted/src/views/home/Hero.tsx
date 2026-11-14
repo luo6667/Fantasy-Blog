@@ -30,14 +30,13 @@ export default function Hero() {
           </motion.p>
 
           <motion.h1
-            className="mb-6 text-[clamp(2.35rem,5vw,3.7rem)] font-extrabold leading-[1.14] tracking-[-0.035em] text-[var(--color-text)]"
+            className="mb-6 text-[clamp(2rem,4.2vw,2.9rem)] font-extrabold leading-[1.08] tracking-[-0.045em] text-[var(--color-text)]"
             initial={initial}
             animate={animate}
             transition={{ ...springHero, duration: 0.6, delay: 0.06 }}
           >
-            把想法做成
-            <br />
-            值得停留的作品
+            <span className="block whitespace-nowrap">A Humble</span>
+            <span className="block whitespace-nowrap">Full-Stack Developer</span>
           </motion.h1>
 
           <motion.p
@@ -46,7 +45,9 @@ export default function Hero() {
             animate={animate}
             transition={{ ...springHero, duration: 0.6, delay: 0.12 }}
           >
-            用产品思维与设计审美，持续记录工具、内容和个人成长。
+            LEARN · CREATE · SHARE · GAIN · GROW
+            <br />
+            Seek depth, embrace outward
           </motion.p>
 
           <motion.div
