@@ -113,7 +113,9 @@ go run ./cmd/server seed-admin   # 创建或重置管理员，密码读 ADMIN_IN
 
 ## 部署
 
-详见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
+宝塔面板 + HTTPS 的完整步骤见 **[DEPLOY-BAOTA.md](./DEPLOY-BAOTA.md)**。
+仓库同时提供 `deploy/deploy.sh`（发布/回滚/健康检查）、`deploy/ecosystem.config.cjs`（PM2）
+与 `deploy/nginx-blog.conf.example`（Nginx 反代与缓存策略）。
 
 ## 目录说明与约定
 
