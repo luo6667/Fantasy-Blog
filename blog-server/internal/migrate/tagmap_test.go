@@ -39,8 +39,15 @@ func tagmapDB(t *testing.T) *gorm.DB {
 	if err := db.Exec("DROP TABLE IF EXISTS `migration_approvals`, `schema_migrations`, `tmp_tag_map`").Error; err != nil {
 		t.Fatalf("drop tables: %v", err)
 	}
-	if err := db.Exec("DROP TABLE IF EXISTS `articles`, `tags`, `admins`, `comments`, `notifications`, `site_contents`, `ai_configs`").Error; err != nil {
+	// 先关外键检查：article_comments 等新表可能引用 articles，直接 DROP 会被 3730 拒绝。
+	if err := db.Exec("SET FOREIGN_KEY_CHECKS = 0").Error; err != nil {
+		t.Fatalf("disable fk checks: %v", err)
+	}
+	if err := db.Exec("DROP TABLE IF EXISTS `articles`, `tags`, `admins`, `comments`, `notifications`, `site_contents`, `ai_configs`, `article_comments`, `article_reactions`, `github_commenters`").Error; err != nil {
 		t.Fatalf("drop legacy tables: %v", err)
+	}
+	if err := db.Exec("SET FOREIGN_KEY_CHECKS = 1").Error; err != nil {
+		t.Fatalf("enable fk checks: %v", err)
 	}
 	return db
 }
