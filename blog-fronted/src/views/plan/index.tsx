@@ -40,7 +40,7 @@ export default function Plan() {
             )}
             <motion.div variants={heroItem} className="mt-8 grid max-w-2xl gap-5 border-t border-[var(--color-border)] pt-4 text-sm sm:grid-cols-2">
               <p className="text-text-muted">当前阶段进度 <span className="ml-2 font-semibold text-accent">{stageProgress.percent}% · {stageProgress.done} / {stageProgress.total}</span></p>
-              <p className="text-text-muted">阶段位置 <span className="ml-2 font-semibold text-[var(--color-text)]">{currentIndex >= 0 ? `${String(currentIndex + 1)} / ${String(orderedStages.length)}` : '尚未开始'}</span></p>
+              <p className="text-text-muted">阶段位置 <span className="ml-2 font-semibold text-[var(--color-text)]">{currentIndex >= 0 ? `${String(currentIndex + 1)} / ${String(orderedStages.length)}` : orderedStages.length > 0 ? '全部完成' : '尚未开始'}</span></p>
             </motion.div>
           </motion.div>
           <motion.div initial="hidden" animate="show" variants={heroItem}>
