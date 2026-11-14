@@ -146,8 +146,8 @@ sudo -u deploy nano /www/wwwroot/personal-blog/shared/frontend.env.local
 ```bash
 MYSQL_PASSWORD=<建库时的强密码>
 JWT_SECRET=$(openssl rand -hex 32)
-CORS_ORIGIN=https://www.jasonluoblog.online        # 浏览器真实访问的地址
-NEXT_REVALIDATE_URL=https://www.jasonluoblog.online
+CORS_ORIGIN=https://fantasynote.cloud        # 浏览器真实访问的地址
+NEXT_REVALIDATE_URL=https://fantasynote.cloud
 REVALIDATE_SECRET=$(openssl rand -hex 32)          # 前后端必须同值！
 ```
 

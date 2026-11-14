@@ -131,10 +131,10 @@ JWT_SECRET=CHANGE_ME
 JWT_EXPIRES_IN=3d
 
 # ── 浏览器真实访问的地址（不改 = 全站 CORS 403）──
-CORS_ORIGIN=https://www.jasonluoblog.online
+CORS_ORIGIN=https://fantasynote.cloud
 
 # ── 发文即时刷新：两个值前后端必须一致 ──
-NEXT_REVALIDATE_URL=https://www.jasonluoblog.online
+NEXT_REVALIDATE_URL=https://fantasynote.cloud
 REVALIDATE_SECRET=CHANGE_ME
 EOF
     printf '\nUPLOAD_DIR=%s\n' "$UPLOADS_DIR" >> "$BACKEND_ENV"
@@ -259,6 +259,25 @@ wait_http() {
   done
   err "$name 健康检查失败：$url"
   return 1
+}
+
+# 首次部署时 build 早于后端启动，SSG 的 /blog 可能是空列表；服务起来后补一次刷新。
+revalidate_pages() {
+  local secret query p
+  secret="$(grep -E '^REVALIDATE_SECRET=' "$BACKEND_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)"
+  if [ -z "$secret" ]; then
+    warn "backend.env 缺少 REVALIDATE_SECRET，跳过静态页刷新"
+    return 0
+  fi
+  query="secret=${secret}"
+  for p in /blog '/blog/[id]' /home /plan /resume; do
+    query="${query}&path=$(printf '%s' "$p" | sed 's/\[/%5B/g; s/\]/%5D/g')"
+  done
+  if curl -g -fsS --max-time 15 "http://127.0.0.1:${WEB_PORT}/api/revalidate?${query}" >/dev/null 2>&1; then
+    ok "已触发静态页刷新（/blog、/blog/[id]、/home、/plan、/resume）"
+  else
+    warn "静态页刷新失败（不影响服务，可稍后手动重试）"
+  fi
 }
 
 # ── 发布目录切换 ────────────────────────────────────────────────────────────
@@ -389,6 +408,7 @@ cmd_deploy() {
     exit 1
   fi
 
+  revalidate_pages
   cleanup_releases
   ok "发布成功：$(basename "$rel")"
   cmd_status

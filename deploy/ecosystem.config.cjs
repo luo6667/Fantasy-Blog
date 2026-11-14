@@ -30,7 +30,7 @@ module.exports = {
       cwd: path.join(CURRENT, 'blog-fronted'),
       // 直接用 next 的 CLI 入口（比 npm run start 少一层 npm 进程，reload 不留孤儿进程）
       script: path.join(CURRENT, 'blog-fronted', 'node_modules', 'next', 'dist', 'bin', 'next'),
-      args: 'start -p 3000',
+      args: 'start -p 3000 -H 127.0.0.1',
       interpreter: 'node',
       max_memory_restart: '1G',
       env: {

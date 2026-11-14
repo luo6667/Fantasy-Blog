@@ -17,7 +17,7 @@ upstream blog_next {
 server {
     listen 80;
     listen [::]:80;
-    server_name www.jasonluoblog.online jasonluoblog.online;
+    server_name fantasynote.cloud www.fantasynote.cloud;
 
     # 宝塔申请 Let's Encrypt 后会自动加上 301 到 https，这里保持默认即可
     return 301 https://$host$request_uri;
@@ -27,19 +27,19 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name www.jasonluoblog.online jasonluoblog.online;
+    server_name fantasynote.cloud www.fantasynote.cloud;
 
     # 证书路径按宝塔实际生成的填写
-    ssl_certificate     /www/server/panel/vhost/cert/jasonluoblog.online/fullchain.pem;
-    ssl_certificate_key /www/server/panel/vhost/cert/jasonluoblog.online/privkey.pem;
+    ssl_certificate     /www/server/panel/vhost/cert/fantasynote.cloud/fullchain.pem;
+    ssl_certificate_key /www/server/panel/vhost/cert/fantasynote.cloud/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_session_cache shared:SSL:10m;
 
     # 文章里上传的图片上限是 5MB（UPLOAD_MAX_SIZE），这里留出富余
     client_max_body_size 10m;
 
-    access_log /www/wwwlogs/jasonluoblog.online.log;
-    error_log  /www/wwwlogs/jasonluoblog.online.error.log;
+    access_log /www/wwwlogs/fantasynote.cloud.log;
+    error_log  /www/wwwlogs/fantasynote.cloud.error.log;
 
     # 文本资源统一 gzip；若装了 brotli 模块，可再加 `brotli on; brotli_types ...;`
     gzip on;
