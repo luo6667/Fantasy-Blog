@@ -217,13 +217,20 @@ function MobileTOC({
   onActivate: (id: string) => void
 }) {
   const activeRef = useRef<HTMLAnchorElement>(null)
+  const scrollerRef = useRef<HTMLElement>(null)
 
+  // 只滚动标签条本身：scrollIntoView 会连带滚动窗口，导致手机上滑到一半被拉回顶部
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+    const item = activeRef.current
+    const box = scrollerRef.current
+    if (!item || !box) return
+    const delta = item.getBoundingClientRect().left - box.getBoundingClientRect().left
+    box.scrollBy({ left: delta - (box.clientWidth - item.clientWidth) / 2, behavior: 'smooth' })
   }, [activeID])
 
   return (
     <nav
+      ref={scrollerRef}
       className="mb-8 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-[1400px]:hidden"
       aria-label="文章目录"
     >

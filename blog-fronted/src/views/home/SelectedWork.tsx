@@ -66,9 +66,9 @@ export default function SelectedWork({
 
 function SecondaryProject({ project }: { project: HomeProjectItem }) {
   return (
-    <article className="group grid h-full grid-rows-[7fr_3fr] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:-translate-y-0.5 hover:border-accent/40 lg:min-h-0">
+    <article className="group flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:-translate-y-0.5 hover:border-accent/40 lg:grid lg:h-full lg:min-h-0 lg:grid-rows-[7fr_3fr]">
       <ProjectCover project={project} index={1} className="aspect-[16/9] lg:h-full lg:aspect-auto" />
-      <div className="flex min-h-0 flex-1 flex-col p-7 md:p-8 lg:p-4">
+      <div className="flex flex-col p-7 md:p-8 lg:min-h-0 lg:flex-1 lg:p-4">
         <ProjectMeta project={project} />
         <h3 className="mb-3 mt-4 text-[1.45rem] font-bold leading-[1.25] tracking-[-0.02em] lg:mb-2 lg:mt-2 lg:text-[1.2rem]">{project.name}</h3>
         <p className="mb-6 flex-1 text-[0.96rem] leading-[1.8] text-text-muted lg:hidden">{project.summary}</p>
