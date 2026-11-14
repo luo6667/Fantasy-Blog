@@ -56,21 +56,22 @@ export default function Hero() {
             transition={{ ...springHero, duration: 0.6, delay: 0.18 }}
           >
             <MotionLink
-              href="#work"
+              href="/blog"
               className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
               whileTap={reduce ? undefined : { scale: 0.98 }}
               transition={springBtn}
             >
-              浏览作品 <span aria-hidden>↘</span>
+              阅读文章 <span aria-hidden>→</span>
             </MotionLink>
             <MotionLink
-              href="/blog"
-              className="border-b border-[var(--color-text)]/30 pb-1 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-accent hover:text-accent"
+              href="/plan"
+              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
+              whileTap={reduce ? undefined : { scale: 0.98 }}
               transition={springBtn}
             >
-              阅读文章 →
+              查看规划 <span aria-hidden>→</span>
             </MotionLink>
           </motion.div>
         </div>
