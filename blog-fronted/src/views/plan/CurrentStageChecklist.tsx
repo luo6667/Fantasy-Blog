@@ -19,13 +19,6 @@ const statusDotClass = {
   done: 'bg-success',
 } as const;
 
-function goalsWithActiveFirst(goals: PlanGoal[]) {
-  return goals
-    .map((goal, index) => ({ goal, index }))
-    .sort((a, b) => Number(b.goal.status === 'active') - Number(a.goal.status === 'active') || a.index - b.index)
-    .map(({ goal }) => goal);
-}
-
 function GoalRow({ goal }: { goal: PlanGoal }) {
   return (
     <div className="grid h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
@@ -38,7 +31,7 @@ function GoalRow({ goal }: { goal: PlanGoal }) {
 
 /** A 方案：紧凑阶段仪表卡，固定三行任务窗口并由 Ant Design Listy 提供内部滚动。 */
 export default function CurrentStageChecklist({ stage }: { stage: PlanStage | undefined }) {
-  const goals = goalsWithActiveFirst(stage?.goals ?? []);
+  const goals = stage?.goals ?? [];
   const progress = stage ? calculateProgress(stage.goals) : null;
 
   return (
