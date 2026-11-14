@@ -5,6 +5,14 @@ import { motion, useReducedMotion } from 'motion/react';
 import { MotionLink } from '@/components/common';
 import { springBtn, springHero } from '@/lib/motion';
 
+function ArrowIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /**
  * 首页 Hero：创作宣言 + 静态几何拼贴
  *
@@ -58,21 +66,33 @@ export default function Hero() {
           >
             <MotionLink
               href="/blog"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-text)]"
+              className="group inline-flex items-center gap-3 text-[0.95rem] font-semibold text-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
-              whileTap={reduce ? undefined : { scale: 0.98 }}
+              whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              阅读文章 <span aria-hidden>→</span>
+              阅读文章
+              <span
+                aria-hidden
+                className="grid size-9 place-items-center rounded-full bg-accent text-[var(--color-on-accent)] transition-transform duration-300 ease-out group-hover:translate-x-1"
+              >
+                <ArrowIcon />
+              </span>
             </MotionLink>
             <MotionLink
               href="/plan"
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-text)]"
+              className="group inline-flex items-center gap-3 text-[0.95rem] font-semibold text-text-muted transition-colors duration-300 hover:text-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
-              whileTap={reduce ? undefined : { scale: 0.98 }}
+              whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              查看规划 <span aria-hidden>→</span>
+              查看规划
+              <span
+                aria-hidden
+                className="grid size-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text)] transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:border-accent group-hover:text-accent"
+              >
+                <ArrowIcon />
+              </span>
             </MotionLink>
           </motion.div>
         </div>
