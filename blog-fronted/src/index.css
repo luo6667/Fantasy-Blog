@@ -171,3 +171,25 @@
     padding: 1rem 0;
   }
 }
+
+/* 细滚动条：用于目标列表等内部滚动容器（Chromium 走自定义，Firefox 走 thin） */
+.scrollbar-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-text) 16%, transparent);
+}
+.scrollbar-slim::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text) 30%, transparent);
+}
+@supports (-moz-appearance: none) {
+  .scrollbar-slim {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-text) 18%, transparent) transparent;
+  }
+}

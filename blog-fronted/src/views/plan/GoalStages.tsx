@@ -62,7 +62,7 @@ function StagePanel({ stage, open, onToggle }: { stage: PlanStage; open: boolean
         <div id={panelID} className="mb-5 border border-[var(--color-border-light)] bg-bg-alt p-4 md:p-5">
           {stage.summary && <p className="max-w-2xl text-sm leading-6 text-text-muted">{stage.summary}</p>}
           {stage.goals.length > 0 ? (
-            <ul className="mt-3 max-h-96 overflow-y-auto pr-2" aria-label={`${stage.title}的子目标`}>
+            <ul className="scrollbar-slim mt-3 max-h-96 overflow-y-auto pr-2" aria-label={`${stage.title}的子目标`}>
               {stage.goals.map((goal, goalIndex) => <GoalRow key={goal.id} goal={goal} index={goalIndex} />)}
             </ul>
           ) : (
