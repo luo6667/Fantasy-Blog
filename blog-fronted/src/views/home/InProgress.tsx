@@ -4,12 +4,12 @@ import Link from 'next/link';
 
 import type { PlanContent } from '@/types/api';
 
-import { calculatePlanProgress, findCurrentStage } from '../plan/planData';
+import { calculateProgress, findCurrentStage } from '../plan/planData';
 
-/** 首页摘要：突出唯一总目标及当前阶段，不重复展示完整子目标列表。 */
+/** 首页摘要：以当前阶段为主，展示其标题、说明与子目标进度。 */
 export default function InProgress({ content }: { content: PlanContent }) {
-  const progress = calculatePlanProgress(content);
   const stage = findCurrentStage(content);
+  const progress = calculateProgress(stage?.goals ?? []);
 
   return (
     <section className="px-6 py-16 md:py-24">
@@ -22,10 +22,10 @@ export default function InProgress({ content }: { content: PlanContent }) {
           </Link>
         </div>
         <article className="mt-8 border-l border-[var(--color-border)] pl-6 md:mt-0">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-text-muted">Overall goal</p>
-          <h3 className="mt-2 text-[1.2rem] font-bold leading-[1.4] tracking-[-0.02em]">{content.title || '我的目标'}</h3>
-          {content.summary && <p className="mt-2 max-w-[52ch] text-[0.9rem] leading-[1.7] text-text-muted">{content.summary}</p>}
-          <p className="mt-4 text-sm text-text-muted"><span className="font-semibold text-accent">{progress.done}/{progress.total}</span> 个子目标完成{stage && <> · 当前阶段：{stage.title}</>}</p>
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-text-muted">Current stage</p>
+          <h3 className="mt-2 text-[1.2rem] font-bold leading-[1.4] tracking-[-0.02em]">{stage?.title || content.title || '当前阶段'}</h3>
+          {(stage?.summary || content.summary) && <p className="mt-2 max-w-[52ch] text-[0.9rem] leading-[1.7] text-text-muted">{stage?.summary || content.summary}</p>}
+          <p className="mt-4 text-sm text-text-muted"><span className="font-semibold text-accent">{progress.done}/{progress.total}</span> 个子目标完成</p>
         </article>
       </div>
     </section>
