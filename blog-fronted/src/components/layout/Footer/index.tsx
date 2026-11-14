@@ -18,9 +18,9 @@ export default function Footer() {
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">Independent creator</p>
           <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-[var(--color-text)]">Fantasy</h2>
           <p className="mt-4 max-w-[26ch] text-base leading-[1.7] text-text-secondary">
-            Seek depth,
+            Seek depth
             <br />
-            embrace outward
+            Embrace outward
           </p>
         </section>
 
@@ -53,7 +53,19 @@ export default function Footer() {
               whileTap={{ scale: 0.96 }}
               transition={motionConfig}
             >
-              <i className="iconfont icon-youjian text-[0.95rem]" aria-hidden="true" /> ljw15875758942@163.com
+              <svg
+                viewBox="0 0 24 24"
+                className="h-[0.95rem] w-[0.95rem] shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5.5" width="18" height="13" rx="2.6" />
+                <path d="m3.7 7.4 7.2 4.9a2 2 0 0 0 2.2 0l7.2-4.9" />
+              </svg> ljw15875758942@163.com
             </motion.a>
             <motion.a
               href="https://github.com/luo6667"

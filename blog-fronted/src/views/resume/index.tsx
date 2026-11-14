@@ -45,8 +45,20 @@ export default function Resume() {
               variants={heroItem}
               className="flex flex-wrap gap-x-5 gap-y-2 text-[0.9375rem] text-[var(--color-text)] [&_.iconfont]:text-base"
             >
-              <span>
-                <i className="iconfont icon-youjian mr-1" /> ljw15875758942@163.com
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <svg
+                viewBox="0 0 24 24"
+                className="h-[0.95rem] w-[0.95rem] shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5.5" width="18" height="13" rx="2.6" />
+                <path d="m3.7 7.4 7.2 4.9a2 2 0 0 0 2.2 0l7.2-4.9" />
+              </svg> ljw15875758942@163.com
               </span>
               <span>
                 <i className="iconfont icon-GitHub mr-1" /> https://github.com/luo6667
