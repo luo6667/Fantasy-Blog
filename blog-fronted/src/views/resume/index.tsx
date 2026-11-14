@@ -39,7 +39,7 @@ export default function Resume() {
               variants={heroItem}
               className="mb-1 text-base text-text-secondary"
             >
-              前端工程师 · 初级全栈开发者
+              全栈开发者
             </motion.p>
             <motion.div
               variants={heroItem}
@@ -68,8 +68,7 @@ export default function Resume() {
               variants={heroItem}
               className="mt-3 border-t border-[var(--color-border-light)] pt-3 text-[0.9375rem] leading-[1.6] text-text-secondary"
             >
-              前端开发，热爱技术与创造。1 年学习经验，
-              擅长将复杂需求转化为简洁直观的数字产品。
+              全栈开发实践者，AI Agent 探索者-以项目驱动成长，在实践中沉淀技术与思考
             </motion.p>
           </motion.div>
         </div>
@@ -197,7 +196,7 @@ export default function Resume() {
           <Reveal>
             <div className="mt-5">
               <p className="mb-5 max-w-[38rem] text-[0.9375rem] leading-[1.65] text-text-muted">
-                我的 GitHub 主页收录了更多开源项目与练手作品。欢迎 Star 和 PR，也期待技术交流。
+                我的 GitHub 收录了全栈项目、AI 应用实验与日常技术练习作品 欢迎 Star 与交流
               </p>
               <motion.a
                 href="https://github.com/luo6667"

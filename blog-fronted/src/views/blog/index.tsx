@@ -111,7 +111,7 @@ export default function Blog({
             animate="animate"
             transition={{ ...springHero, opacity: { duration: 0.2 }, delay: 0.18 }}
           >
-            记录学习过程与工程实践的思考。
+            记录学习过程与工程实践的思考
           </motion.p>
 
           <motion.p

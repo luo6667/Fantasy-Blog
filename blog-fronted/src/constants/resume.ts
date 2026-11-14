@@ -19,7 +19,7 @@ export const RESUME_SKILLS: string[] = [
 export const RESUME_INTERNSHIPS: ResumeInternship[] = [];
 
 export const RESUME_EVALUATION =
-  '热爱前端开发，主动跟进React生态、Node全栈等前沿技术，持续关注行业发展趋势；对AI应用抱有浓厚兴趣，擅长借助AI辅助代码编写、接口设计、问题调试；能够独立校验AI产出、梳理逻辑并落地完整项目，善用工具提升开发效率，保持自主思考不盲目照搬生成内容。';
+  '正逐步完善全栈技术体系，深耕前端的同时拓展 Go 后端能力；持续关注 AI Agent 与 AI 应用落地，习惯用 AI 辅助开发与问题排查，始终坚持先理解再复用，在项目实践中沉淀方法论';
 
 export const RESUME_PROJECTS: ResumeProject[] = [
   {

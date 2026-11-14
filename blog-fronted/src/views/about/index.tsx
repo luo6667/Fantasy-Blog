@@ -66,7 +66,7 @@ export default function About() {
           <Reveal>
             <div className="lg:sticky lg:top-24">
               <Eyebrow>Capability / 能力地图</Eyebrow>
-              <h2 className="mt-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold tracking-[-0.04em]">把复杂的事，做得清楚一点。</h2>
+              <h2 className="mt-4 text-[clamp(1.75rem,3vw,2.5rem)] font-extrabold tracking-[-0.04em]">持续打磨的<br />全栈能力</h2>
             </div>
           </Reveal>
           <div className="divide-y divide-[var(--color-border)] border-t border-[var(--color-border)]">

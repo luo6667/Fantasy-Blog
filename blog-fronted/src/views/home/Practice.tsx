@@ -24,7 +24,7 @@ export default function Practice({
           </p>
           <h2 className="text-[clamp(1.7rem,3vw,2.3rem)] font-extrabold tracking-[-0.03em]">持续创作</h2>
           <p className="mt-3 max-w-[46ch] text-[0.95rem] leading-[1.8] text-text-muted">
-            代码、文章和笔记同时推进。GitHub 记录每天的手感，博客记录想清楚的部分。
+            全栈开发、项目实践与技术写作并行。代码足迹留存每日工程积累，博客整理沉淀后的方法论
           </p>
         </div>
 

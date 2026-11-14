@@ -6,13 +6,13 @@ import type { Education, SkillGroup } from '@/types';
 export const ABOUT_PROFILE = {
   eyebrow: 'Creator dossier / 2026',
   name: 'Fantasy',
-  role: '设计、开发与持续写作',
-  intro: '我把想法落成可用的产品，也把过程整理成值得回看的文字。这个站点是作品集、实验场和长期笔记的交汇处。',
+  role: 'LEARN · CREATE · SHARE · GAIN · GROW',
+  intro: '专注全栈开发与技术沉淀，把学习和实践过程整理成可复用的经验 这里是我的项目作品集、技术笔记与成长记录',
   focus: [
-    { title: '正在构建', content: '更轻、更快，也更适合长期书写的个人内容系统。' },
-    { title: '持续练习', content: '在前端工程、Go 服务与产品表达之间建立自己的工作方法。' },
+    { title: 'Golang与数据库', content: '学习Gin，Gorm，深耕MySQL、Redis数据库，沉淀稳定的服务端开发实践' },
+    { title: 'AI Agent探索', content: '探索AI Agent与大模型应用落地，打磨AI辅助开发工作流，坚持自主校验与逻辑把控' },
   ],
-  pointOfView: '好的个人作品不必喧哗。它应该有清晰的结构、可靠的细节，并留下一点让人愿意停留的温度。',
+  pointOfView: 'There is nothing noble in being superior to your fellow man; true nobility is being superior to your former self',
 } as const;
 
 export const ABOUT_CORE_SKILLS: SkillGroup[] = [
@@ -40,9 +40,9 @@ export const ABOUT_CORE_SKILLS: SkillGroup[] = [
 
 export const ABOUT_TOOL_GROUPS: SkillGroup[] = [
   { label: '版本控制', tags: ['Git'] },
-  { label: '部署运维', tags: ['Docker', 'CI/CD', 'GitHub Actions'] },
-  { label: '开发工具', tags: ['VS Code', 'Cursor', 'Postman', 'ApiFox', 'WebStorm', 'Chrome DevTools'] },
-  { label: 'AI 开发', tags: ['Claude Code', 'Codex', 'Reasonix', 'Deepseekv4','Trae'] },
+  { label: '部署运维', tags: ['Docker', 'CI/CD'] },
+  { label: '开发工具', tags: ['Cursor', 'Goland', 'Trae', 'ApiFox'] },
+  { label: 'AI 开发', tags: ['Claude Code', 'Codex', 'DeepSeek Harness'] },
 ];
 
 export const ABOUT_EDUCATION: Education[] = [
