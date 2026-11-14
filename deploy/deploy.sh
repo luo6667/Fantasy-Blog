@@ -273,7 +273,7 @@ revalidate_pages() {
   for p in /blog '/blog/[id]' /home /plan /resume; do
     query="${query}&path=$(printf '%s' "$p" | sed 's/\[/%5B/g; s/\]/%5D/g')"
   done
-  if curl -g -fsS --max-time 15 "http://127.0.0.1:${WEB_PORT}/api/revalidate?${query}" >/dev/null 2>&1; then
+  if curl -g -fsS -X POST --max-time 15 "http://127.0.0.1:${WEB_PORT}/api/revalidate?${query}" >/dev/null 2>&1; then
     ok "已触发静态页刷新（/blog、/blog/[id]、/home、/plan、/resume）"
   else
     warn "静态页刷新失败（不影响服务，可稍后手动重试）"
