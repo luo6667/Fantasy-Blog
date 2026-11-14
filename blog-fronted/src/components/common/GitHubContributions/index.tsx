@@ -44,12 +44,14 @@ export default function GitHubContributions({
   data: ContributionsData | null;
   className?: string;
 }) {
-  if (!data || (data.github.days.length === 0 && data.gitee.days.length === 0)) return null;
+  const githubDays = data?.github.days ?? [];
+  const giteeDays = data?.gitee.days ?? [];
+  if (!data || (githubDays.length === 0 && giteeDays.length === 0)) return null;
 
   const currentYear = String(new Date().getFullYear());
   const byDate = new Map<string, { github?: Cell; gitee?: Cell }>();
-  for (const day of data.github.days.filter((item) => item.date.startsWith(currentYear))) byDate.set(day.date, { ...(byDate.get(day.date) ?? {}), github: day });
-  for (const day of data.gitee.days.filter((item) => item.date.startsWith(currentYear))) byDate.set(day.date, { ...(byDate.get(day.date) ?? {}), gitee: day });
+  for (const day of githubDays.filter((item) => item.date.startsWith(currentYear))) byDate.set(day.date, { ...(byDate.get(day.date) ?? {}), github: day });
+  for (const day of giteeDays.filter((item) => item.date.startsWith(currentYear))) byDate.set(day.date, { ...(byDate.get(day.date) ?? {}), gitee: day });
   const days = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b));
 
   // —— 预处理：按周分组（列），格子定位到 weekday(0=周日 .. 6=周六) ——

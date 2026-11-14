@@ -32,6 +32,15 @@ type contributionSource struct {
 	Total  int               `json:"total"`
 	Days   []contributionDay `json:"days"`
 }
+
+func (s contributionSource) MarshalJSON() ([]byte, error) {
+	type plain contributionSource
+	if s.Days == nil {
+		s.Days = []contributionDay{}
+	}
+	return json.Marshal(plain(s))
+}
+
 type contributionData struct {
 	GitHub contributionSource `json:"github"`
 	Gitee  contributionSource `json:"gitee"`
