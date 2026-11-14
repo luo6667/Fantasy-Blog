@@ -87,15 +87,6 @@ export default function CoverContent() {
           进入主页
         </MotionLink>
         <MotionLink
-          href="/resume"
-          className={btnCover}
-          whileHover={{ scale: 1.04, y: -2 }}
-          whileTap={{ scale: 0.94 }}
-          transition={springBtn}
-        >
-          查看简历
-        </MotionLink>
-        <MotionLink
           href="/blog"
           className={btnCover}
           whileHover={{ scale: 1.04, y: -2 }}
@@ -103,6 +94,15 @@ export default function CoverContent() {
           transition={springBtn}
         >
           阅读博客
+        </MotionLink>
+        <MotionLink
+          href="/plan"
+          className={btnCover}
+          whileHover={{ scale: 1.04, y: -2 }}
+          whileTap={{ scale: 0.94 }}
+          transition={springBtn}
+        >
+          查看规划
         </MotionLink>
         <motion.a
           href="https://github.com/luo6667"
