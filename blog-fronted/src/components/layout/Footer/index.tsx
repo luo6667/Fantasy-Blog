@@ -12,7 +12,7 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-[var(--color-border)] px-6 pb-6 pt-14 text-[0.8125rem] text-text-muted md:pt-16">
+    <footer className="border-t border-[var(--color-border)] px-6 pb-5 pt-14 text-[0.8125rem] text-text-muted md:pt-16">
       <div className="mx-auto grid max-w-page gap-10 md:grid-cols-[1.2fr_0.8fr_1fr] md:gap-12">
         <section>
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">Independent creator</p>
@@ -82,7 +82,7 @@ export default function Footer() {
         </section>
       </div>
 
-      <div className="mx-auto mt-12 max-w-page border-t border-[var(--color-border-light)] pt-4 text-xs">
+      <div className="mx-auto mt-12 max-w-page border-t border-[var(--color-border-light)] pt-4 text-center text-xs">
         <p>© {year} Fantasy. All rights reserved.</p>
       </div>
     </footer>
