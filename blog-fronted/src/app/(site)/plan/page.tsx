@@ -28,6 +28,9 @@ export default async function PlanPage() {
     .query({
       queryKey: siteContentKeys.byKey('plan'),
       queryFn: () => siteContentApi.get('plan'),
+      // 后端刚启动或短暂抖动时重试，避免把默认常量注水给客户端造成 hydration 不一致
+      retry: 2,
+      retryDelay: 300,
     })
     .catch(() => {
       // 后端未启动 / 查询失败：写入默认值，避免服务端与客户端首屏不一致

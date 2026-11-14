@@ -45,6 +45,7 @@ export function normalizePlanContent(value: unknown, fallback: PlanContent): Pla
         goals: Array.isArray(item.goals)
           ? item.goals.map((goal, goalIndex) => normalizeGoal(goal, stageIndex, goalIndex))
           : [],
+        current: item.current === true,
       };
     }),
   };
@@ -72,9 +73,10 @@ export function calculatePlanProgress(content: PlanContent): PlanProgress {
   return calculateProgress(content.stages.flatMap((stage) => stage.goals));
 }
 
-/** 优先呈现进行中的阶段；没有时选择第一个尚未完成的阶段。 */
+/** 后台手动指定优先；未指定时优先进行中，其次第一个尚未开始的阶段。 */
 export function findCurrentStage(content: PlanContent): PlanStage | undefined {
   const stages = sortPlanStages(content.stages);
-  return stages.find((stage) => calculateProgress(stage.goals).status === 'active')
+  return stages.find((stage) => stage.current === true)
+    ?? stages.find((stage) => calculateProgress(stage.goals).status === 'active')
     ?? stages.find((stage) => calculateProgress(stage.goals).status === 'planned');
 }

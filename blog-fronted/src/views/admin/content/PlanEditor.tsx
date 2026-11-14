@@ -24,6 +24,14 @@ export default function PlanEditor({ value }: { value: unknown }) {
   const { draft, setDraft, dirty, saving, error, save } = useContentEditor<PlanContent>('plan', normalizedValue);
   if (draft === null) return null;
 
+  const currentID = draft.stages.find((stage) => stage.current === true)?.id;
+  const setCurrentStage = (id: string | null) => {
+    setDraft((current) => current === null ? current : {
+      ...current,
+      stages: current.stages.map((stage) => ({ ...stage, current: stage.id === id })),
+    });
+  };
+
   const updateStage = (index: number, next: PlanStage) => {
     setDraft((current) => current === null ? current : { ...current, stages: current.stages.map((stage, stageIndex) => stageIndex === index ? next : stage) });
   };
@@ -40,6 +48,8 @@ export default function PlanEditor({ value }: { value: unknown }) {
             key={stage.id}
             stage={stage}
             onChange={(next) => { updateStage(index, next); }}
+            isCurrent={currentID === stage.id}
+            onToggleCurrent={() => { setCurrentStage(currentID === stage.id ? null : stage.id); }}
             onRemove={() => { setDraft({ ...draft, stages: draft.stages.filter((_, stageIndex) => stageIndex !== index) }); }}
             createGoal={emptyGoal}
           />

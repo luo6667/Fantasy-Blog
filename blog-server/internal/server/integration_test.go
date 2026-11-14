@@ -606,3 +606,48 @@ func TestSiteContentDedupesHomeProjectTags(t *testing.T) {
 		t.Fatalf("tags not deduped: %+v", item.Value[0].Tags)
 	}
 }
+
+func TestSiteContentCurrentStageOverride(t *testing.T) {
+	db := resetTestDB(t, testConfig(t))
+	c := newClient(t, db)
+	defer c.srv.Close()
+	token := c.login()
+
+	stage := func(id string, current bool, order int) map[string]any {
+		return map[string]any{
+			"id": id, "order": order, "title": "阶段 " + id, "summary": "", "current": current,
+			"goals": []map[string]any{{"id": "goal-" + id, "title": "目标", "desc": "", "status": "planned"}},
+		}
+	}
+	payload := func(stages ...map[string]any) map[string]any {
+		return map[string]any{"value": map[string]any{"title": "路线", "summary": "", "stages": stages}}
+	}
+
+	status, env := c.do(http.MethodPut, "/api/site-content/plan", token, payload(stage("a", true, 1), stage("b", true, 2)))
+	if status != http.StatusBadRequest || !strings.Contains(env.Msg, "只能指定一个当前阶段") {
+		t.Fatalf("multiple current stages: status=%d msg=%q", status, env.Msg)
+	}
+
+	status, env = c.do(http.MethodPut, "/api/site-content/plan", token, payload(stage("a", false, 1), stage("b", true, 2)))
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("save current stage: status=%d body=%+v", status, env)
+	}
+	status, env = c.do(http.MethodGet, "/api/site-content/plan", "", nil)
+	if status != http.StatusOK || env.Code != 0 {
+		t.Fatalf("get plan: status=%d body=%+v", status, env)
+	}
+	var item struct {
+		Value struct {
+			Stages []struct {
+				ID      string `json:"id"`
+				Current bool   `json:"current"`
+			} `json:"stages"`
+		} `json:"value"`
+	}
+	if err := json.Unmarshal(env.Data, &item); err != nil {
+		t.Fatalf("plan payload: %s", string(env.Data))
+	}
+	if len(item.Value.Stages) != 2 || item.Value.Stages[0].Current || !item.Value.Stages[1].Current {
+		t.Fatalf("current stage 未按保存值回读: %+v", item.Value.Stages)
+	}
+}

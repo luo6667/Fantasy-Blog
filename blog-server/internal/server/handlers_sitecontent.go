@@ -62,6 +62,8 @@ type planStage struct {
 	Title   string     `json:"title"`
 	Summary string     `json:"summary"`
 	Goals   []planGoal `json:"goals"`
+	// Current 由后台手动指定当前阶段；缺省或 false 时按子目标推进状态自动推导。
+	Current bool `json:"current,omitempty"`
 }
 
 type planContent struct {
@@ -304,6 +306,7 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 		}
 		usedOrders := make(map[int]struct{}, len(content.Stages))
 		usedStageIDs := make(map[string]struct{}, len(content.Stages))
+		currentCount := 0
 		for i := range content.Stages {
 			stage := &content.Stages[i]
 			stage.ID = strings.TrimSpace(stage.ID)
@@ -330,6 +333,12 @@ func validateSiteContent(key string, raw json.RawMessage) (json.RawMessage, erro
 			}
 			if zlen(stage.Summary) > 200 {
 				add(i, "阶段简介最多 200 字")
+			}
+			if stage.Current {
+				currentCount++
+				if currentCount > 1 {
+					add(i, "只能指定一个当前阶段")
+				}
 			}
 			if len(stage.Goals) > 20 {
 				add(i, "每个阶段最多 20 个子目标")

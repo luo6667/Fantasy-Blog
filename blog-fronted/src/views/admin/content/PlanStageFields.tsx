@@ -2,7 +2,7 @@ import { PLAN_STATUS_OPTIONS } from '@/constants';
 import type { PlanGoal, PlanStage } from '@/types/api';
 
 import { Field, SelectField } from './contentFields';
-import { editorBtnAdd, editorBtnDanger, editorInputClass } from './useContentEditor';
+import { editorBtnAdd, editorBtnDanger, editorBtnGhost, editorInputClass } from './useContentEditor';
 
 function GoalFields({ goal, onChange, onRemove }: { goal: PlanGoal; onChange: (goal: PlanGoal) => void; onRemove: () => void }) {
   return (
@@ -17,11 +17,13 @@ function GoalFields({ goal, onChange, onRemove }: { goal: PlanGoal; onChange: (g
   );
 }
 
-export default function PlanStageFields({ stage, onChange, onRemove, createGoal }: {
+export default function PlanStageFields({ stage, onChange, onRemove, createGoal, isCurrent, onToggleCurrent }: {
   stage: PlanStage;
   onChange: (stage: PlanStage) => void;
   onRemove: () => void;
   createGoal: () => PlanGoal;
+  isCurrent: boolean;
+  onToggleCurrent: () => void;
 }) {
   return (
     <section className="space-y-4 border border-[var(--color-border)] p-4">
@@ -38,7 +40,11 @@ export default function PlanStageFields({ stage, onChange, onRemove, createGoal 
           />
         </label>
         <Field label="阶段标题" value={stage.title} placeholder="如 Go 基础与工具链" onChange={(title) => { onChange({ ...stage, title }); }} />
-        <button type="button" className={editorBtnDanger} onClick={onRemove}>删除阶段</button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {isCurrent && <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">当前阶段</span>}
+          <button type="button" className={editorBtnGhost} onClick={onToggleCurrent}>{isCurrent ? '取消当前' : '设为当前'}</button>
+          <button type="button" className={editorBtnDanger} onClick={onRemove}>删除阶段</button>
+        </div>
       </div>
       <Field label="阶段说明（可选）" textarea rows={2} value={stage.summary} placeholder="这个阶段要建立什么能力…" onChange={(summary) => { onChange({ ...stage, summary }); }} />
 

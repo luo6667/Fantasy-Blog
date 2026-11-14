@@ -197,6 +197,8 @@ export interface PlanStage {
   title: string
   summary: string
   goals: PlanGoal[]
+  /** 后台手动指定的当前阶段；同一时间最多一个为 true，缺省时按推进状态自动推导。 */
+  current?: boolean
 }
 
 /** 规划页唯一的总目标。 */
