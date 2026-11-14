@@ -5,10 +5,30 @@ import { motion, useReducedMotion } from 'motion/react';
 import { MotionLink } from '@/components/common';
 import { springBtn, springHero } from '@/lib/motion';
 
-function ArrowIcon() {
+function ArrowIcon({ className = '' }: { className?: string }) {
   return (
-    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className={className} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BookIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 3.5h5.5A2 2 0 0 1 11.5 5.5v11H6a2 2 0 0 0-2 2v-15Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M16 3.5h-4.5v13H14a2 2 0 0 0 2-2v-11Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M6.5 7h2M6.5 10h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RouteIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="5" cy="15" r="2.2" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="15" cy="5" r="2.2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M7 15h3.5a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }
@@ -66,33 +86,25 @@ export default function Hero() {
           >
             <MotionLink
               href="/blog"
-              className="group inline-flex items-center gap-3 text-[0.95rem] font-semibold text-[var(--color-text)]"
+              className="group inline-flex items-center gap-1.5 text-[0.95rem] font-semibold text-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
               whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              阅读文章
-              <span
-                aria-hidden
-                className="grid size-9 place-items-center rounded-full bg-accent text-[var(--color-on-accent)] transition-transform duration-300 ease-out group-hover:translate-x-1"
-              >
-                <ArrowIcon />
-              </span>
+              <BookIcon className="size-4 shrink-0 text-accent" />
+              <span>阅读文章</span>
+              <ArrowIcon className="size-3.5 shrink-0 text-text-muted transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:text-accent" />
             </MotionLink>
             <MotionLink
               href="/plan"
-              className="group inline-flex items-center gap-3 text-[0.95rem] font-semibold text-text-muted transition-colors duration-300 hover:text-[var(--color-text)]"
+              className="group inline-flex items-center gap-1.5 text-[0.95rem] font-semibold text-text-muted transition-colors duration-300 hover:text-[var(--color-text)]"
               whileHover={reduce ? undefined : { y: -1 }}
               whileTap={reduce ? undefined : { scale: 0.985 }}
               transition={springBtn}
             >
-              查看规划
-              <span
-                aria-hidden
-                className="grid size-9 place-items-center rounded-full border border-[var(--color-border)] text-[var(--color-text)] transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:border-accent group-hover:text-accent"
-              >
-                <ArrowIcon />
-              </span>
+              <RouteIcon className="size-4 shrink-0" />
+              <span>查看规划</span>
+              <ArrowIcon className="size-3.5 shrink-0 opacity-70 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:text-accent group-hover:opacity-100" />
             </MotionLink>
           </motion.div>
         </div>
