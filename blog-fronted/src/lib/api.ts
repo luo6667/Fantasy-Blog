@@ -38,7 +38,8 @@ import type {
 const API_BASE =
   typeof window !== 'undefined'
     ? '/api'
-    : `${process.env.API_TARGET ?? 'http://localhost:4000'}/api`
+    : process.env.API_FETCH_URL ??
+      `${process.env.API_TARGET ?? 'http://localhost:4000'}/api`
 const TOKEN_KEY = 'blog_token'
 
 /** 业务/网络错误 */

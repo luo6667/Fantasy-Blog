@@ -27,16 +27,18 @@ module.exports = {
       kill_timeout: 8000,
       merge_logs: true,
       time: true,
-      cwd: path.join(CURRENT, 'blog-fronted'),
-      // 直接用 next 的 CLI 入口（比 npm run start 少一层 npm 进程，reload 不留孤儿进程）
-      script: path.join(CURRENT, 'blog-fronted', 'node_modules', 'next', 'dist', 'bin', 'next'),
-      args: 'start -p 3000 -H 127.0.0.1',
+      cwd: path.join(CURRENT, 'blog-fronted', '.next', 'standalone'),
+      // standalone 产物自带最小 node_modules；直接跑 server.js，不依赖 next CLI 与 npm
+      script: path.join(CURRENT, 'blog-fronted', '.next', 'standalone', 'server.js'),
+      args: '',
       interpreter: 'node',
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
         TZ: 'Asia/Shanghai',
-        // 服务端取数（SSG/SSR）直连本机 Go 后端；浏览器侧走同源 /api
+        // standalone 用 PORT/HOSTNAME 监听；服务端取数直连本机 Go 后端
+        PORT: '3000',
+        HOSTNAME: '127.0.0.1',
         API_TARGET: 'http://127.0.0.1:4000',
         NEXT_TELEMETRY_DISABLED: '1',
       },

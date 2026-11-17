@@ -68,6 +68,34 @@ jobs:
         working-directory: blog-fronted
         run: npm run lint
 
+      - name: 构建前端（standalone）
+        if: ${{ github.event_name != 'pull_request' }}
+        working-directory: blog-fronted
+        env:
+          # rewrites 烘焙成本机 127.0.0.1:4000（服务器运行时直连 Go）；
+          # 构建期 SSG 取数走公网地址，Runner 访问不到 127.0.0.1。
+          API_TARGET: http://127.0.0.1:4000
+          API_FETCH_URL: https://fantasynote.cloud/api
+        run: |
+          set -euo pipefail
+          npm run build
+          mkdir -p .next/standalone/.next
+          rm -rf .next/standalone/.next/static .next/standalone/public
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      - name: 打包前端产物
+        if: ${{ github.event_name != 'pull_request' }}
+        run: tar -czf web-standalone.tgz -C blog-fronted/.next/standalone .
+
+      - name: 上传前端产物
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-web-standalone
+          path: web-standalone.tgz
+          retention-days: 7
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: blog-server/go.mod
@@ -127,6 +155,20 @@ jobs:
       - name: 还原可执行权限
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
         run: chmod +x blog-server/bin/server
+
+      - name: 下载前端产物
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: blog-web-standalone
+
+      - name: 解包前端产物
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        run: |
+          set -euo pipefail
+          mkdir -p web-standalone
+          tar -xzf web-standalone.tgz -C web-standalone
+          test -f web-standalone/server.js
 
       - name: 准备 SSH
         run: |
@@ -214,6 +256,7 @@ jobs:
             --exclude '.vscode' \
             --exclude '.tools' \
             --exclude 'perf-baseline' \
+            --exclude 'web-standalone.tgz' \
             -e "ssh -p $SSH_PORT -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
             ./ "$SSH_USER@$SSH_HOST:$APP_ROOT/releases/$REL/"
 

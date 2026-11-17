@@ -15,7 +15,7 @@
 #
 # ── 目录约定 ────────────────────────────────────────────────────────────────
 #   /www/wwwroot/personal-blog/
-#   ├── releases/<UTC时间戳>-<sha7>/   每次发布一份完整代码（各自带 node_modules 与 .next）
+#   ├── releases/<UTC时间戳>-<sha7>/   每次发布一份完整代码（前端只带 .next/standalone 产物）
 #   ├── current -> releases/xxx/       PM2 的工作目录指向这里，切换软链 + reload 即上线
 #   ├── shared/                        跨发布复用，回滚不会动它
 #   │   ├── backend.env                → 软链为 blog-server/.env
@@ -88,7 +88,7 @@ ensure_dirs() {
 check_tools() {
   local missing=0 cmd
   # 后端是 Go：systemd 托管；前端仍需要 node/npm/pm2。
-  for cmd in node npm pm2 curl systemctl; do
+  for cmd in node pm2 curl systemctl; do
     command -v "$cmd" >/dev/null 2>&1 || { err "未找到命令：$cmd"; missing=1; }
   done
   [ "$missing" -eq 0 ] || {
@@ -108,7 +108,7 @@ check_tools() {
     err "Node 版本过低（当前 $(node -v)），Next.js 16 需要 Node >= 20，建议 Node 22 LTS"
     exit 1
   fi
-  ok "工具链：node $(node -v) / npm $(npm -v) / pm2 $(pm2 -v 2>/dev/null || echo '?')"
+  ok "工具链：node $(node -v) / pm2 $(pm2 -v 2>/dev/null || echo '?')"
 }
 
 # ── 环境变量 ────────────────────────────────────────────────────────────────
@@ -219,27 +219,59 @@ restart_backend() {
 
 # PM2 只负责 Next 前端。
 pm2_start_or_reload_web() {
+  # 先删后起：确保 script/cwd/env 完全按新 ecosystem 生效（standalone 与旧 next start 的入口不同）
+  pm2 delete blog-web >/dev/null 2>&1 || true
+  pm2 start "$PM2_FILE" --only blog-web 2>&1 | sed 's/^/    /'
+  pm2 save >/dev/null 2>&1 || true
+  pm2 describe blog-web >/dev/null 2>&1
+}
+
+build_backend() {
+  local rel="$1"
+  if command -v go >/dev/null 2>&1; then
+    log "构建后端（go build）"
+    (
+      cd "$rel/blog-server"
+      CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o bin/server ./cmd/server
+    )
+  else
+    log "跳过后端编译（使用发布目录内的预编译产物）"
+  fi
+  [ -x "$rel/blog-server/bin/server" ] || {
+    err "后端可执行文件缺失：blog-server/bin/server（请安装 Go 或由 CI 预编译后随代码上传）"
+    exit 1
+  }
+  ok "后端构建完成"
+}
+
+# 后端由 systemd 托管：切换软链后 restart，失败只回滚软链与重启。
+restart_backend() {
+  systemctl restart "$SYSTEMD_UNIT" 2>&1 | sed 's/^/    /' || return 1
+  return 0
+}
+
+# PM2 只负责 Next 前端。
+pm2_start_or_reload_web() {
   pm2 startOrReload "$PM2_FILE" --only blog-web --update-env 2>&1 | sed 's/^/    /'
   pm2 save >/dev/null 2>&1 || true
   pm2 describe blog-web >/dev/null 2>&1
 }
 
-build_frontend() {
+assemble_web() {
   local rel="$1"
-  # 注意顺序：此时 current 仍指向旧版本，构建期调用的是【当前在线】的后端，
-  # 所以全量 SSG 拿到的是线上一刻的文章列表（新发布不会改数据，足够准确）。
-  # 首次部署时后端还没起 → generateStaticParams 降级为空列表，详情页改为按需生成，
-  # 从第二次发布起就是全量预渲染。
-  log "构建前端（npm ci + next build，约 1–2 分钟）"
-  (
-    cd "$rel/blog-fronted"
-    npm ci --include=dev --no-audit --no-fund
-    # 低内存服务器（1–2G）构建 Next 容易 OOM，限制 V8 堆并交给 swap 兜底
-    NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" \
-      API_TARGET="http://127.0.0.1:${API_PORT}" npm run build
-  )
-  [ -f "$rel/blog-fronted/.next/BUILD_ID" ] || { err "前端构建产物缺失：.next/BUILD_ID"; exit 1; }
-  ok "前端构建完成"
+  local src="$rel/web-standalone"
+  local dest="$rel/blog-fronted/.next/standalone"
+
+  # 前端在 GitHub Actions 里构建（standalone），服务器只做搬运，不跑 npm/next build。
+  [ -f "$src/server.js" ] || {
+    err "缺少前端构建产物：web-standalone/server.js（CI 未上传或 rsync 排除规则有误）"
+    exit 1
+  }
+  mkdir -p "$rel/blog-fronted/.next"
+  rm -rf -- "$dest"
+  mv -- "$src" "$dest"
+  [ -f "$dest/server.js" ] || { err "前端产物搬运失败：.next/standalone/server.js"; exit 1; }
+  ok "前端产物就绪（standalone，服务器无需 node_modules）"
 }
 
 # ── PM2 ─────────────────────────────────────────────────────────────────────
@@ -309,7 +341,7 @@ previous_release() {
   while IFS= read -r d; do
     [ "$(readlink -f "$d")" = "$cur" ] && continue
     [ -x "$d/blog-server/bin/server" ] || continue
-    [ -f "$d/blog-fronted/.next/BUILD_ID" ] || continue
+    [ -f "$d/blog-fronted/.next/standalone/server.js" ] || continue
     printf '%s\n' "$d"
     return 0
   done < <(find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -r)
@@ -379,7 +411,7 @@ cmd_deploy() {
   link_shared "$rel"
 
   build_backend "$rel"
-  build_frontend "$rel"
+  assemble_web "$rel"
 
   local prev
   prev="$(current_release)"

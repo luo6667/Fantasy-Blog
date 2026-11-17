@@ -23,6 +23,8 @@ const DEV_ORIGINS = (process.env.DEV_ORIGINS ?? '192.168.31.85')
   .filter(Boolean);
 
 const nextConfig: NextConfig = {
+  // 构建在 CI 完成，服务器只跑产物：standalone 把运行所需的最小 node_modules 一起打进去
+  output: 'standalone',
   reactCompiler: true,
   reactStrictMode: true,
   devIndicators: false,

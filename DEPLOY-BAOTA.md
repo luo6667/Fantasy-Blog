@@ -26,7 +26,7 @@ MySQL 8（127.0.0.1:3306）
 
 ```
 /www/wwwroot/personal-blog/
-├── releases/<时间戳>/      每次发布一份完整代码（含 node_modules、.next）
+├── releases/<时间戳>/      每次发布一份代码 + 前端 standalone 产物（不含 node_modules）
 ├── current -> releases/...  当前线上版本（软链）
 ├── shared/
 │   ├── backend.env          Go 环境变量（软链为 blog-server/.env）
@@ -101,11 +101,10 @@ git clone <你的仓库地址> .
 tar -xzf personal-page.tar.gz -C /www/wwwroot/personal-blog
 ```
 
-> 如果你说的「已经打包了前端」是指本机 `next build` 出来的 `.next`：
-> **不要直接上传到 Linux**。Windows 构建产物里带 win32 原生模块（sharp / next-swc），
-> Linux 上会报 `Cannot find module ...linux-x64-gnu` 或 sharp 相关错误。
-> 正确做法是在服务器上重新 `npm ci && npm run build`（下面的发布脚本会自动做），
-> 或者在 WSL / Linux 机器上构建后连同 `node_modules` 一起上传。
+> 前端构建现在统一在 GitHub Actions 里完成（`output: 'standalone'`）：
+> 服务器只接收 `web-standalone/` 产物，不再执行 `npm ci` / `next build`。
+> **不要直接上传 Windows 的 `.next` 或 `node_modules`**（win32 原生模块在 Linux 会报 sharp / next-swc 错误）。
+> 本机想手动验证时，用 `API_TARGET=http://127.0.0.1:4000 API_FETCH_URL=https://fantasynote.cloud/api npm run build`。
 
 ---
 
@@ -282,7 +281,7 @@ npm i -g pm2
 cd /www/wwwroot/personal-blog
 REL="releases/$(date -u +%Y%m%d-%H%M%S)"
 mkdir -p "$REL"
-rsync -a --exclude node_modules --exclude .next --exclude .git \
+rsync -a --exclude node_modules --exclude .next --exclude .git --exclude web-standalone.tgz \
   --exclude releases --exclude shared --exclude logs --exclude current \
   ./ "$REL/"
 bash deploy/deploy.sh deploy "$REL"
@@ -292,10 +291,10 @@ bash deploy/deploy.sh deploy "$REL"
 
 1. 校验环境变量（含两端 `REVALIDATE_SECRET` 一致）；
 2. 用预编译的 `bin/server`（服务器有 Go 则会重新编译）；
-3. `npm ci && next build`（**构建时后端必须已可访问**，所以这一步在起后端之后更稳）；
+3. 把 CI 产出的 `web-standalone/` 放进 `current/blog-fronted/.next/standalone`（服务器不构建前端；`/blog` 的 SSG 内容已在 CI 构建时生成）；
 4. 切换 `current` 软链；
 5. `systemctl restart blog-server` + 健康检查 `/api/health`；
-6. `pm2 startOrReload` + 健康检查 `127.0.0.1:3000`；
+6. `pm2 delete blog-web && pm2 start`（standalone 入口）+ 健康检查 `127.0.0.1:3000`；
 7. 自动触发 `/blog`、`/blog/[id]`、`/home`、`/plan`、`/resume` 的静态刷新；
 8. 失败时自动切回上一个发布。
 
@@ -411,7 +410,7 @@ bash deploy/deploy.sh rollback releases/<旧目录>
 | 图片 404 | `UPLOAD_DIR` 是否指向 `shared/uploads`；`chown -R www:www` |
 | CORS 403 | `CORS_ORIGIN` 必须与浏览器地址完全一致（含 https、有无 www） |
 | `Invalid ELF header` / 203/EXEC | 二进制不是 Linux 版或没 `chmod +x` |
-| Next 启动报 sharp / linux-x64-gnu | 上传了 Windows 的 `.next`/`node_modules`，在服务器重新构建 |
+| Next 启动报 sharp / linux-x64-gnu | 用的是 Windows 构建产物；改为使用 CI 的 `web-standalone` 产物（构建在 Linux Runner 上） |
 | `Error 1045 Access denied` | `MYSQL_USER/PASSWORD` 不对；生产环境密码必须显式配置 |
 | 迁移报「标签映射未审批」 | 按第 8 步 `migrate-tags export/verify/apply` |
 | PM2 重启后丢失 | `pm2 save && pm2 startup` |

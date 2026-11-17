@@ -30,3 +30,7 @@ blog-fronted/.npm-cache/
 
 # 数据库备份（含明文数据，只放仓库外受控位置）
 blog-server/backups/
+
+# CI 构建的前端 standalone 产物（只应存在于 Actions / 部署服务器）
+web-standalone/
+web-standalone.tgz
