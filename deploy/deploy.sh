@@ -233,7 +233,7 @@ build_frontend() {
   log "构建前端（npm ci + next build，约 1–2 分钟）"
   (
     cd "$rel/blog-fronted"
-    npm ci --no-audit --no-fund
+    npm ci --include=dev --no-audit --no-fund
     API_TARGET="http://127.0.0.1:${API_PORT}" npm run build
   )
   [ -f "$rel/blog-fronted/.next/BUILD_ID" ] || { err "前端构建产物缺失：.next/BUILD_ID"; exit 1; }

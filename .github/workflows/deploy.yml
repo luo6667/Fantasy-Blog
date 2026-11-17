@@ -1,16 +1,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# 博客持续集成 / 持续部署
+# 博客持续集成 / 持续部署（宝塔 + systemd Go + PM2 Next）
 #
-#   pull_request  → 只跑 verify（类型检查 + Lint），不碰服务器
-#   push main     → verify 通过后发布到 ECS
-#   workflow_dispatch → 手动 deploy / rollback / bootstrap（新服务器初始化用）
+#   pull_request      → 只跑 verify（Go/前端检查），不碰服务器
+#   push main         → verify 通过后发布到服务器
+#   workflow_dispatch → 手动 deploy / rollback / bootstrap
 #
-# 需要在仓库 Settings → Secrets and variables → Actions 里配置：
-#   Secrets: SSH_HOST / SSH_USER / SSH_PRIVATE_KEY（必填）、SSH_PORT / SSH_KNOWN_HOSTS（可选）
-#   Variables: APP_ROOT（可选，默认 /www/wwwroot/personal-blog）
+# 仓库 Settings → Secrets and variables → Actions 需要配置：
+#   Secrets:   SSH_HOST / SSH_USER / SSH_PRIVATE_KEY（必填）
+#              SSH_PORT / SSH_KNOWN_HOSTS（可选）
+#   Variables: APP_ROOT（默认 /www/wwwroot/personal-blog）
+#              SITE_URL（可选，默认 https://fantasynote.cloud）
 #
-# 发布过程：rsync 代码 → 服务器上构建（Go 后端 + Next 前端）→ 切 current 软链
-#           → systemd 重启 Go 后端、PM2 reload 前端 → 健康检查 → 失败自动回滚
+# 发布流程（全部在服务器上执行 deploy/deploy.sh）：
+#   本地 CI 交叉编译 Linux 后端 → rsync 到 releases/<时间戳>-<sha7>/
+#   → 服务器 npm ci + next build → 切 current 软链
+#   → systemctl restart blog-server + PM2 reload blog-web
+#   → 两端健康检查 → 按需 revalidate → 失败自动回滚
 # ─────────────────────────────────────────────────────────────────────────────
 name: Deploy
 
@@ -26,6 +31,9 @@ on:
         options: [deploy, rollback, bootstrap]
         default: deploy
 
+permissions:
+  contents: read
+
 # 同一时间只允许一个发布任务，避免两次部署交叉切换软链
 concurrency:
   group: deploy-${{ github.ref }}
@@ -38,6 +46,7 @@ jobs:
   verify:
     name: 类型检查与 Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -49,7 +58,7 @@ jobs:
 
       - name: 安装前端依赖
         working-directory: blog-fronted
-        run: npm ci --no-audit --no-fund
+        run: npm ci --include=dev --no-audit --no-fund
 
       - name: 前端类型检查
         working-directory: blog-fronted
@@ -74,21 +83,32 @@ jobs:
         working-directory: blog-server
         run: go test ./...
 
-      - name: 后端构建
+      - name: 后端构建（Linux 发布产物）
         working-directory: blog-server
-        run: CGO_ENABLED=0 go build ./cmd/server
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -trimpath -ldflags "-s -w" -o bin/server ./cmd/server
+
+      - name: 上传后端二进制
+        uses: actions/upload-artifact@v4
+        with:
+          name: blog-server-linux
+          path: blog-server/bin/server
+          retention-days: 7
 
   deploy:
-    name: 发布到 ECS
+    name: 发布到服务器
     needs: verify
     # PR 不部署；main 的 push 与手动触发才部署
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment: production
     env:
       APP_ROOT: ${{ vars.APP_ROOT || '/www/wwwroot/personal-blog' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://fantasynote.cloud' }}
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
       SSH_PORT: ${{ secrets.SSH_PORT || 22 }}
@@ -96,6 +116,17 @@ jobs:
       SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: 下载后端二进制
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: blog-server-linux
+          path: blog-server/bin
+
+      - name: 还原可执行权限
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        run: chmod +x blog-server/bin/server
 
       - name: 准备 SSH
         run: |
@@ -117,7 +148,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
-            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / $(node -v 2>/dev/null || echo "node 未安装")"'
+            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装) / go=$(go version 2>/dev/null | awk "{print \$3}" || echo 未安装)"'
 
       - name: 计算发布目录名
         id: rel
@@ -139,15 +170,21 @@ jobs:
             --exclude '.github' \
             --exclude 'node_modules' \
             --exclude '.next' \
-            --exclude 'dist'
-            --exclude 'bin' \
+            --exclude 'dist' \
+            --exclude 'blog-server/bin/*.exe' \
+            --exclude 'blog-server/testdata' \
+            --exclude 'blog-server/backups' \
+            --exclude 'blog-server/.gocache' \
+            --exclude 'blog-server/.gomodcache' \
+            --exclude 'blog-server/.gopath' \
             --exclude 'uploads' \
             --exclude '.env' \
             --exclude '.env.local' \
             --exclude '*.tsbuildinfo' \
             --exclude '.idea' \
             --exclude '.vscode' \
-            --exclude 'reasonix.toml' \
+            --exclude '.tools' \
+            --exclude 'perf-baseline' \
             -e "ssh -p $SSH_PORT -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
             ./ "$SSH_USER@$SSH_HOST:$APP_ROOT/releases/$REL/"
 
@@ -174,6 +211,20 @@ jobs:
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$SSH_USER@$SSH_HOST" \
             "bash '$APP_ROOT/current/deploy/deploy.sh' rollback"
 
+      - name: 线上健康检查
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.action != 'rollback' }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 12); do
+            if curl -fsS --max-time 5 "$SITE_URL/api/health" >/dev/null; then
+              echo "线上健康：$SITE_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::线上健康检查失败：$SITE_URL/api/health"
+          exit 1
+
       - name: 汇总
         if: always()
         run: |
@@ -185,5 +236,6 @@ jobs:
             echo "| 动作 | ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'deploy' }} |"
             echo "| 提交 | \`${{ github.sha }}\` |"
             echo "| 发布目录 | \`${{ steps.rel.outputs.name }}\` |"
+            echo "| 站点 | $SITE_URL |"
             echo "| 结果 | ${{ job.status }} |"
           } >> "$GITHUB_STEP_SUMMARY"
