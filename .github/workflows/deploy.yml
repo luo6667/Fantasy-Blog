@@ -133,8 +133,20 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+
+          # Secret 里偶尔会被粘成一行、带 \n 字面量或 CRLF，这里统一还原成合法私钥
+          printf '%s\n' "$SSH_PRIVATE_KEY" | sed 's/\\n/\n/g' | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+
+          if ! head -1 ~/.ssh/deploy_key | grep -q 'BEGIN .*PRIVATE KEY'; then
+            echo "::error::SSH_PRIVATE_KEY 首行不是私钥头，请确认复制的是私钥（-----BEGIN OPENSSH PRIVATE KEY-----）而不是公钥"
+            exit 1
+          fi
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key >/dev/null 2>&1; then
+            echo "::error::SSH_PRIVATE_KEY 无法被 OpenSSH 解析：检查是否粘成公钥、丢失换行、带口令，或是 PuTTY .ppk"
+            exit 1
+          fi
+          echo "私钥校验通过：$(ssh-keygen -l -f ~/.ssh/deploy_key)"
 
           if [ -n "${SSH_KNOWN_HOSTS:-}" ]; then
             # 推荐：把服务器公钥指纹固定成 Secret，防中间人
@@ -148,7 +160,8 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
-            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装) / go=$(go version 2>/dev/null | awk "{print \$3}" || echo 未安装)"'
+            -o BatchMode=yes -o ConnectTimeout=10 \
+            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装)"'
 
       - name: 计算发布目录名
         id: rel
