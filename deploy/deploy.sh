@@ -234,7 +234,9 @@ build_frontend() {
   (
     cd "$rel/blog-fronted"
     npm ci --include=dev --no-audit --no-fund
-    API_TARGET="http://127.0.0.1:${API_PORT}" npm run build
+    # 低内存服务器（1–2G）构建 Next 容易 OOM，限制 V8 堆并交给 swap 兜底
+    NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" \
+      API_TARGET="http://127.0.0.1:${API_PORT}" npm run build
   )
   [ -f "$rel/blog-fronted/.next/BUILD_ID" ] || { err "前端构建产物缺失：.next/BUILD_ID"; exit 1; }
   ok "前端构建完成"
