@@ -159,8 +159,20 @@ jobs:
           fi
           chmod 600 ~/.ssh/known_hosts
 
+          # Secret 里容易粘进尾部空格/换行，这里清洗后再连（否则会变成 "root " 这种非法用户名）
+          SSH_USER="$(printf '%s' "${SSH_USER:-}" | tr -d '[:space:]')"
+          SSH_HOST="$(printf '%s' "${SSH_HOST:-}" | tr -d '[:space:]')"
+          SSH_PORT="$(printf '%s' "${SSH_PORT:-22}" | tr -d '[:space:]')"
+          [ -n "$SSH_USER" ] && [ -n "$SSH_HOST" ] || { echo "::error::SSH_USER / SSH_HOST 为空"; exit 1; }
+          echo "目标：${SSH_USER}@${SSH_HOST}:${SSH_PORT}（user_len=${#SSH_USER} host_len=${#SSH_HOST}）"
+          {
+            echo "SSH_USER=$SSH_USER"
+            echo "SSH_HOST=$SSH_HOST"
+            echo "SSH_PORT=$SSH_PORT"
+          } >> "$GITHUB_ENV"
+
           ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
-            -o BatchMode=yes -o ConnectTimeout=10 \
+            -o BatchMode=yes -o ConnectTimeout=10 -o PreferredAuthentications=publickey \
             "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装)"'
 
       - name: 计算发布目录名
