@@ -165,15 +165,19 @@ jobs:
           SSH_PORT="$(printf '%s' "${SSH_PORT:-22}" | tr -d '[:space:]')"
           [ -n "$SSH_USER" ] && [ -n "$SSH_HOST" ] || { echo "::error::SSH_USER / SSH_HOST 为空"; exit 1; }
           echo "目标：${SSH_USER}@${SSH_HOST}:${SSH_PORT}（user_len=${#SSH_USER} host_len=${#SSH_HOST}）"
+          echo "用户名指纹：$(printf '%s' "$SSH_USER" | sha256sum | cut -c1-12)（root=4813494d137e / user=04f8996da763）"
           {
             echo "SSH_USER=$SSH_USER"
             echo "SSH_HOST=$SSH_HOST"
             echo "SSH_PORT=$SSH_PORT"
           } >> "$GITHUB_ENV"
 
-          ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+          if ! ssh -p "$SSH_PORT" -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
             -o BatchMode=yes -o ConnectTimeout=10 -o PreferredAuthentications=publickey \
-            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装)"'
+            "$SSH_USER@$SSH_HOST" 'echo "SSH 连通：$(hostname) / node=$(node -v 2>/dev/null || echo 未安装)"'; then
+            echo "::error::SSH 认证失败。若服务器 /var/log/secure 出现 'Invalid user xxx'，说明 Secret 里的用户名不是 root；注意 Environment(production) 的 Secret 会覆盖仓库级 Secret。"
+            exit 1
+          fi
 
       - name: 计算发布目录名
         id: rel
