@@ -4,8 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { ArticleHeading } from '@/types/api'
 
-const CHINESE_NUMERALS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
-
 function ListIcon() {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
@@ -14,17 +12,35 @@ function ListIcon() {
   )
 }
 
-/** 目录编号：h2 用中文序号，h3 不编号 */
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+      aria-hidden
+    >
+      <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function headingLabel(headings: ArticleHeading[], index: number) {
   const heading = headings[index]
   if (!heading || heading.level !== 2) return null
   const section = headings.slice(0, index + 1).filter((item) => item.level === 2).length
-  const label = CHINESE_NUMERALS[section - 1] ?? String(section)
-  return `${label}、`
+  return `${String(section)}.`
 }
 
-/** 根据滚动位置判断当前章节：取最后一个越过参考线的标题。
- *  点击目录后到平滑滚动结束前锁定，避免途经的标题让高亮来回跳。 */
+/** H2 序号由目录统一生成，避免正文手写编号与目录编号重复。 */
+function displayHeadingText(heading: ArticleHeading, generatedLabel: string | null) {
+  if (!generatedLabel) return heading.text
+  return heading.text.replace(/^\s*\d+\s*[.、．:：]\s*/, '')
+}
+
+/** 根据正文滚动位置判断当前标题。 */
 function useActiveHeading(headings: ArticleHeading[], lockedRef: { current: boolean }) {
   const [activeID, setActiveID] = useState(headings[0]?.id ?? '')
 
@@ -35,18 +51,13 @@ function useActiveHeading(headings: ArticleHeading[], lockedRef: { current: bool
     const update = () => {
       frame = 0
       if (lockedRef.current) return
+
       const reference = Math.min(window.innerHeight * 0.28, 240)
       let current = headings[0]?.id ?? ''
       for (const heading of headings) {
         const element = document.getElementById(heading.id)
-        if (!element) continue
-        if (element.getBoundingClientRect().top <= reference) current = heading.id
+        if (element && element.getBoundingClientRect().top <= reference) current = heading.id
       }
-      // 滚到文章末尾时保持最后一个标题高亮
-      const last = headings[headings.length - 1]
-      const lastElement = last ? document.getElementById(last.id) : null
-      if (last && lastElement && lastElement.getBoundingClientRect().top <= reference)
-        current = last.id
       setActiveID((previous) => (previous === current ? previous : current))
     }
 
@@ -67,6 +78,71 @@ function useActiveHeading(headings: ArticleHeading[], lockedRef: { current: bool
   return [activeID, setActiveID] as const
 }
 
+/** 将当前目录项放至可视中部；浏览开头和末尾时由浏览器自然截断，避免制造空白。 */
+function centerActiveItem(scroll: HTMLElement | null, activeID: string) {
+  if (!scroll) return
+  const target = scroll.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
+  if (!target) return
+
+  const desired = Math.min(
+    Math.max(0, target.offsetTop + target.offsetHeight / 2 - scroll.clientHeight / 2),
+    Math.max(0, scroll.scrollHeight - scroll.clientHeight),
+  )
+  scroll.scrollTo({ top: desired, behavior: 'smooth' })
+}
+
+function TocEntries({
+  headings,
+  activeID,
+  onActivate,
+  inlineMarker = true,
+}: {
+  headings: ArticleHeading[]
+  activeID: string
+  onActivate: (id: string) => void
+  inlineMarker?: boolean
+}) {
+  return (
+    <ol>
+      {headings.map((heading, index) => {
+        const label = headingLabel(headings, index)
+        const active = activeID === heading.id
+        return (
+          <li key={heading.id}>
+            <a
+              href={`#${heading.id}`}
+              data-heading-id={heading.id}
+              aria-current={active ? 'location' : undefined}
+              onClick={(event) => {
+                event.preventDefault()
+                onActivate(heading.id)
+              }}
+              className={`flex items-baseline gap-2 break-words py-1.5 text-[0.8125rem] leading-6 transition-colors ${
+                active
+                  ? 'font-semibold text-accent'
+                  : 'text-text-muted hover:text-[var(--color-text)]'
+              } ${inlineMarker ? 'relative rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent before:absolute before:inset-y-1 before:-left-4 before:w-0.5 before:rounded-full before:bg-accent before:transition-[opacity,transform] before:duration-150' : ''} ${
+                inlineMarker && active
+                  ? 'before:scale-y-100 before:opacity-100'
+                  : inlineMarker
+                    ? 'before:scale-y-75 before:opacity-0'
+                    : ''
+              }`}
+            >
+              {label && (
+                <span className={`shrink-0 ${active ? 'text-accent' : 'text-text-muted'}`}>
+                  {label}
+                </span>
+              )}
+              <span className={label ? '' : 'pl-9'}>{displayHeadingText(heading, label)}</span>
+            </a>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
 function DesktopTOC({
   headings,
   activeID,
@@ -76,81 +152,48 @@ function DesktopTOC({
   activeID: string
   onActivate: (id: string) => void
 }) {
-  const listRef = useRef<HTMLOListElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [indicator, setIndicator] = useState({ top: 0, height: 24 })
-  const [animated, setAnimated] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [indicator, setIndicator] = useState({ top: 0, height: 0 })
 
-  // 章节切换时让指示线从旧位置滑到新位置；手动滚目录时立即跟随，避免拖影子。
-  useEffect(() => {
-    setAnimated(true)
-    const timer = window.setTimeout(() => {
-      setAnimated(false)
-    }, 420)
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [activeID])
-
-  // 计算指示线位置：高度跟随当前条目（多行时变长），并限制在滚动容器内
   const positionIndicator = useCallback(() => {
-    const list = listRef.current
-    const scroll = scrollRef.current
-    if (!list || !scroll) return
-    const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
+    const content = contentRef.current
+    if (!content) return
+    const target = content.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
     if (!target) return
-    const viewport = scroll.clientHeight
-    const height = Math.min(target.offsetHeight, viewport)
-    const top = Math.min(Math.max(target.offsetTop - scroll.scrollTop, 0), viewport - height)
+
+    const contentRect = content.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const top = targetRect.top - contentRect.top
+    const height = targetRect.height
     setIndicator((previous) =>
       previous.top === top && previous.height === height ? previous : { top, height },
     )
   }, [activeID])
 
-  // 章节变化时（滚动正文或点击目录）把当前条目滚入可视区，再对齐指示线
   useEffect(() => {
-    const list = listRef.current
-    const scroll = scrollRef.current
-    if (!list || !scroll) return
-    const target = list.querySelector<HTMLElement>(`[data-heading-id="${activeID}"]`)
-    if (!target) return
-
-    const edge = 12
-    const viewport = scroll.clientHeight
-    const itemTop = target.offsetTop - scroll.scrollTop
-    let nextScroll = scroll.scrollTop
-    if (itemTop < edge) nextScroll = Math.max(0, target.offsetTop - edge)
-    else if (itemTop + target.offsetHeight > viewport - edge)
-      nextScroll = target.offsetTop + target.offsetHeight - viewport + edge
-    if (nextScroll !== scroll.scrollTop) scroll.scrollTop = nextScroll
-
-    const frame = window.requestAnimationFrame(positionIndicator)
+    const frame = window.requestAnimationFrame(() => {
+      positionIndicator()
+      centerActiveItem(scrollRef.current, activeID)
+    })
     return () => {
       window.cancelAnimationFrame(frame)
     }
   }, [activeID, positionIndicator])
 
-  // 手动滚动目录时只重新对齐指示线，不自动滚动目录，避免抽搐
   useEffect(() => {
-    const scroll = scrollRef.current
-    if (!scroll) return
-    let frame = 0
-    const onScroll = () => {
-      if (frame !== 0) return
-      frame = window.requestAnimationFrame(() => {
-        frame = 0
-        positionIndicator()
-      })
+    const onResize = () => {
+      positionIndicator()
+      centerActiveItem(scrollRef.current, activeID)
     }
-    scroll.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onResize)
     return () => {
-      if (frame !== 0) window.cancelAnimationFrame(frame)
-      scroll.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onResize)
     }
-  }, [positionIndicator])
+  }, [activeID, positionIndicator])
 
   return (
-    <aside className="fixed right-6 top-24 z-20 hidden w-52 min-[1400px]:block xl:right-8">
+    <aside className="fixed right-6 top-24 z-20 hidden w-52 min-[1400px]:block xl:right-8" aria-label="本文目录">
       <p className="flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-text-muted">
         <span className="h-3.5 w-3.5 text-accent">
           <ListIcon />
@@ -158,49 +201,19 @@ function DesktopTOC({
         本文目录
       </p>
       <div className="relative mt-3 max-h-[calc(100vh-9rem)]">
-        <span
-          className="pointer-events-none absolute bottom-0 left-0 top-0 w-px bg-[var(--color-border)]"
-          aria-hidden
-        />
-        <span
-          className={`pointer-events-none absolute left-[-0.5px] z-10 w-[1.5px] -translate-x-1/2 rounded-full bg-accent ${
-            animated ? 'transition-[top,height] duration-300 ease-out' : ''
-          }`}
-          style={{ top: `${String(indicator.top)}px`, height: `${String(indicator.height)}px` }}
-          aria-hidden
-        />
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-px bg-[var(--color-border)]" aria-hidden />
         <div
           ref={scrollRef}
           className="max-h-[calc(100vh-9rem)] overflow-y-auto pl-4 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <ol ref={listRef}>
-            {headings.map((heading, index) => {
-              const label = headingLabel(headings, index)
-              const active = activeID === heading.id
-              return (
-                <li key={heading.id}>
-                  <a
-                    href={`#${heading.id}`}
-                    data-heading-id={heading.id}
-                    onClick={(event) => {
-                      event.preventDefault()
-                      onActivate(heading.id)
-                    }}
-                    className={`flex items-baseline gap-2 break-words py-1.5 text-[0.8125rem] leading-6 transition-colors ${
-                      active ? 'font-semibold text-accent' : 'text-text-muted hover:text-[var(--color-text)]'
-                    }`}
-                  >
-                    {label && (
-                      <span className={`shrink-0 ${active ? 'text-accent' : 'text-text-muted'}`}>
-                        {label}
-                      </span>
-                    )}
-                    <span className={label ? '' : 'pl-3'}>{heading.text}</span>
-                  </a>
-                </li>
-              )
-            })}
-          </ol>
+          <div ref={contentRef} className="relative">
+            <span
+              className="pointer-events-none absolute -left-4 z-10 w-0.5 rounded-full bg-accent transition-[top,height] duration-300 ease-out"
+              style={{ top: `${String(indicator.top)}px`, height: `${String(indicator.height)}px` }}
+              aria-hidden
+            />
+            <TocEntries headings={headings} activeID={activeID} onActivate={onActivate} inlineMarker={false} />
+          </div>
         </div>
       </div>
     </aside>
@@ -216,51 +229,47 @@ function MobileTOC({
   activeID: string
   onActivate: (id: string) => void
 }) {
-  const activeRef = useRef<HTMLAnchorElement>(null)
-  const scrollerRef = useRef<HTMLElement>(null)
+  const [open, setOpen] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // 只滚动标签条本身：scrollIntoView 会连带滚动窗口，导致手机上滑到一半被拉回顶部
   useEffect(() => {
-    const item = activeRef.current
-    const box = scrollerRef.current
-    if (!item || !box) return
-    const delta = item.getBoundingClientRect().left - box.getBoundingClientRect().left
-    box.scrollBy({ left: delta - (box.clientWidth - item.clientWidth) / 2, behavior: 'smooth' })
-  }, [activeID])
+    if (!open) return
+    const frame = window.requestAnimationFrame(() => {
+      centerActiveItem(scrollRef.current, activeID)
+    })
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [activeID, open])
 
   return (
-    <nav
-      ref={scrollerRef}
-      className="mb-8 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-[1400px]:hidden"
-      aria-label="文章目录"
-    >
-      {headings.map((heading, index) => {
-        const label = headingLabel(headings, index)
-        const active = activeID === heading.id
-        return (
-          <a
-            key={heading.id}
-            ref={active ? activeRef : undefined}
-            href={`#${heading.id}`}
-            onClick={(event) => {
-              event.preventDefault()
-              onActivate(heading.id)
-            }}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors ${
-              active
-                ? 'border-accent/40 bg-accent-soft font-semibold text-accent'
-                : 'border-[var(--color-border)] text-text-muted hover:border-[var(--color-border)] hover:text-[var(--color-text)]'
-            }`}
-          >
-            {label ? `${label}${heading.text}` : heading.text}
-          </a>
-        )
-      })}
+    <nav className="mb-8 mt-6 rounded-md border border-[var(--color-border-light)] bg-[var(--color-bg-alt)]/45 p-3 min-[1400px]:hidden" aria-label="本文目录">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen((previous) => !previous)
+        }}
+        className="flex w-full items-center gap-2 text-left text-xs font-semibold tracking-[0.12em] text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <span className="h-3.5 w-3.5 text-accent">
+          <ListIcon />
+        </span>
+        本文目录
+        <span className="ml-auto text-text-muted">
+          <ChevronIcon expanded={open} />
+        </span>
+      </button>
+      {open && (
+        <div ref={scrollRef} className="scrollbar-slim mt-2 max-h-72 overflow-y-auto border-l border-[var(--color-border)] pl-3 pr-1">
+          <TocEntries headings={headings} activeID={activeID} onActivate={onActivate} />
+        </div>
+      )}
     </nav>
   )
 }
 
-/** 文章正文目录：h2 / h3 两个层级，桌面吸顶侧栏，窄屏横向标签。 */
+/** 文章正文目录：桌面端跟随当前阅读标题，移动端使用外层折叠面板。 */
 export default function ArticleTOC({
   headings,
   variant = 'both',
@@ -278,7 +287,6 @@ export default function ArticleTOC({
     }
   }, [])
 
-  // 点击目录：先更新高亮并让指示线滑过去，再平滑滚动正文；滚动期间锁定高亮。
   const activate = useCallback(
     (id: string) => {
       lockedRef.current = true

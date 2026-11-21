@@ -1,0 +1,18 @@
+{
+  "collection": "ms_personal_page_c4f4b3ef",
+  "failed_files": [],
+  "indexed_chunks": 3,
+  "indexed_files": 2,
+  "last_completed_at": "2026-11-19T07:17:54.760125Z",
+  "last_started_at": "2026-11-19T07:17:47.999429Z",
+  "last_success_at": "2026-11-19T07:17:54.760125Z",
+  "milvus_uri": "C:\\Users\\26276/.memsearch/milvus.db",
+  "operation": "index",
+  "paths": [
+    "E:\\qdzl\\personal\\zhuye\\Personal Page\\.memsearch\\memory"
+  ],
+  "schema_version": 1,
+  "status": "ok",
+  "total_files": 2,
+  "updated_at": "2026-11-19T07:17:54.760125Z"
+}
