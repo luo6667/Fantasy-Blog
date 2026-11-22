@@ -1,9 +1,14 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"os"
@@ -11,10 +16,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gen2brain/webp"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/image/draw"
 
 	"blog-server/internal/httpx"
 )
+
+const (
+	maxImagePixels   = 24_000_000
+	masterImageWidth = 1600
+)
+
+var imageVariantWidths = []int{480, 960}
 
 // mimeExt 是允许的图片类型与存盘扩展名（与旧版一致）。
 var mimeExt = map[string]string{
@@ -43,6 +57,64 @@ func sniffImage(buf []byte) string {
 		}
 	}
 	return ""
+}
+
+func decodeStaticImage(buf []byte, mimetype string) (image.Image, error) {
+	if mimetype == "image/webp" {
+		return webp.Decode(bytes.NewReader(buf), webp.Options{AutoRotate: true})
+	}
+	img, _, err := image.Decode(bytes.NewReader(buf))
+	return img, err
+}
+
+func resizeToWidth(source image.Image, width int) image.Image {
+	bounds := source.Bounds()
+	if bounds.Dx() <= width {
+		return source
+	}
+	height := bounds.Dy() * width / bounds.Dx()
+	resized := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.CatmullRom.Scale(resized, resized.Bounds(), source, bounds, draw.Over, nil)
+	return resized
+}
+
+func writeWebP(path string, source image.Image) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return webp.Encode(file, source, webp.Options{Quality: 82, Method: 4})
+}
+
+// storeOptimizedImage 把静态图片转为 WebP 主图，并为正文生成小屏变体；GIF 保持原格式以保留动画。
+func storeOptimizedImage(dir, stem, originalExt, mimetype string, buf []byte) (string, int, int, error) {
+	if mimetype == "image/gif" {
+		filename := stem + originalExt
+		return filename, 0, 0, os.WriteFile(filepath.Join(dir, filename), buf, 0o644)
+	}
+	img, err := decodeStaticImage(buf, mimetype)
+	if err != nil {
+		return "", 0, 0, err
+	}
+	bounds := img.Bounds()
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 || int64(bounds.Dx())*int64(bounds.Dy()) > maxImagePixels {
+		return "", 0, 0, errors.New("image dimensions are unsupported")
+	}
+	master := resizeToWidth(img, masterImageWidth)
+	filename := stem + ".webp"
+	if err := writeWebP(filepath.Join(dir, filename), master); err != nil {
+		return "", 0, 0, err
+	}
+	for _, width := range imageVariantWidths {
+		if master.Bounds().Dx() <= width {
+			continue
+		}
+		if err := writeWebP(filepath.Join(dir, fmt.Sprintf("%s-%d.webp", stem, width)), resizeToWidth(master, width)); err != nil {
+			return "", 0, 0, err
+		}
+	}
+	return filename, master.Bounds().Dx(), master.Bounds().Dy(), nil
 }
 
 // uploadImage 上传图片（multipart 字段名 image）。
@@ -93,16 +165,25 @@ func (a *App) uploadImage(c *gin.Context) error {
 	if _, err := rand.Read(id); err != nil {
 		return err
 	}
-	filename := fmt.Sprintf("%d-%s%s", time.Now().UnixMilli(), formatUUID(id), mimeExt[detected])
-	if err := os.WriteFile(filepath.Join(a.Cfg.UploadDirAbs, filename), buf, 0o644); err != nil {
+	stem := fmt.Sprintf("%d-%s", time.Now().UnixMilli(), formatUUID(id))
+	filename, width, height, err := storeOptimizedImage(a.Cfg.UploadDirAbs, stem, mimeExt[detected], detected, buf)
+	if err != nil {
 		return err
+	}
+	url := "/uploads/" + filename
+	storedMIME := detected
+	if width > 0 && height > 0 {
+		url = fmt.Sprintf("%s?optimized=1&w=%d&h=%d", url, width, height)
+		storedMIME = "image/webp"
 	}
 
 	httpx.SuccessMsg(c, 201, "Uploaded successfully", gin.H{
-		"url":      "/uploads/" + filename,
+		"url":      url,
 		"filename": filename,
 		"size":     len(buf),
-		"mimetype": detected,
+		"mimetype": storedMIME,
+		"width":    width,
+		"height":   height,
 	})
 	return nil
 }

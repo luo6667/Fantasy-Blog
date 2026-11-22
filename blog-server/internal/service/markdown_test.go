@@ -44,6 +44,16 @@ func TestRenderMarkdownStripsEventHandlers(t *testing.T) {
 	}
 }
 
+func TestBuildTableOfContentsEnhancesOptimizedImages(t *testing.T) {
+	html, _ := RenderMarkdown("![图](/uploads/a.webp?optimized=1&w=1600&h=900)")
+	got, _ := BuildTableOfContents(html)
+	for _, want := range []string{"loading=\"lazy\"", "decoding=\"async\"", "width=\"1600\"", "height=\"900\"", "srcset="} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("optimized image missing %s: %s", want, got)
+		}
+	}
+}
+
 func TestBuildTableOfContentsAddsStableAnchors(t *testing.T) {
 	body, toc := BuildTableOfContents("<h1>文章标题</h1><h2>第一节</h2><p>正文</p><h3>细节</h3><h2>第二节</h2>")
 	if len(toc) != 3 {

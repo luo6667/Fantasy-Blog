@@ -2,6 +2,8 @@ package service
 
 import (
 	"bytes"
+	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -36,6 +38,7 @@ func newSanitizer() *bluemonday.Policy {
 	)
 	p.AllowAttrs("href", "title").OnElements("a")
 	p.AllowAttrs("src", "alt", "title", "width", "height").OnElements("img")
+	p.AllowAttrs("loading", "decoding", "srcset", "sizes").OnElements("img")
 	p.AllowAttrs("align", "colspan", "rowspan").OnElements("th", "td")
 	p.AllowAttrs("type", "checked", "disabled").OnElements("input")
 	p.AllowAttrs("class").Matching(regexp.MustCompile(`^language-[A-Za-z0-9_+-]+$`)).OnElements("code")
@@ -78,6 +81,9 @@ func BuildTableOfContents(source string) (string, []Heading) {
 	index := 0
 	var visit func(*xhtml.Node)
 	visit = func(node *xhtml.Node) {
+		if node.Type == xhtml.ElementNode && node.Data == "img" {
+			enhanceImage(node)
+		}
 		if node.Type == xhtml.ElementNode && (node.Data == "h2" || node.Data == "h3") {
 			index++
 			level := 2
@@ -100,6 +106,48 @@ func BuildTableOfContents(source string) (string, []Heading) {
 		}
 	}
 	return strings.TrimSpace(out.String()), toc
+}
+
+func enhanceImage(node *xhtml.Node) {
+	setHTMLAttr(node, "loading", "lazy")
+	setHTMLAttr(node, "decoding", "async")
+	src := htmlAttr(node, "src")
+	parsed, err := url.Parse(src)
+	if err != nil || parsed.Query().Get("optimized") != "1" {
+		return
+	}
+	q := parsed.Query()
+	width, widthErr := strconv.Atoi(q.Get("w"))
+	height, heightErr := strconv.Atoi(q.Get("h"))
+	if width <= 0 || height <= 0 || widthErr != nil || heightErr != nil {
+		return
+	}
+	setHTMLAttr(node, "width", strconv.Itoa(width))
+	setHTMLAttr(node, "height", strconv.Itoa(height))
+	setHTMLAttr(node, "sizes", "(max-width: 860px) 100vw, 860px")
+	sources := make([]string, 0, 3)
+	for _, candidate := range []int{480, 960, 1600} {
+		if candidate > width {
+			continue
+		}
+		variant := *parsed
+		variantQuery := variant.Query()
+		variantQuery.Set("w", strconv.Itoa(candidate))
+		variant.RawQuery = variantQuery.Encode()
+		sources = append(sources, fmt.Sprintf("%s %dw", variant.String(), candidate))
+	}
+	if len(sources) > 0 {
+		setHTMLAttr(node, "srcset", strings.Join(sources, ", "))
+	}
+}
+
+func htmlAttr(node *xhtml.Node, key string) string {
+	for _, attr := range node.Attr {
+		if attr.Key == key {
+			return attr.Val
+		}
+	}
+	return ""
 }
 
 func findElement(node *xhtml.Node, name string) *xhtml.Node {

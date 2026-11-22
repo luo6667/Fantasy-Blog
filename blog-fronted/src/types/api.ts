@@ -123,6 +123,8 @@ export interface UploadResult {
   filename: string
   size: number
   mimetype: string
+  width?: number
+  height?: number
 }
 
 /** 站点内容 key：简历页内容 + 首页精选项目 + 规划页路线图 */

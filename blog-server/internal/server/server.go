@@ -124,6 +124,14 @@ func (a *App) uploads(r *gin.Engine) {
 			httpx.Fail(c, 404, "Route not found: "+c.Request.Method+" "+c.Request.URL.RequestURI())
 			return
 		}
+		// 优化图片的 srcset 使用 ?w=480/960 请求已生成的 WebP 变体；不存在时回退主图。
+		if width := c.Query("w"); width == "480" || width == "960" {
+			ext := filepath.Ext(absFull)
+			candidate := strings.TrimSuffix(absFull, ext) + "-" + width + ".webp"
+			if variant, err := os.Stat(candidate); err == nil && !variant.IsDir() {
+				absFull = candidate
+			}
+		}
 		c.Header("Cache-Control", "public, max-age=31536000, immutable")
 		c.Header("X-Content-Type-Options", "nosniff")
 		if c.Request.Method == http.MethodHead {

@@ -92,12 +92,14 @@ export default function ArticleEditor() {
     }
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
+    const scrollTop = ta.scrollTop;
     const next = content.slice(0, start) + text + content.slice(end);
     setContent(next);
     requestAnimationFrame(() => {
       ta.focus();
       const pos = start + text.length;
       ta.setSelectionRange(pos, pos);
+      ta.scrollTop = scrollTop;
     });
   }
 
