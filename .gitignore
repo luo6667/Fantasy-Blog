@@ -34,3 +34,9 @@ blog-server/backups/
 # CI 构建的前端 standalone 产物（只应存在于 Actions / 部署服务器）
 web-standalone/
 web-standalone.tgz
+
+# 本地部署打包临时文件（上传服务器后即可删除）
+release-artifacts/
+
+# 工作流文件
+.github/

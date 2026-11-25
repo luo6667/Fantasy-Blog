@@ -18,9 +18,9 @@ export default function Footer() {
           <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-accent">Independent creator</p>
           <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.04em] text-[var(--color-text)]">Fantasy</h2>
           <p className="mt-4 max-w-[26ch] text-base leading-[1.7] text-text-secondary">
-            Seek depth
+            Actions speak 
             <br />
-            Embrace outward
+            louder than words
           </p>
         </section>
 

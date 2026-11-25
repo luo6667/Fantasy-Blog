@@ -1,0 +1,27 @@
+.scene {
+  width: 100%;
+  max-width: 370px;
+  margin-inline: auto;
+  text-align: center;
+}
+.image {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin-inline: auto;
+}
+.caption {
+  margin-top: -7px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+@media (max-width: 767px) {
+  .scene {
+    max-width: 250px;
+  }
+  .image {
+    max-width: 250px;
+  }
+}

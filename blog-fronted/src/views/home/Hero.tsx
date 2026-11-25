@@ -5,6 +5,8 @@ import { motion, useReducedMotion } from 'motion/react';
 import { MotionLink } from '@/components/common';
 import { springBtn, springHero } from '@/lib/motion';
 
+import DeskCat from './DeskCat';
+
 function ArrowIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -33,10 +35,10 @@ function PersonIcon({ className = '' }: { className?: string }) {
 }
 
 /**
- * 首页 Hero：创作宣言 + 静态几何拼贴
+ * 首页 Hero：创作宣言 + 敲代码的 CC 猫循环动图
  *
  * - 首屏文字不依赖动画即可读；减少动态偏好时直接静态呈现；
- * - 右侧拼贴全部是 CSS 几何块，不加载图片/视频，也不使用模糊滤镜。
+ * - 右侧为循环 GIF；减少动态或页面不可见时显示静态图。
  */
 export default function Hero() {
   const reduce = useReducedMotion();
@@ -74,7 +76,7 @@ export default function Hero() {
           >
             LEARN · CREATE · SHARE · GAIN · GROW
             <br />
-            Seek depth, embrace outward
+            Actions speak louder than words
           </motion.p>
 
           <motion.div
@@ -108,32 +110,7 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        <div aria-hidden className="relative mx-auto hidden aspect-[4/3.2] w-full max-w-[420px] md:block">
-          {/* 纸张底卡 */}
-          <div className="absolute inset-x-3 top-4 bottom-6 -rotate-2 border border-[var(--color-border)] bg-[var(--color-surface)]" />
-          {/* 细网格 */}
-          <div
-            className="absolute inset-x-3 top-4 bottom-6 -rotate-2"
-            style={{
-              backgroundImage:
-                'linear-gradient(to right, var(--color-border-light) 1px, transparent 1px), linear-gradient(to bottom, var(--color-border-light) 1px, transparent 1px)',
-              backgroundSize: '28px 28px',
-            }}
-          />
-          {/* 钴蓝圆 */}
-          <div className="absolute -right-2 bottom-2 h-40 w-40 rounded-full bg-accent" />
-          {/* 圆环 */}
-          <div className="absolute left-4 top-6 h-24 w-24 rounded-full border border-accent/40" />
-          {/* 索引 */}
-          <div className="absolute left-10 top-12 text-[3.4rem] font-extrabold leading-none tracking-[-0.05em] text-accent">
-            01
-          </div>
-          {/* 说明条 */}
-          <div className="absolute bottom-10 left-10 right-10 flex items-end justify-between text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-text-muted">
-            <span>Work / Notes</span>
-            <span>2026</span>
-          </div>
-        </div>
+        <DeskCat />
       </div>
     </section>
   );

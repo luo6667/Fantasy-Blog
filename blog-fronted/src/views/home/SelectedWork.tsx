@@ -80,25 +80,25 @@ function SecondaryProject({ project }: { project: HomeProjectItem }) {
 
 function LatestPosts({ posts }: { posts: ArticleListItem[] }) {
   return (
-    <aside className="flex h-full flex-col border border-[var(--color-border)] bg-[var(--color-surface)] p-7 md:p-8">
-      <div className="mb-5 flex items-baseline justify-between">
+    <aside className="flex h-full flex-col border border-[var(--color-border)] bg-[var(--color-surface)] p-7 md:p-8 lg:min-h-0">
+      <div className="mb-5 flex shrink-0 items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-text-muted">Latest notes</h3>
         <Link href="/blog" className="text-sm font-medium text-accent hover:underline">全部文章 →</Link>
       </div>
       {posts.length === 0 ? (
         <p className="border-t border-[var(--color-border)] py-8 text-sm text-text-muted">还没有文章，稍后再来看看。</p>
       ) : (
-        <ul className="flex-1 border-t border-[var(--color-border)]">
+        <ul className="flex-1 border-t border-[var(--color-border)] lg:grid lg:min-h-0 lg:auto-rows-fr">
           {posts.map((post) => (
-            <li key={post.id} className="border-b border-[var(--color-border)]">
-              <Link href={`/blog/${post.id}`} className="group flex items-start justify-between gap-4 py-4">
+            <li key={post.id} className="border-b border-[var(--color-border)] lg:min-h-0">
+              <Link href={`/blog/${post.id}`} className="group flex items-center justify-between gap-4 py-4 lg:h-full">
                 <span className="min-w-0">
                   <span className="mb-1 flex flex-wrap items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-text-muted">
                     <span>{post.date}</span><span className="text-accent">{post.primaryTag.name}</span>
                   </span>
-                  <span className="block text-[1rem] font-semibold leading-[1.5] tracking-[-0.01em] transition-colors group-hover:text-accent">{post.title}</span>
+                  <span className="line-clamp-2 text-[1rem] font-semibold leading-[1.5] tracking-[-0.01em] transition-colors group-hover:text-accent">{post.title}</span>
                 </span>
-                <span aria-hidden className="mt-1 shrink-0 text-accent transition-transform group-hover:translate-x-0.5">→</span>
+                <span aria-hidden className="shrink-0 text-accent transition-transform group-hover:translate-x-0.5">→</span>
               </Link>
             </li>
           ))}
