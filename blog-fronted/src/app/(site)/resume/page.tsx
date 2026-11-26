@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  *   见 blog-server/src/utils/revalidate.ts；
  * - 后端未启动 / 查询失败时吞掉错误，客户端 Resume 的 useQuery 会自行加载并回退默认常量。
  */
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function ResumePage() {
   const qc = new QueryClient();

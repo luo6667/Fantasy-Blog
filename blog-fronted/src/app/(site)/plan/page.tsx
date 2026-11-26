@@ -12,14 +12,13 @@ export const metadata: Metadata = {
   description: '个人成长与学习路线图：阶段目标、当前进展与长期方向',
 };
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 /**
- * /plan 页面（服务端组件 + react-query SSR 预取 + ISR）：
+ * /plan 页面（服务端组件 + react-query SSR 预取）：
  * - 规划内容来自公开接口 /api/site-content/plan，服务端 prefetch 后经 HydrationBoundary 注入，
  *   客户端 Plan 组件（useSiteContentQuery 同 queryKey）直接命中缓存，首屏无 loading；
- * - export const revalidate = 3600：内容改动不频繁，页面静态化、每小时重新生成；
- * - 后台改完规划内容后，后端调用 /api/revalidate 立即重建本页（on-demand）；
+ * - 运行时从后端读取，避免本地/CI 构建无法访问后端时把默认路线写入静态产物；
  * - 后端未启动 / 查询失败时吞掉错误，客户端 useQuery 会自行加载并回退默认常量。
  */
 export default async function PlanPage() {

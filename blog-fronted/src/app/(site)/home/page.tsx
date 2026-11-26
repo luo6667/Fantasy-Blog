@@ -11,9 +11,9 @@ import HomeView from '@/views/home';
  * - homeProjects / plan 直接在服务端取好传给视图，不再注水缓存；
  * - 失败降级：贡献为 null（视图隐藏热力图）、文章为空数组、站点内容用默认常量，
  *   避免服务端与客户端首屏不一致；
- * - export const revalidate = 3600：整页静态化，后台保存后由后端按 key 触发重建。
+ * - 首页内容来自运行中的 Go 后端，避免本地/CI 构建时接口不可用而缓存空数据。
  */
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const contributions = await contributionApi.get().catch(() => null as ContributionsData | null);
